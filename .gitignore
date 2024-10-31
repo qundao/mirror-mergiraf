@@ -1,0 +1,17 @@
+/target
+.vscode
+
+# debug files
+archive/
+debug/
+
+# Other random things
+old/
+media/
+evaluation/
+
+# profiling
+profile.json
+
+# other tools
+gumtree/

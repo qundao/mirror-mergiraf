@@ -1,0 +1,35 @@
+# generated (with small tweaks) from examples/rust/working/struct_declaration
+graph matching {
+    margin=0
+    bgcolor=white
+    subgraph soone {
+        sourcetext[label="struct MyStruct {\l    first: usize\l}\l",shape="box"]
+    }
+    
+    subgraph other {
+      margin=30
+      style=invis
+      l189010827828320[label="source_file",shape="oval"]
+      l189010827650496[label="struct_item",shape="oval"]
+      l189010827655968[label="struct",shape="box"]
+      l189010827650496 -- l189010827655968
+      l189010827655984[label="MyStruct",shape="box"]
+      l189010827650496 -- l189010827655984
+      l189010827656000[label="field_declaration_list",shape="oval"]
+      l189010827791840[label="{",shape="box"]
+      l189010827656000 -- l189010827791840
+      l189010827791856[label="field_declaration",shape="oval"]
+      l189010827787488[label="first",shape="box"]
+      l189010827791856 -- l189010827787488
+      l189010827787504[label=":",shape="box"]
+      l189010827791856 -- l189010827787504
+      l189010827653088[label="usize",shape="box"]
+      l189010827791856 -- l189010827653088
+      l189010827656000 -- l189010827791856
+      l189010827791872[label="}",shape="box"]
+      l189010827656000 -- l189010827791872
+      l189010827650496 -- l189010827656000
+      l189010827828320 -- l189010827650496
+    }
+}
+

@@ -1,0 +1,7 @@
+<root>
+        <foo>1.2.3</foo>
+        <butterfly>1.2.5</butterfly>
+        <slf4j>2.0.12</slf4j>
+        <log4j>2.22.1</log4j>
+        <bar>10.0.16</bar>
+</root>

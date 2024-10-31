@@ -1,0 +1,13 @@
+[book]
+authors = ["Antonin Delpeuch"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Mergiraf"
+
+[output.html.playground]
+runnable = false
+
+[preprocessor.graphviz]
+command = "mdbook-graphviz"
+output-to-file = true

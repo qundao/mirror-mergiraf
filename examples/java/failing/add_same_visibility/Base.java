@@ -1,0 +1,4 @@
+class MyCls {
+        void method() {
+        }
+}

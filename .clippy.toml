@@ -1,0 +1,6 @@
+ignore-interior-mutability = [
+        "mergiraf::tree::AstNode", "crate::tree::AstNode", "crate::AstNode", "mergiraf::AstNode",
+        "mergiraf::tree::AstNode<'_>", "crate::tree::AstNode<'_>", "crate::AstNode<'_>", "mergiraf::AstNode<'_>",
+        "&mergiraf::tree::AstNode<'_>", "&crate::tree::AstNode<'_>", "&crate::AstNode<'_>", "&mergiraf::AstNode<'_>",
+        "mergiraf_tree::AstNode"
+]

@@ -1,0 +1,20 @@
+on: [push]
+jobs:
+  test:
+    runs-on: my-ubuntu-22.04
+    steps:
+      - name: Check out repository
+        uses: https://github.com/actions/checkout@v4
+      - name: Install Rust
+        uses: https://code.forgejo.org/msrd0/rust-toolchain@stable
+        id: rust-toolchain
+      - name: Cache build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            target            
+          key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}}"
+      - name: Run tests
+        run: cargo test --all-features

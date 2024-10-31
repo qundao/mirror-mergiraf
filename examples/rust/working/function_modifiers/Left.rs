@@ -1,0 +1,2 @@
+async fn test() {
+}

@@ -1,0 +1,81 @@
+# generated (with small tweaks) from examples/rust/working/struct_declaration
+graph matching {
+    margin=0
+    bgcolor=white
+    
+    subgraph cluster_one {
+      margin=0
+      style=invis
+      l189010827828320[label="source_file",shape="oval"]
+      l189010827650496[label="struct_item",shape="oval"]
+      l189010827655968[label="struct",shape="box"]
+      l189010827650496 -- l189010827655968
+      l189010827655984[label="MyStruct",shape="box"]
+      l189010827650496 -- l189010827655984
+      l189010827656000[label="field_declaration_list",shape="oval"]
+      l189010827791840[label="{",shape="box"]
+      l189010827656000 -- l189010827791840
+      l189010827791856[label="field_declaration",shape="oval"]
+      l189010827787488[label="first",shape="box"]
+      l189010827791856 -- l189010827787488
+      l189010827787504[label=":",shape="box"]
+      l189010827791856 -- l189010827787504
+      l189010827653088[label="usize",shape="box"]
+      l189010827791856 -- l189010827653088
+      l189010827656000 -- l189010827791856
+      l189010827791872[label="}",shape="box"]
+      l189010827656000 -- l189010827791872
+      l189010827650496 -- l189010827656000
+      l189010827828320 -- l189010827650496
+    }
+    subgraph cluster_two {
+      margin="100,0"
+      style=invis
+      r189010827828320[label="source_file",shape="oval"]
+      r189010827576736[label="struct_item",shape="oval"]
+      r189010827657952[label="struct",shape="box"]
+      r189010827576736 -- r189010827657952
+      r189010827657968[label="MyStruct",shape="box"]
+      r189010827576736 -- r189010827657968
+      r189010827657984[label="field_declaration_list",shape="oval"]
+      r189010827826656[label="{",shape="box"]
+      r189010827657984 -- r189010827826656
+      r189010827826672[label="field_declaration",shape="oval"]
+      r189010827655968[label="first",shape="box"]
+      r189010827826672 -- r189010827655968
+      r189010827655984[label=":",shape="box"]
+      r189010827826672 -- r189010827655984
+      r189010827653088[label="usize",shape="box"]
+      r189010827826672 -- r189010827653088
+      r189010827657984 -- r189010827826672
+      r189010827584800[label=",",shape="box",style=filled,fillcolor="#40e0d0"]
+      r189010827657984 -- r189010827584800
+      r189010827584816[label="field_declaration",shape="oval",style=filled,fillcolor="#40e0d0"]
+      r189010827728800[label="other",shape="box",style=filled,fillcolor="#40e0d0"]
+      r189010827584816 -- r189010827728800
+      r189010827728816[label=":",shape="box",style=filled,fillcolor="#40e0d0"]
+      r189010827584816 -- r189010827728816
+      r189010827650496[label="bool",shape="box",style=filled,fillcolor="#40e0d0"]
+      r189010827584816 -- r189010827650496
+      r189010827657984 -- r189010827584816
+      r189010827826704[label=",",shape="box",style=filled,fillcolor="#40e0d0"]
+      r189010827657984 -- r189010827826704
+      r189010827826720[label="}",shape="box"]
+      r189010827657984 -- r189010827826720
+      r189010827576736 -- r189010827657984
+      r189010827828320 -- r189010827576736
+    }
+    l189010827655984 -- r189010827657968 [style=bold,constraint=false]
+    l189010827655968 -- r189010827657952 [style=bold,constraint=false]
+    l189010827791840 -- r189010827826656 [style=bold,constraint=false]
+    l189010827791872 -- r189010827826720 [style=bold,constraint=false]
+    l189010827828320 -- r189010827828320 [style=dashed,constraint=false]
+    l189010827656000 -- r189010827657984 [style=dotted,constraint=false]
+    l189010827787488 -- r189010827655968 [style=dotted,constraint=false]
+    l189010827650496 -- r189010827576736 [style=dotted,constraint=false]
+    l189010827787504 -- r189010827655984 [style=dotted,constraint=false]
+    l189010827653088 -- r189010827653088 [style=dotted,constraint=false]
+    l189010827791856 -- r189010827826672 [style=dotted,constraint=false]
+    l189010827828320 -- r189010827828320 [style=dotted,constraint=false]
+}
+

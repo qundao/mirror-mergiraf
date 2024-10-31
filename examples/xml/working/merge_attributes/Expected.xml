@@ -1,0 +1,4 @@
+<root>
+   <foo parameter="one" other="two" />
+   <bar />
+</root>

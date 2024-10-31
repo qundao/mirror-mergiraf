@@ -1,0 +1,10 @@
+<root>
+   <foo
+        iota="i"
+        alpha="a"
+        beta="b"
+        gamma="c"
+        delta="d"
+   />
+   <bar />
+</root>

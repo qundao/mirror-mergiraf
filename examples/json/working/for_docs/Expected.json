@@ -1,0 +1,12 @@
+{
+<<<<<<< LEFT
+    "new_letter": "left value",
+||||||| BASE
+=======
+    "new_letter": "right value",
+>>>>>>> RIGHT
+    "alpha": 1,
+    "beta": 2,
+    "gamma": 3,
+    "delta": 4
+}
