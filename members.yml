@@ -1,0 +1,7 @@
+# Current members of the Mergiraf project,
+# as specified by GOVERNANCE.md.
+
+publishers: # this corresponds to the "Owners" team: https://codeberg.org/org/mergiraf/teams/owners
+  - wetneb
+
+developers: # this corresponds to the "Developers" team: https://codeberg.org/org/mergiraf/teams/developers
