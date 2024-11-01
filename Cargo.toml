@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2018"
 license = "GPL-3.0-only"
 repository = "https://codeberg.org/mergiraf/mergiraf"
+keywords = ["git", "tree-sitter", "merge-driver"]
+categories = ["development-tools"]
+homepage = "https://mergiraf.org/"
+documentation = "https://mergiraf.org/"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -49,6 +53,6 @@ dotty = ["dep:graphviz-rust"]
 panic = "abort"
 [profile.release]
 panic = "abort"
-# strip = true
-# lto = true
+strip = true
+lto = true
 debug = false
