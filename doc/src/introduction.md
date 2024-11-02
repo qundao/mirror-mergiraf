@@ -1,4 +1,4 @@
-<div style="float: right; width: 14em; margin: 10px;">
+<div style="float: right; width: min(14em, 40%); margin: 10px;">
 <img src="./img/scene_1.png" alt="A giraffe observes a fighting pair" style="padding: 10px; background-color: white" />
 <p class="figurecaption"><strong>Figure 1:</strong> Two git users making inadequate use of <code>blame</code>, <code>push</code> and <code>pull</code> to resolve a conflict</p>
 </div>
@@ -32,7 +32,7 @@ If it manages to resolve all conflicts on its own, it encourages you to review i
 
 If a merge looks faulty, [you can report it easily](./usage.md#reporting-a-bad-merge).
 
-<div style="float: right; width: 12em; margin: 10px">
+<div style="float: right; width: min(12em, 40%); margin: 10px">
 <img src="./img/scene_2.png" alt="The giraffe surrounds the pair with its neck and they are surprised by its intervention" style="width: 15em; padding: 10px; background-color: white" />
 <p class="figurecaption"><strong>Figure 2:</strong> Mergiraf offers to mediate</p>
 </div>
@@ -51,7 +51,7 @@ One exception to this rule is [when line-based merging creates duplicate keys](.
 Head to the [installation](./installation.md) page and start merging nonviolently today!
 
 <div style="text-align: center; margin: 10px;">
-<img src="./img/scene_3.png" alt="The giraffe winks with the pair successfully reconciled, as they are now siamese siblings" style="padding: 10px; background-color: white; width: 20em" >
+<img src="./img/scene_3.png" alt="The giraffe winks with the pair successfully reconciled, as they are now siamese siblings" style="padding: 10px; background-color: white; width: min(20em, 80%)" >
 <div class="figurecaption"><strong>Figure 3:</strong> Harmony and peace reign on Earth</div>
 
 Illustrations by [Freya F-T](https://freyaft.com), [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
