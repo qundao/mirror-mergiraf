@@ -7,7 +7,7 @@
 
 # Mergiraf
 
-Mergiraf is a **merge driver** for Git which can solve [a wide range of merge conflicts](./conflicts.md). That's because it is aware of the trees in your files!
+Mergiraf is a **merge driver** for Git which can solve [a wide range of merge conflicts](./conflicts.md). That's because it's aware of the trees in your files!
 Thanks to [its understanding of your language](./languages.md), it can often reconcile the needs of both sides.
 
 You can [teach Mergiraf a new language](./adding-a-language.md) in a completely declarative way. It's a nonviolent animal, so it prefers that over imperatives.

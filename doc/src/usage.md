@@ -2,7 +2,7 @@
 
 There are two ways to use Mergiraf.
 1. You can [**register it as a merge driver**](#registration-as-a-git-merge-driver) in Git so that Mergiraf is directly used during the merge process.
-2. Or you can [**invoke it after a merge conflict**](#interactive-use-after-encountering-a-merge-conflict), for it to attempt to solve the conflict automatically.
+2. Or you can [**invoke it after a merge conflict**](#interactive-use-after-encountering-a-merge-conflict), for it to attempt to solve the conflict.
 
 The first way is recommended as it avoids interrupting your workflow with spurious conflicts. Also, certain conflicts can only be resolved by Mergiraf if it is used as a merge driver.
 The second way can be useful for more occasional uses or when changes to Git's configuration are not possible.
@@ -139,7 +139,7 @@ tasks:
   plates: 1
   bowls: 2
 =======
-hello:
+tasks:
   plates: 1
   bowls: 4
 >>>>>>> origin/main
@@ -154,7 +154,7 @@ Solved 1 conflict(s)
 You can then inspect the result again:
 ```yaml
 restaurant:
-  hello:
+  tasks:
     plates: 1
     bowls: 4
 ```

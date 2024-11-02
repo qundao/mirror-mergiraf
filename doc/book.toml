@@ -1,9 +1,10 @@
 [book]
-authors = ["Antonin Delpeuch"]
+authors = ["Mergiraf contributors"]
 language = "en"
 multilingual = false
 src = "src"
 title = "Mergiraf"
+description = "A syntax-aware git merge driver for a growing collection of programming languages and file formats."
 
 [output.html.playground]
 runnable = false

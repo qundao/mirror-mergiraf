@@ -12,6 +12,7 @@ and the following declarative file formats:
 * JSON (*.json)
 * HTML (*.html, *.htm)
 * XML (*.xml, *.xhtml)
+* YAML (*.yml, *.yaml)
 
 This list can also be obtained with the `mergiraf languages` command.
 
