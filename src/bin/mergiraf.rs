@@ -6,7 +6,7 @@ use log::warn;
 use mergiraf::{
     attempts::AttemptsCache,
     bug_reporter::report_bug,
-    line_merge_and_structured_resolution, resolve_merge,
+    line_merge_and_structured_resolution, resolve_merge_cascading,
     settings::{imitate_cr_lf_from_input, normalize_to_lf, DisplaySettings},
     supported_langs::supported_languages,
 };
@@ -222,47 +222,43 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
 
             let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
             let conflict_contents = normalize_to_lf(&original_conflict_contents);
+            let working_dir = env::current_dir().expect("Invalid current directory");
 
-            let postprocessed = resolve_merge(
+            let postprocessed = resolve_merge_cascading(
                 &conflict_contents,
                 &fname_conflicts.clone(),
                 &settings,
                 &args.debug_dir,
+                &working_dir,
             );
-            let (output, ret_code) = match postprocessed {
-                Ok((orig_conflicts, merged)) => {
-                    let orig_conflict_count = orig_conflicts.conflict_count();
-                    let solved_conflicts = orig_conflict_count - merged.conflict_count;
-                    if merged.conflict_count == 0 {
-                        eprintln!("Solved {solved_conflicts} conflict(s)");
-                        (merged.contents, 0)
-                    } else if merged.conflict_count < orig_conflict_count
-                        && merged.conflict_mass < orig_conflicts.conflict_mass()
-                    {
-                        eprintln!(
-                            "Solved {solved_conflicts} conflict(s) out of {orig_conflict_count}"
-                        );
-                        (merged.contents, 0)
+            match postprocessed {
+                Ok(merged) => {
+                    if merged.method != "original" {
+                        if keep {
+                            print!(
+                                "{}",
+                                imitate_cr_lf_from_input(
+                                    &original_conflict_contents,
+                                    &merged.contents
+                                )
+                            );
+                        } else {
+                            write_string_to_file(
+                                &(fname_conflicts.clone() + ".orig"),
+                                &conflict_contents,
+                            )?;
+                            write_string_to_file(&fname_conflicts, &merged.contents)?;
+                        };
+                        0
                     } else {
-                        eprintln!("Could not solve any of the {orig_conflict_count} conflict(s)");
-                        (merged.contents, 1)
+                        1
                     }
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
-                    (conflict_contents.clone(), 1)
+                    warn!("Mergiraf: {}", e);
+                    1
                 }
-            };
-            if keep {
-                print!(
-                    "{}",
-                    imitate_cr_lf_from_input(&original_conflict_contents, &output)
-                );
-            } else {
-                write_string_to_file(&(fname_conflicts.clone() + ".orig"), &conflict_contents)?;
-                write_string_to_file(&fname_conflicts, &output)?;
             }
-            ret_code
         }
         CliCommand::Review { merge_id } => {
             let attempts_cache = AttemptsCache::new(None, None)?;
@@ -297,6 +293,14 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
     Ok(return_code)
 }
 
+fn read_file_to_string(path: &str) -> Result<String, String> {
+    fs::read_to_string(path).map_err(|err| format!("Could not read {path}: {err}"))
+}
+
+fn write_string_to_file(path: &str, contents: &str) -> Result<(), String> {
+    fs::write(path, contents).map_err(|err| format!("Could not write {path}: {err}"))
+}
+
 fn fallback_to_git_merge_file(
     base: String,
     left: String,
@@ -326,14 +330,6 @@ fn fallback_to_git_merge_file(
                 .map(|exit_status| exit_status.code().unwrap_or(0))
         })
         .map_err(|err| err.to_string())
-}
-
-fn read_file_to_string(path: &str) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|err| format!("Could not read {path}: {err}"))
-}
-
-fn write_string_to_file(path: &str, contents: &str) -> Result<(), String> {
-    fs::write(path, contents).map_err(|err| format!("Could not write {path}: {err}"))
 }
 
 #[test]

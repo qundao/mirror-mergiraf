@@ -5,7 +5,7 @@ use std::{
     process::Command,
 };
 
-use crate::{pcs::Revision, settings::DisplaySettings};
+use crate::pcs::Revision;
 
 pub(crate) struct GitTempFile {
     path: PathBuf,
@@ -26,6 +26,7 @@ impl Drop for GitTempFile {
 
 /// Extract the contents of a file at a particular revision, to a temporary file.
 pub(crate) fn extract_revision_from_git(
+    repo_dir: &Path,
     path: &Path,
     revision: Revision,
 ) -> Result<GitTempFile, String> {
@@ -39,6 +40,7 @@ pub(crate) fn extract_revision_from_git(
             Revision::Right => "--stage=3",
         })
         .arg(path)
+        .current_dir(repo_dir)
         .output()
         .map_err(|err| err.to_string())
         .and_then(|output| {
@@ -60,38 +62,7 @@ pub(crate) fn extract_revision_from_git(
                 )
             })?;
             Ok(GitTempFile {
-                path: PathBuf::from(temp_file_path),
+                path: repo_dir.join(PathBuf::from(temp_file_path)),
             })
         })
-}
-
-pub(crate) fn fallback_to_git_merge_file(
-    base: String,
-    left: String,
-    right: String,
-    git: bool,
-    settings: &DisplaySettings,
-) -> Result<i32, String> {
-    let mut command = Command::new("git");
-    command.arg("merge-file").arg("--diff-algorithm=histogram");
-    if !git {
-        command.arg("-p");
-    }
-    command
-        .arg("-L")
-        .arg(&settings.left_revision_name)
-        .arg("-L")
-        .arg(&settings.base_revision_name)
-        .arg("-L")
-        .arg(&settings.right_revision_name)
-        .arg(left)
-        .arg(base)
-        .arg(right)
-        .spawn()
-        .and_then(|mut process| {
-            process
-                .wait()
-                .map(|exit_status| exit_status.code().unwrap_or(0))
-        })
-        .map_err(|err| err.to_string())
 }

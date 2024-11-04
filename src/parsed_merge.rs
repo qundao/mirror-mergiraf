@@ -4,11 +4,15 @@ use itertools::Itertools;
 use regex::Regex;
 
 use crate::{
+    line_based::MergeResult,
     matching::Matching,
     pcs::Revision,
     settings::DisplaySettings,
     tree::{Ast, AstNode},
 };
+
+pub(crate) const PARSED_MERGE_DIFF2_DETECTED: &str =
+    "Mergiraf cannot solve conflicts displayed in the diff2 style";
 
 /// A file which potentially contains merge conflicts, parsed as such.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -88,9 +92,19 @@ impl ParsedMerge {
             offset += resolved_end;
             if let Some(start_marker) = start_marker {
                 let local_offset = start_marker.end();
-                let base_match = base_marker
-                    .find(&remaining_source[local_offset..])
-                    .ok_or("unexpected end of file before base conflict marker")?;
+                let base_match = match base_marker.find(&remaining_source[local_offset..]) {
+                    Some(occurrence) => Ok(occurrence),
+                    None => {
+                        if right_marker
+                            .find(&remaining_source[local_offset..])
+                            .is_some()
+                        {
+                            Err(PARSED_MERGE_DIFF2_DETECTED)
+                        } else {
+                            Err("unexpected end of file before base conflict marker")
+                        }
+                    }
+                }?;
                 let left =
                     remaining_source[local_offset..(local_offset + base_match.start())].to_owned();
                 let local_offset = local_offset + base_match.end();
@@ -271,6 +285,17 @@ impl ParsedMerge {
             }
         }
         result
+    }
+
+    /// Converts to a merge result
+    pub(crate) fn to_merge_result(&self, settings: &DisplaySettings) -> MergeResult {
+        MergeResult {
+            contents: self.render(settings),
+            conflict_count: self.conflict_count(),
+            conflict_mass: self.conflict_mass(),
+            method: "original",
+            has_additional_issues: false,
+        }
     }
 
     fn binary_search(vec: &Vec<OffsetMap>, start: usize, length: usize) -> Option<usize> {
@@ -575,7 +600,10 @@ mod tests {
 };
 "#;
 
-        ParsedMerge::parse(source).expect_err("could not parse!");
+        match ParsedMerge::parse(source) {
+            Ok(_) => panic!("expected a parse failure for diff2 conflicts"),
+            Err(e) => assert_eq!(e, PARSED_MERGE_DIFF2_DETECTED),
+        };
     }
 
     #[test]

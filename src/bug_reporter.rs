@@ -1,9 +1,9 @@
 use core::str;
 use std::{
     env,
-    fs::{File},
+    fs::File,
     io::{self, Write},
-    path::{Path},
+    path::Path,
 };
 
 use rand::distributions::{Alphanumeric, DistString};
@@ -34,9 +34,11 @@ pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
         if !path.is_file() {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
-        let temp_file_base = extract_revision_from_git(path, Revision::Base)?;
-        let temp_file_left = extract_revision_from_git(path, Revision::Left)?;
-        let temp_file_right = extract_revision_from_git(path, Revision::Right)?;
+        let current_working_dir = env::current_dir().expect("Invalid current directory");
+        let temp_file_base = extract_revision_from_git(&current_working_dir, path, Revision::Base)?;
+        let temp_file_left = extract_revision_from_git(&current_working_dir, path, Revision::Left)?;
+        let temp_file_right =
+            extract_revision_from_git(&current_working_dir, path, Revision::Right)?;
 
         let archive_name = create_archive(
             path.file_name()

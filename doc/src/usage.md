@@ -4,7 +4,7 @@ There are two ways to use Mergiraf.
 1. You can [**register it as a merge driver**](#registration-as-a-git-merge-driver) in Git so that Mergiraf is directly used during the merge process.
 2. Or you can [**invoke it after a merge conflict**](#interactive-use-after-encountering-a-merge-conflict), for it to attempt to solve the conflict.
 
-The first way is recommended as it avoids interrupting your workflow with spurious conflicts. Also, certain conflicts can only be resolved by Mergiraf if it is used as a merge driver.
+The first way is recommended as it avoids interrupting your workflow with spurious conflicts.
 The second way can be useful for more occasional uses or when changes to Git's configuration are not possible.
 
 ## Registration as a Git merge driver

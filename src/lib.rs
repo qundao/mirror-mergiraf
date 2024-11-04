@@ -43,9 +43,14 @@ pub(crate) mod tree_matcher;
 #[cfg(feature = "dotty")]
 pub(crate) mod visualizer;
 
-use std::{fs, path::PathBuf, time::Instant};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Instant,
+};
 
 use attempts::AttemptsCache;
+use git::extract_revision_from_git;
 #[cfg(feature = "dotty")]
 use graphviz_rust::printer::{DotPrinter, PrinterContext};
 
@@ -54,10 +59,10 @@ use line_based::{
     line_based_merge, with_final_newline, MergeResult, FULLY_STRUCTURED_METHOD, LINE_BASED_METHOD,
     STRUCTURED_RESOLUTION_METHOD,
 };
-use log::{debug, warn};
+use log::{debug, info, warn};
 use merge_3dm::three_way_merge;
 
-use parsed_merge::ParsedMerge;
+use parsed_merge::{ParsedMerge, PARSED_MERGE_DIFF2_DETECTED};
 use pcs::Revision;
 use settings::DisplaySettings;
 use tree::{Ast, AstNode};
@@ -186,6 +191,42 @@ pub fn line_merge_and_structured_resolution(
         debug_dir,
     );
 
+    let line_based = merges
+        .iter()
+        .find(|merge| merge.method == LINE_BASED_METHOD)
+        .expect("No line-based merge available")
+        .clone(); // TODO avoid this clone
+
+    let best_merge = select_best_merge(&mut merges);
+
+    if best_merge.conflict_count == 0 && best_merge.method != LINE_BASED_METHOD {
+        // for successful merges that aren't line-based,
+        // give the opportunity to the user to review Mergiraf's work
+        let attempt = attempts_cache.and_then(|cache| {
+            match cache.new_attempt(
+                &PathBuf::from(fname_base),
+                contents_base,
+                contents_left,
+                contents_right,
+            ) {
+                Ok(attempt) => Some(attempt),
+                Err(err) => {
+                    warn!("Could not store merging attempt for later review: {err}");
+                    None
+                }
+            }
+        });
+        best_merge.store_in_attempt(&attempt);
+        line_based.store_in_attempt(&attempt);
+        best_merge.mark_as_best_merge_in_attempt(&attempt, line_based.conflict_count);
+    }
+
+    return best_merge;
+}
+
+/// Takes a non-empty vector of merge results and picks the best one
+fn select_best_merge(merges: &mut Vec<MergeResult>) -> MergeResult {
+    let mut merges: Vec<MergeResult> = merges.drain(0..).collect();
     merges.sort_by_key(|merge| merge.conflict_mass);
     debug!("~~~ Merge statistics ~~~");
     for merge in merges.iter() {
@@ -194,46 +235,15 @@ pub fn line_merge_and_structured_resolution(
             merge.method, merge.conflict_count, merge.conflict_mass, merge.has_additional_issues
         );
     }
-
-    let line_based = merges
-        .iter()
-        .find(|merge| merge.method == LINE_BASED_METHOD)
-        .expect("No line-based merge available")
-        .clone(); // TODO avoid this clone
-
     let mut first_merge = None;
-    for best_merge in merges.into_iter() {
-        if !best_merge.has_additional_issues {
-            if best_merge.conflict_count == 0 && best_merge.method != LINE_BASED_METHOD {
-                // for successful merges that aren't line-based,
-                // give the opportunity to the user to review Mergiraf's work
-                let attempt = attempts_cache.and_then(|cache| {
-                    match cache.new_attempt(
-                        &PathBuf::from(fname_base),
-                        contents_base,
-                        contents_left,
-                        contents_right,
-                    ) {
-                        Ok(attempt) => Some(attempt),
-                        Err(err) => {
-                            warn!("Could not store merging attempt for later review: {err}");
-                            None
-                        }
-                    }
-                });
-                best_merge.store_in_attempt(&attempt);
-                line_based.store_in_attempt(&attempt);
-                best_merge.mark_as_best_merge_in_attempt(&attempt, line_based.conflict_count);
-            }
-            return best_merge;
-        } else {
-            if first_merge.is_none() {
-                first_merge = Some(best_merge)
-            }
+    for merge in merges {
+        if !merge.has_additional_issues {
+            return merge;
+        } else if first_merge == None {
+            first_merge = Some(merge)
         }
     }
-
-    return first_merge.expect("No merge could be computed using any method");
+    first_merge.expect("At least one merge result should be present")
 }
 
 /// Do a line-based merge. If it is conflict-free, also check if it introduced any duplicate signatures,
@@ -379,21 +389,17 @@ pub fn cascading_merge(
 /// on the enclosing AST nodes.
 ///
 /// Returns either a merge (potentially with conflicts) or an error.
-pub fn resolve_merge(
-    merge: &str,
-    fname_base: &str,
+fn resolve_merge(
+    merge_contents: &str,
     settings: &DisplaySettings,
+    lang_profile: &LangProfile,
     debug_dir: &Option<String>,
 ) -> Result<(ParsedMerge, MergeResult), String> {
-    let parsed_merge = ParsedMerge::parse(merge)?;
+    let parsed_merge = ParsedMerge::parse(merge_contents)?;
 
     let base_rev = parsed_merge.reconstruct_revision(Revision::Base);
     let left_rev = parsed_merge.reconstruct_revision(Revision::Left);
     let right_rev = parsed_merge.reconstruct_revision(Revision::Right);
-
-    let lang_profile = LangProfile::detect_from_filename(&fname_base).ok_or(format!(
-        "Could not find a supported language for {fname_base}"
-    ))?;
 
     let merge = structured_merge(
         &base_rev,
@@ -401,10 +407,108 @@ pub fn resolve_merge(
         &right_rev,
         Some(&parsed_merge),
         settings,
-        &lang_profile,
+        lang_profile,
         debug_dir,
     )?;
     Ok((parsed_merge, merge))
+}
+
+/// Cascading merge resolution starting from a user-supplied file with merge conflicts
+pub fn resolve_merge_cascading(
+    merge_contents: &str,
+    fname_base: &str,
+    settings: &DisplaySettings,
+    debug_dir: &Option<String>,
+    working_dir: &Path,
+) -> Result<MergeResult, String> {
+    let lang_profile = LangProfile::detect_from_filename(&fname_base).ok_or(format!(
+        "Could not find a supported language for {fname_base}"
+    ))?;
+
+    let mut resolved_merge = None;
+    let mut parsed_merge = None;
+
+    match resolve_merge(merge_contents, settings, &lang_profile, debug_dir) {
+        Ok((original_merge, merge_result)) => {
+            parsed_merge = Some(original_merge);
+            resolved_merge = Some(merge_result);
+        }
+        Err(err) => {
+            if err == PARSED_MERGE_DIFF2_DETECTED {
+                // if parsing the original merge failed because it's done in diff2 mode,
+                // then we warn the user about it but don't give up yet as we can try a full merge
+                warn!("Cannot solve conflicts in diff2 style. Merging the original conflict sides from scratch instead.");
+            } else {
+                return Err(err);
+            }
+        }
+    }
+
+    match resolved_merge {
+        Some(merge) if merge.conflict_count == 0 => {
+            info!("Solved all conflicts.");
+            Ok(merge)
+        }
+        _ => {
+            // if we didn't manage to solve all conflicts, try again by extracting the original revisions from Git
+            let mut merges = Vec::new();
+            if let Some(merge) = resolved_merge {
+                merges.push(merge);
+            }
+            if let Some(parsed_merge) = parsed_merge {
+                merges.push(parsed_merge.to_merge_result(settings));
+            }
+
+            let revision_base = extract_revision(working_dir, fname_base, Revision::Base);
+            let revision_left = extract_revision(working_dir, fname_base, Revision::Left);
+            let revision_right = extract_revision(working_dir, fname_base, Revision::Right);
+
+            // we only attempt a full structured merge if we could extract revisions from Git
+            if let (Ok(contents_base), Ok(contents_left), Ok(contents_right)) =
+                (&revision_base, &revision_left, &revision_right)
+            {
+                let structured_merge = structured_merge(
+                    &contents_base,
+                    &contents_left,
+                    &contents_right,
+                    None,
+                    settings,
+                    &lang_profile,
+                    debug_dir,
+                );
+
+                match structured_merge {
+                    Ok(merge) => merges.push(merge),
+                    Err(err) => {
+                        warn!("Full structured merge failed: {err}")
+                    }
+                };
+            } else {
+                if let Err(b) = revision_base {
+                    println!("{b}");
+                }
+                warn!("Could not retrieve conflict sides from Git.");
+            }
+
+            if merges.is_empty() {
+                return Err("Could not generate any merge".to_string());
+            }
+            let best_merge = select_best_merge(&mut merges);
+
+            if best_merge.conflict_count == 0 {
+                info!("Solved all conflicts.");
+            } else {
+                info!("{} conflict(s) remaining.", best_merge.conflict_count);
+            }
+            Ok(best_merge)
+        }
+    }
+}
+
+fn extract_revision(working_dir: &Path, path: &str, revision: Revision) -> Result<String, String> {
+    let temp_file = extract_revision_from_git(working_dir, &PathBuf::from(path), revision)?;
+    let contents = fs::read_to_string(temp_file.path()).map_err(|err| err.to_string())?;
+    Ok(contents)
 }
 
 #[cfg(feature = "dotty")]
