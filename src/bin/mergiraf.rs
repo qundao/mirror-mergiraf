@@ -82,7 +82,7 @@ enum CliCommand {
     /// Create a bug report for a bad merge
     Report {
         /// Identifier of the merge case (if it did not return conflicts) or path to file with merge conflicts
-        merge_id_or_file: String
+        merge_id_or_file: String,
     },
     /// Show the supported languages
     Languages {

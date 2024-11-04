@@ -565,6 +565,20 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_diff2() {
+        let source = r#"my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+=======
+>>>>>>> RIGHT
+};
+"#;
+
+        ParsedMerge::parse(source).expect_err("could not parse!");
+    }
+
+    #[test]
     fn test_matching() {
         let ctx = ctx();
         let source = r#"struct MyType {

@@ -1,16 +1,15 @@
-use core::{str};
+use core::str;
 use std::{
     env,
-    fs::{self, File},
+    fs::{File},
     io::{self, Write},
-    path::{Path, PathBuf},
-    process::Command,
+    path::{Path},
 };
 
 use rand::distributions::{Alphanumeric, DistString};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
-use crate::{attempts::AttemptsCache, pcs::Revision};
+use crate::{attempts::AttemptsCache, git::extract_revision_from_git, pcs::Revision};
 
 /// Creates an archive containing files necessary to reproduce a faulty merge
 pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
@@ -35,24 +34,20 @@ pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
         if !path.is_file() {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
-        let temp_file_base = extract_side(path, Revision::Base)?;
-        let temp_file_left = extract_side(path, Revision::Left)?;
-        let temp_file_right = extract_side(path, Revision::Right)?;
+        let temp_file_base = extract_revision_from_git(path, Revision::Base)?;
+        let temp_file_left = extract_revision_from_git(path, Revision::Left)?;
+        let temp_file_right = extract_revision_from_git(path, Revision::Right)?;
 
         let archive_name = create_archive(
             path.file_name()
                 .and_then(|os_str| os_str.to_str())
                 .unwrap_or("no_filename"),
-            &temp_file_base,
-            &temp_file_left,
-            &temp_file_right,
+            temp_file_base.path(),
+            temp_file_left.path(),
+            temp_file_right.path(),
             path,
         )
         .map_err(|err| format!("error while creating report archive: {}", err.to_string()))?;
-
-        fs::remove_file(&temp_file_base).map_err(|err| err.to_string())?;
-        fs::remove_file(&temp_file_left).map_err(|err| err.to_string())?;
-        fs::remove_file(&temp_file_right).map_err(|err| err.to_string())?;
         archive_name
     };
 
@@ -123,39 +118,4 @@ fn create_archive(
 
     zip.finish()?;
     Ok(archive_name)
-}
-
-fn extract_side(path: &Path, revision: Revision) -> Result<PathBuf, String> {
-    let mut command = Command::new("git");
-    command
-        .arg("checkout-index")
-        .arg("--temp")
-        .arg(match revision {
-            Revision::Base => "--stage=1",
-            Revision::Left => "--stage=2",
-            Revision::Right => "--stage=3",
-        })
-        .arg(path)
-        .output()
-        .map_err(|err| err.to_string())
-        .and_then(|output| {
-            if !output.status.success() {
-                let error_str = str::from_utf8(&output.stderr).map_err(|err| err.to_string())?;
-                return Err(format!(
-                    "error while retrieving {} revision for {}:\n{}",
-                    revision,
-                    path.display(),
-                    error_str
-                ));
-            }
-            let output_str = str::from_utf8(&output.stdout).map_err(|err| err.to_string())?;
-            let temp_file_path = output_str.split_ascii_whitespace().next().ok_or_else(|| {
-                format!(
-                    "git did not return a temporary file path for {} revision of {}",
-                    revision,
-                    path.display()
-                )
-            })?;
-            Ok(PathBuf::from(temp_file_path))
-        })
 }

@@ -9,4 +9,4 @@ if [ "$NO_DEBUG" == "true" ]; then
     extra_args=""
 fi
 
-cargo run --bin mergiraf merge $1/Base.$ext $1/Left.$ext $1/Right.$ext -s BASE -x LEFT -y RIGHT $extra_args
+./target/debug/mergiraf merge $1/Base.$ext $1/Left.$ext $1/Right.$ext -s BASE -x LEFT -y RIGHT $extra_args

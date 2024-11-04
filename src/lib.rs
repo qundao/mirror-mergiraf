@@ -19,6 +19,7 @@ pub mod attempts;
 pub mod bug_reporter;
 pub(crate) mod changeset;
 pub(crate) mod class_mapping;
+pub(crate) mod git;
 pub mod lang_profile;
 pub(crate) mod line_based;
 pub(crate) mod matching;
