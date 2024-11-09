@@ -47,6 +47,15 @@ Then, you also need to specify for which sorts of files this merge driver should
 This is the complete list of all supported formats - you can of course keep only the ones you need. You can also obtain this list by running `mergiraf languages --gitattributes`.
 If you want to enable Mergiraf only in a certain repository, add the lines above in the `.gitattributes` file at the root of that repository instead, or in `.git/info/attributes` if you don't want it to be tracked in the repository.
 
+### Trying it out
+
+An [example repository](https://codeberg.org/mergiraf/example-repo) is available for you to try out Mergiraf on simple examples:
+```console
+$ git clone https://codeberg.org/mergiraf/example-repo
+$ cd example-repo
+$ git merge other-branch
+```
+
 ### Reviewing Mergiraf's work
 
 When Git invokes Mergiraf to merge a file, it can either:
