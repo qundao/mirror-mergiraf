@@ -275,5 +275,21 @@ pub fn supported_languages() -> Vec<LangProfile> {
                 signature("enum_member_declaration", vec![vec![Field("name")]]),
             ],
         },
+        LangProfile {
+            name: "Dart",
+            extensions: vec![".dart"],
+            language: tree_sitter_dart::language().into(),
+            atomic_nodes: vec!["import_or_export"],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("program", "\n"),
+                CommutativeParent::new("enum_body", "{", ",\n", "}"),
+                CommutativeParent::new("class_body", "{", "\n", "}"),
+            ],
+            signatures: vec![
+                signature("import_or_export", vec![vec![]]),
+                signature("enum_constant", vec![vec![]]),
+                signature("class_definition", vec![vec![Field("name")]]),
+            ],
+        },
     ];
 }

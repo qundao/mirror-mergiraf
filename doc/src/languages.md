@@ -7,6 +7,7 @@ Mergiraf currently supports the following programming languages:
 * Javascript (*.js, *.jsx)
 * C/C++ (*.c, *.h, *.cpp, *.hpp)
 * C# (*.cs)
+* Dart (*.dart)
 
 and the following declarative file formats:
 * JSON (*.json)

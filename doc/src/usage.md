@@ -43,6 +43,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.cpp merge=mergiraf
 *.hpp merge=mergiraf
 *.cs merge=mergiraf
+*.dart merge=mergiraf
 ```
 This is the complete list of all supported formats - you can of course keep only the ones you need. You can also obtain this list by running `mergiraf languages --gitattributes`.
 If you want to enable Mergiraf only in a certain repository, add the lines above in the `.gitattributes` file at the root of that repository instead, or in `.git/info/attributes` if you don't want it to be tracked in the repository.

@@ -1,0 +1,3 @@
+class TypeA {}
+
+class TypeB {}

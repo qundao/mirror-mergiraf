@@ -26,6 +26,7 @@ tree-sitter-cpp = "0.23"
 tree-sitter-c-sharp = "0.23"
 tree-sitter-xml = { git = "https://github.com/tree-sitter-grammars/tree-sitter-xml.git", rev = "cd1316e476ec40da6ce1fb5749c9d7e6b4f1090c" }
 tree-sitter-go = { git = "https://github.com/tree-sitter/tree-sitter-go.git", rev = "ecc20866d1bd4d80f3aef06456ed3014d4d598e6" }
+tree-sitter-dart = "0.0.4"
 regex = "1.10.4"
 graphviz-rust = { version = "0.9.0", optional = true }
 itertools = "0.13.0"
