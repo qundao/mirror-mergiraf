@@ -172,7 +172,7 @@ pub fn supported_languages() -> Vec<LangProfile> {
         LangProfile {
             name: "YAML",
             extensions: vec![".yml", ".yaml"],
-            language: tree_sitter_yaml::LANGUAGE.into(),
+            language: tree_sitter_yaml::language(),
             atomic_nodes: vec![],
             commutative_parents: vec![CommutativeParent::without_delimiters("block_mapping", "\n")],
             signatures: vec![signature("block_mapping_pair", vec![vec![Field("key")]])],
