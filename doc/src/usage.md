@@ -24,6 +24,13 @@ First, add the following section in your `~/.gitconfig` file:
 	attributesfile = ~/.gitattributes
 ```
 
+Or run:
+```console
+$ git config --global merge.mergiraf.name mergiraf
+$ git config --global merge.mergiraf.driver 'mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P'
+$ git config --global core.attributesfile ~/.gitattributes
+```
+
 Then, you also need to specify for which sorts of files this merge driver should be used. Add the following lines to your global `~/.gitattributes` file:
 ```
 *.java merge=mergiraf
@@ -45,7 +52,13 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.cs merge=mergiraf
 *.dart merge=mergiraf
 ```
-This is the complete list of all supported formats - you can of course keep only the ones you need. You can also obtain this list by running `mergiraf languages --gitattributes`.
+
+Or run:
+```console
+$ mergiraf languages --gitattributes >> ~/.gitattributes
+```
+
+This is the complete list of all supported formats - you can of course keep only the ones you need.
 If you want to enable Mergiraf only in a certain repository, add the lines above in the `.gitattributes` file at the root of that repository instead, or in `.git/info/attributes` if you don't want it to be tracked in the repository.
 
 ### Trying it out
