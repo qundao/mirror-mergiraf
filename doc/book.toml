@@ -6,9 +6,10 @@ src = "src"
 title = "Mergiraf"
 description = "A syntax-aware git merge driver for a growing collection of programming languages and file formats."
 
+[output.html]
+git-repository-url = "https://codeberg.org/mergiraf/mergiraf"
+edit-url-template = "https://codeberg.org/mergiraf/mergiraf/src/branch/main/doc/{path}"
+
 [output.html.playground]
 runnable = false
 
-[preprocessor.graphviz]
-command = "mdbook-graphviz"
-output-to-file = true

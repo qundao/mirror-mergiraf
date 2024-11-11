@@ -127,7 +127,7 @@ By default, Mergiraf aligns the conflicts it outputs to line boundaries to ease 
 >>>>>>> origin/main
 ```
 
-Because merging is done syntax trees, it is often able to highlight narrower conflicts.
+Because merging is done on syntax trees, it is often able to highlight narrower conflicts.
 The option `--compact` (or `-c`) of the `mergiraf merge` command enables a more compact presentation of conflicts which highlights mismatching parts only:
 
 ```

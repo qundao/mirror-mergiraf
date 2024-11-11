@@ -1,6 +1,6 @@
 # Related work
 
-There exists many different approaches to merging diverging files. The [awesome-merge-driver](https://github.com/jelmer/awesome-merge-drivers) list keeps track of implementations that can be used as Git merge drivers.
+There are many different approaches to merging diverging files. The [awesome-merge-driver](https://github.com/jelmer/awesome-merge-drivers) list keeps track of implementations that can be used as Git merge drivers.
 Some of them are flat, meaning that they break down the files as stream of lines or tokens (such as git's native diff3 algorithm). Others (like Mergiraf) are structured, representing the files as
 abstract syntax trees and merging those trees using dedicated heuristics. We focus on the structured ones here.
 
