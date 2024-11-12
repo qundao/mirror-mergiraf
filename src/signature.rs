@@ -53,8 +53,7 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
             AstNodeEquiv::Original(ast_node) => ast_node
                 .children_by_field_name(field_name)
                 .iter()
-                .map(|l| l.into_iter().map(|c| AstNodeEquiv::Original(c)))
-                .flatten()
+                .flat_map(|l| l.iter().map(|c| AstNodeEquiv::Original(c)))
                 .collect(),
             AstNodeEquiv::Merged(tree) => match tree {
                 MergedTree::ExactTree {
@@ -70,7 +69,7 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                 MergedTree::MixedTree { children, .. } => children
                     .iter()
                     .filter(|child| child.field_name(class_mapping) == Some(field_name))
-                    .map(|child| AstNodeEquiv::Merged(child))
+                    .map(AstNodeEquiv::Merged)
                     .collect(),
                 MergedTree::Conflict { .. }
                 | MergedTree::LineBasedMerge { .. }
@@ -106,7 +105,7 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                 MergedTree::MixedTree { children, .. } => children
                     .iter()
                     .filter(|child| child.grammar_name() == Some(grammar_name))
-                    .map(|child| AstNodeEquiv::Merged(child))
+                    .map(AstNodeEquiv::Merged)
                     .collect(),
                 MergedTree::Conflict { .. }
                 | MergedTree::LineBasedMerge { .. }
@@ -362,10 +361,7 @@ pub enum PathStep {
 impl AstPath {
     pub fn new(steps: Vec<&'static str>) -> Self {
         AstPath {
-            steps: steps
-                .into_iter()
-                .map(|step| PathStep::Field(step))
-                .collect(),
+            steps: steps.into_iter().map(PathStep::Field).collect(),
         }
     }
 
@@ -455,11 +451,11 @@ mod tests {
 
         let expected_sig = Signature(vec![vec![AstNodeEquiv::Original(key)]]);
         assert_eq!(
-            signature_def.extract_signature_from_original_node(&pair),
+            signature_def.extract_signature_from_original_node(pair),
             expected_sig
         );
         assert_eq!(
-            signature_def.extract_signature_from_original_node(&other_pair),
+            signature_def.extract_signature_from_original_node(other_pair),
             expected_sig
         );
     }

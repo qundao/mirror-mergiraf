@@ -26,12 +26,12 @@ impl<'tree> Matching<'tree> {
 
     /// Gets the matches associated with a node from the left hand tree
     pub fn get_from_left(&self, from: &'tree AstNode<'tree>) -> Option<&'tree AstNode<'tree>> {
-        self.left_to_right.get(from).map(|x| *x)
+        self.left_to_right.get(from).copied()
     }
 
     /// Gets the matches associated with a node from the right hand tree
     pub fn get_from_right(&self, from: &'tree AstNode<'tree>) -> Option<&'tree AstNode<'tree>> {
-        self.right_to_left.get(from).map(|x| *x)
+        self.right_to_left.get(from).copied()
     }
 
     /// Does the matching contain this pair?
@@ -42,8 +42,8 @@ impl<'tree> Matching<'tree> {
     /// Is it possible to add this pair while keeping the matching consistent?
     pub fn can_be_matched(&self, from: &AstNode<'tree>, to: &AstNode<'tree>) -> bool {
         from.grammar_name == to.grammar_name
-            && self.left_to_right.get(from).is_none()
-            && self.right_to_left.get(to).is_none()
+            && !self.left_to_right.contains_key(from)
+            && !self.right_to_left.contains_key(to)
             && (!from.is_leaf() || !to.is_leaf() || from.source == to.source) // TODO we could still accept to match them, but introduce content handling to merge them
     }
 
@@ -200,7 +200,7 @@ mod tests {
         let mut matching = Matching::new();
         assert_eq!(matching.len(), 0);
 
-        matching.add(&tree.root(), &tree2.root());
+        matching.add(tree.root(), tree2.root());
         assert_eq!(matching.len(), 1);
         assert_eq!(matching.as_ids(), vec![(tree.root().id, tree2.root().id)]);
     }

@@ -27,7 +27,7 @@ pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
             &path_right,
             &path_result,
         )
-        .map_err(|err| format!("error while creating report archive: {}", err.to_string()))?
+        .map_err(|err| format!("error while creating report archive: {}", err))?
     } else {
         // it could be a file with conflicts
         let path = Path::new(&attempt_id_or_path);
@@ -40,7 +40,7 @@ pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
         let temp_file_right =
             extract_revision_from_git(&current_working_dir, path, Revision::Right)?;
 
-        let archive_name = create_archive(
+        create_archive(
             path.file_name()
                 .and_then(|os_str| os_str.to_str())
                 .unwrap_or("no_filename"),
@@ -49,8 +49,7 @@ pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
             temp_file_right.path(),
             path,
         )
-        .map_err(|err| format!("error while creating report archive: {}", err.to_string()))?;
-        archive_name
+        .map_err(|err| format!("error while creating report archive: {}", err))?
     };
 
     println!("Bug report archive created:\n");
@@ -78,44 +77,32 @@ fn create_archive(
     let mut zip = ZipWriter::new(file_desc);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
-    zip.start_file(
-        format!("{}/Base.{}", archive_base_name, extension),
-        options.clone(),
-    )?;
-    let mut base_file = File::open(&path_base)?;
+    zip.start_file(format!("{}/Base.{}", archive_base_name, extension), options)?;
+    let mut base_file = File::open(path_base)?;
     io::copy(&mut base_file, &mut zip)?;
 
-    zip.start_file(
-        format!("{}/Left.{}", archive_base_name, extension),
-        options.clone(),
-    )?;
-    let mut left_file = File::open(&path_left)?;
+    zip.start_file(format!("{}/Left.{}", archive_base_name, extension), options)?;
+    let mut left_file = File::open(path_left)?;
     io::copy(&mut left_file, &mut zip)?;
 
     zip.start_file(
         format!("{}/Right.{}", archive_base_name, extension),
-        options.clone(),
+        options,
     )?;
-    let mut right_file = File::open(&path_right)?;
+    let mut right_file = File::open(path_right)?;
     io::copy(&mut right_file, &mut zip)?;
 
     zip.start_file(
         format!("{}/Result.{}", archive_base_name, extension),
-        options.clone(),
+        options,
     )?;
-    let mut right_file = File::open(&path_result)?;
+    let mut right_file = File::open(path_result)?;
     io::copy(&mut right_file, &mut zip)?;
 
-    zip.start_file(
-        format!("{}/filename.txt", archive_base_name),
-        options.clone(),
-    )?;
+    zip.start_file(format!("{}/filename.txt", archive_base_name), options)?;
     zip.write_all(filename.as_bytes())?;
 
-    zip.start_file(
-        format!("{}/version.txt", archive_base_name),
-        options.clone(),
-    )?;
+    zip.start_file(format!("{}/version.txt", archive_base_name), options)?;
     zip.write_all(env!("CARGO_PKG_VERSION").as_bytes())?;
 
     zip.finish()?;

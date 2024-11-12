@@ -37,8 +37,7 @@ fn write_file_from_rev(
 fn detect_extension(test_dir: &Path) -> String {
     read_dir(test_dir)
         .expect("Could not list files in test directory")
-        .into_iter()
-        .map(|filename| {
+        .filter_map(|filename| {
             filename
                 .unwrap()
                 .file_name()
@@ -47,7 +46,6 @@ fn detect_extension(test_dir: &Path) -> String {
                 .strip_prefix("Base.")
                 .map(|s| s.to_owned())
         })
-        .flatten()
         .next()
         .expect("Could not find a Base.* file in the test directory")
 }
@@ -113,7 +111,7 @@ fn test_solve_command(#[case] conflict_style: &str) {
     let mut command = Command::new("git");
     command.current_dir(repo_dir);
     command.args(
-        vec![
+        [
             "-c",
             &format!("merge.conflictstyle={conflict_style}"),
             "rebase",
@@ -136,7 +134,7 @@ fn test_solve_command(#[case] conflict_style: &str) {
         &file_name,
         &DisplaySettings::default(),
         &None,
-        &repo_dir,
+        repo_dir,
     )
     .expect("solving the conflicts returned an error");
 
@@ -146,8 +144,8 @@ fn test_solve_command(#[case] conflict_style: &str) {
     assert_eq!(merge_result.contents, expected_result);
 }
 
-fn run_test_from_dir(test_dir: &PathBuf) {
-    let ext = detect_extension(&test_dir);
+fn run_test_from_dir(test_dir: &Path) {
+    let ext = detect_extension(test_dir);
     let test_dir = test_dir.display();
     let fname_base = format!("{}/Base.{}", test_dir, ext);
     let contents_base = fs::read_to_string(&fname_base).expect("Unable to read left file");

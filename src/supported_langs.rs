@@ -6,7 +6,7 @@ use crate::{
 /// Returns the list of supported language profiles,
 /// which contain all the language-specific information required to merge files in that language.
 pub fn supported_languages() -> Vec<LangProfile> {
-    return vec![
+    vec![
         LangProfile {
             name: "Java",
             extensions: vec![".java"],
@@ -278,7 +278,7 @@ pub fn supported_languages() -> Vec<LangProfile> {
         LangProfile {
             name: "Dart",
             extensions: vec![".dart"],
-            language: tree_sitter_dart::language().into(),
+            language: tree_sitter_dart::language(),
             atomic_nodes: vec!["import_or_export"],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("program", "\n"),
@@ -291,5 +291,5 @@ pub fn supported_languages() -> Vec<LangProfile> {
                 signature("class_definition", vec![vec![Field("name")]]),
             ],
         },
-    ];
+    ]
 }

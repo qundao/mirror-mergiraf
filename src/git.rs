@@ -20,7 +20,6 @@ impl GitTempFile {
 impl Drop for GitTempFile {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.path);
-        ()
     }
 }
 

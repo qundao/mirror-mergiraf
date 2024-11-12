@@ -276,7 +276,7 @@ impl<'a> MergedTree<'a> {
         settings: &DisplaySettings,
     ) -> String {
         let mut output = MergedText::new();
-        self.pretty_print_recursively(&mut output, class_mapping, settings, None, "");
+        self.pretty_print_recursively(&mut output, class_mapping, None, "");
         output.render(settings)
     }
 
@@ -285,7 +285,6 @@ impl<'a> MergedTree<'a> {
         &'u self,
         output: &mut MergedText,
         class_mapping: &ClassMapping<'a>,
-        settings: &DisplaySettings,
         previous_sibling: Option<PreviousSibling<'a>>,
         indentation: &str,
     ) {
@@ -323,7 +322,6 @@ impl<'a> MergedTree<'a> {
                     c.pretty_print_recursively(
                         output,
                         class_mapping,
-                        settings,
                         previous_sibling,
                         &new_indentation,
                     );
@@ -350,10 +348,9 @@ impl<'a> MergedTree<'a> {
                     (base.first(), Revision::Base),
                 ]
                 .iter()
-                .map(|(maybe_node, rev)| {
+                .filter_map(|(maybe_node, rev)| {
                     maybe_node.map(|node| class_mapping.map_to_leader(RevNode::new(*rev, node)))
                 })
-                .flatten()
                 .next()
                 .expect("The conflict should contain at least one node");
                 Self::add_preceding_whitespace(
@@ -443,7 +440,7 @@ impl<'a> MergedTree<'a> {
                             .next()
                     }.unwrap_or_else(|| {
                         representatives.iter()
-                            .map(|repr| {
+                            .filter_map(|repr| {
                                 let indentation_shift = repr.node.indentation_shift().unwrap_or("").to_owned();
                                 let ancestor_newlines = format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
                                 let new_newlines = format!("\n{}", indentation);
@@ -454,7 +451,6 @@ impl<'a> MergedTree<'a> {
                                     None
                                 }
                             })
-                            .flatten()
                             .next()
                             .unwrap_or_else(|| ("".to_owned(), "".to_owned()))
                     });
@@ -472,17 +468,16 @@ impl<'a> MergedTree<'a> {
                     output.push_merged(new_indentation.clone());
                     return new_indentation;
                 }
-                format!("{indentation}")
+                indentation.to_string()
             }
             None => {
                 let whitespace = representatives
                     .iter()
-                    .map(|repr| repr.node.preceding_whitespace())
-                    .flatten()
+                    .filter_map(|repr| repr.node.preceding_whitespace())
                     .next()
                     .unwrap_or("");
                 output.push_merged(whitespace.to_owned());
-                format!("{indentation}")
+                indentation.to_string()
             }
         }
     }
@@ -509,7 +504,7 @@ impl<'a> MergedTree<'a> {
             if source.trim().is_empty() {
                 if let Some(ancestor_indentation) = current_node_at_rev.ancestor_indentation() {
                     let indentation_shift =
-                        Self::extract_indentation_shift(&ancestor_indentation, source);
+                        Self::extract_indentation_shift(ancestor_indentation, source);
                     return Some((
                         source.replace(
                             &format!("\n{ancestor_indentation}"),
@@ -565,7 +560,7 @@ impl<'a> MergedTree<'a> {
         }
     }
 
-    fn pretty_print_astnode_list(_revision: Revision, list: &Vec<&'a AstNode<'a>>) -> String {
+    fn pretty_print_astnode_list(_revision: Revision, list: &[&'a AstNode<'a>]) -> String {
         let mut output = String::new();
         let mut first = true;
         list.iter().for_each(|n| {

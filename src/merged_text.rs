@@ -56,7 +56,7 @@ impl MergedText {
     /// If the text contains newlines it also gets re-indented to the indentation level supplied.
     pub(crate) fn push_line_based_merge(&mut self, line_based_merge: &str, indentation: &str) {
         let parsed =
-            ParsedMerge::parse(&line_based_merge).expect("Parsing the line-based merge failed");
+            ParsedMerge::parse(line_based_merge).expect("Parsing the line-based merge failed");
         let mut newline_found = false;
         for section in parsed.chunks.into_iter() {
             self.sections.push(match section {

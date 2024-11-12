@@ -94,9 +94,10 @@ impl AttemptsCache {
                         .join(ATTEMPTS_DIRECTORY)
                 })
             })
-            .ok_or(format!(
+            .ok_or(
                 "Could not determine a suitable application data directory to store merge attempts"
-            ))?;
+                    .to_string(),
+            )?;
         fs::create_dir_all(&cache_dir).map_err(|err| {
             format!(
                 "Error while creating merge attempts directory {}: {err}",
@@ -191,7 +192,7 @@ impl AttemptsCache {
                 format!(
                     "Failed to read best merge method in {}: {}",
                     best_merge_file_path.display(),
-                    err.to_string()
+                    err
                 )
             })
             .expect("Failed to read best merge id");

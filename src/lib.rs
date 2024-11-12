@@ -127,9 +127,9 @@ pub fn structured_merge(
     };
 
     let start = Instant::now();
-    let tree_base = parse(&mut parser, &contents_base, lang_profile, &arena)?;
-    let tree_left = parse(&mut parser, &contents_left, lang_profile, &arena)?;
-    let tree_right = parse(&mut parser, &contents_right, lang_profile, &arena)?;
+    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena)?;
+    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena)?;
+    let tree_right = parse(&mut parser, contents_right, lang_profile, &arena)?;
     debug!("parsing all three files took {:?}", start.elapsed());
 
     let initial_matchings = parsed_merge.map(|parsed_merge| {
@@ -150,7 +150,7 @@ pub fn structured_merge(
         &initial_matchings,
         &primary_matcher,
         &auxiliary_matcher,
-        &debug_dir,
+        debug_dir,
     );
     debug!("{}", result_tree);
 
@@ -221,12 +221,12 @@ pub fn line_merge_and_structured_resolution(
         best_merge.mark_as_best_merge_in_attempt(&attempt, line_based.conflict_count);
     }
 
-    return best_merge;
+    best_merge
 }
 
 /// Takes a non-empty vector of merge results and picks the best one
 fn select_best_merge(merges: &mut Vec<MergeResult>) -> MergeResult {
-    let mut merges: Vec<MergeResult> = merges.drain(0..).collect();
+    let mut merges: Vec<MergeResult> = std::mem::take(merges);
     merges.sort_by_key(|merge| merge.conflict_mass);
     debug!("~~~ Merge statistics ~~~");
     for merge in merges.iter() {
@@ -239,7 +239,7 @@ fn select_best_merge(merges: &mut Vec<MergeResult>) -> MergeResult {
     for merge in merges {
         if !merge.has_additional_issues {
             return merge;
-        } else if first_merge == None {
+        } else if first_merge.is_none() {
             first_merge = Some(merge)
         }
     }
@@ -256,10 +256,10 @@ fn line_based_merge_with_duplicate_signature_detection(
     lang_profile: Option<&LangProfile>,
 ) -> MergeResult {
     let mut line_based_merge = line_based_merge(
-        &with_final_newline(&contents_base),
-        &with_final_newline(&contents_left),
-        &with_final_newline(&contents_right),
-        &settings,
+        &with_final_newline(contents_base),
+        &with_final_newline(contents_left),
+        &with_final_newline(contents_right),
+        settings,
     );
 
     if line_based_merge.conflict_count == 0 {
@@ -299,15 +299,15 @@ pub fn cascading_merge(
     debug_dir: &Option<String>,
 ) -> Vec<MergeResult> {
     let mut merges = Vec::new();
-    let lang_profile = LangProfile::detect_from_filename(&fname_base);
+    let lang_profile = LangProfile::detect_from_filename(fname_base);
 
     // first attempt: try to merge as line-based
     let start = Instant::now();
     let line_based_merge = line_based_merge_with_duplicate_signature_detection(
-        &contents_base,
-        &contents_left,
-        &contents_right,
-        &settings,
+        contents_base,
+        contents_left,
+        contents_right,
+        settings,
         lang_profile.as_ref(),
     );
     merges.push(line_based_merge.clone());
@@ -421,7 +421,7 @@ pub fn resolve_merge_cascading(
     debug_dir: &Option<String>,
     working_dir: &Path,
 ) -> Result<MergeResult, String> {
-    let lang_profile = LangProfile::detect_from_filename(&fname_base).ok_or(format!(
+    let lang_profile = LangProfile::detect_from_filename(fname_base).ok_or(format!(
         "Could not find a supported language for {fname_base}"
     ))?;
 
@@ -468,9 +468,9 @@ pub fn resolve_merge_cascading(
                 (&revision_base, &revision_left, &revision_right)
             {
                 let structured_merge = structured_merge(
-                    &contents_base,
-                    &contents_left,
-                    &contents_right,
+                    contents_base,
+                    contents_left,
+                    contents_right,
                     None,
                     settings,
                     &lang_profile,

@@ -215,11 +215,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         if let PCSNode::Node { node: leader, .. } = node {
                             if let Some(commutative_parent) = self
                                 .lang_profile
-                                .get_commutative_parent(&leader.grammar_name())
+                                .get_commutative_parent(leader.grammar_name())
                             {
                                 let solved_conflict = self.resolve_commutative_conflict(
                                     conflict,
-                                    &commutative_parent,
+                                    commutative_parent,
                                     visiting_state,
                                 )?;
                                 for result in solved_conflict {
@@ -318,7 +318,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         self.cover_modified_nodes(&base_tree, target_revision, modified_revision)
                             .ok_or("no cover found".to_owned())
                     })
-                    .and_then(|cover| Ok(visiting_state.deleted_and_modified.extend(cover.iter())))
+                    .map(|cover| {
+                        visiting_state.deleted_and_modified.extend(cover.iter());
+                    })
                     .unwrap_or_else(|_| {
                         // as a fallback solution, if we could not compute a cover of the changes in the deleted tree,
                         // we request that the root of the subtree is present in the merged output.
@@ -512,10 +514,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         if let PCSNode::Node { node, .. } = node {
             if let Some(commutative_parent) = self
                 .lang_profile
-                .get_commutative_parent(&node.grammar_name())
+                .get_commutative_parent(node.grammar_name())
             {
                 let commutative_merge =
-                    self.commutatively_merge_children(node, &commutative_parent, visiting_state);
+                    self.commutatively_merge_children(node, commutative_parent, visiting_state);
                 if let Ok(successful_merge) = commutative_merge {
                     return Ok(MergedTree::new_mixed(node, successful_merge));
                 }
@@ -555,13 +557,13 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     /// and delimiters to return the content nodes only.
     fn keep_content_only<T: FromIterator<Leader<'a>>>(
         &self,
-        vec: &[&'a AstNode<'a>],
+        slice: &[&'a AstNode<'a>],
         revision: Revision,
         trimmed_sep: &str,
         trimmed_left_delim: &str,
         trimmed_right_delim: &str,
     ) -> T {
-        vec.iter()
+        slice.iter()
             .filter(|n| {
                 let trimmed = n.source.trim();
                 trimmed != trimmed_sep
@@ -574,16 +576,15 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Collects examples of separators with the surrounding whitespace
     /// among a list of children of a commutative parent.
-    fn find_separators_with_whitespace(vec: &[&'a AstNode<'a>], trimmed_sep: &str) -> Vec<&'a str> {
+    fn find_separators_with_whitespace(slice: &[&'a AstNode<'a>], trimmed_sep: &str) -> Vec<&'a str> {
         if trimmed_sep.is_empty() {
-            vec.iter()
+            slice.iter()
                 .skip(1)
-                .map(|node| node.preceding_whitespace())
-                .flatten()
+                .filter_map(|node| node.preceding_whitespace())
                 .filter(|s| !s.is_empty())
                 .collect_vec()
         } else {
-            vec.iter()
+            slice.iter()
                 .filter(|n| n.source.trim() == trimmed_sep)
                 .map(|n| n.source_with_surrounding_whitespace())
                 .collect_vec()
@@ -665,10 +666,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let right_removed_and_not_modified = right_removed_content
             .iter()
             .filter(|(_, result_tree)| match result_tree {
-                MergedTree::ExactTree { revisions, .. } => {
-                    let right_present = revisions.contains(Revision::Base);
-                    right_present
-                }
+                MergedTree::ExactTree { revisions, .. } => revisions.contains(Revision::Base),
                 _ => false,
             })
             .map(|(revnode, _)| revnode)
@@ -748,8 +746,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let starts_with_separator = [&base, &left, &right].iter().any(|rev| {
             rev.iter()
                 .map(|n| n.source.trim())
-                .filter(|s| *s != trimmed_left_delim)
-                .next()
+                .find(|s| *s != trimmed_left_delim)
                 .is_some_and(|s| s == trimmed_sep)
         });
         let ends_with_separator = [&base, &left, &right].iter().any(|rev| {
@@ -771,7 +768,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 .map(|separator| {
                     let newline = separator.rfind("\n");
                     match newline {
-                        None => &separator,
+                        None => separator,
                         Some(index) => &separator[..(index + 1)],
                     }
                 })
@@ -993,16 +990,13 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                             self.cover_modified_nodes(child, target_revision, modifying_revision)
                         })
                         .collect::<Option<Vec<HashSet<Leader<'a>>>>>();
-                    match children_covers {
-                        // let's return the union of all children's covers
-                        Some(children_covers) => {
-                            let union: HashSet<Leader<'a>> =
-                                children_covers.iter().flatten().copied().collect();
-                            return Some(union);
-                        }
-                        // at least one child could not be covered at all - the root is our only last possibility
-                        None => (),
+                    // if all children can be covered then return the union of all children's covers
+                    if let Some(children_covers) = children_covers {
+                        let union: HashSet<Leader<'a>> =
+                            children_covers.iter().flatten().copied().collect();
+                        return Some(union);
                     }
+                    // at least one child could not be covered at all - the root is our only last possibility
                 }
                 if available_in_revs.contains(target_revision) {
                     let mut set = HashSet::new();

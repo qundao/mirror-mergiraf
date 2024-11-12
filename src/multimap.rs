@@ -96,8 +96,8 @@ mod tests {
         assert_eq!(multimap.get(23).iter().copied().collect_vec(), vec![45]);
         assert!(multimap.add(23, 67));
 
-        let expected_vec = vec![45, 67];
-        let expected_set = expected_vec.iter().collect::<HashSet<&i32>>();
+        let expected_slice = [45, 67];
+        let expected_set = expected_slice.iter().collect::<HashSet<&i32>>();
         assert_eq!(
             multimap.get(23).iter().collect::<HashSet<&i32>>(),
             expected_set

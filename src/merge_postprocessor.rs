@@ -66,7 +66,7 @@ fn highlight_duplicate_signatures<'a>(
     let mut sigs = Vec::new();
     let mut conflict_found = false;
     for (idx, element) in elements.iter().enumerate() {
-        let sig = lang_profile.extract_signature_from_merged_node(&element, class_mapping);
+        let sig = lang_profile.extract_signature_from_merged_node(element, class_mapping);
         sigs.push(sig.clone());
         if let Some(signature) = sig {
             let sig_clone = signature.clone();
@@ -127,7 +127,7 @@ fn highlight_duplicate_signatures<'a>(
             }
             Some(signature) => {
                 let cluster = sig_to_indices
-                    .get(&signature)
+                    .get(signature)
                     .expect("Signature not indexed in sig_to_indices map");
                 skip_next_separator = Some(&idx) != cluster.iter().min();
                 if !skip_next_separator {
@@ -159,7 +159,7 @@ fn highlight_duplicate_signatures<'a>(
             }
             Some(signature) => {
                 let cluster = sig_to_indices
-                    .get(&signature)
+                    .get(signature)
                     .expect("Signature not indexed in sig_to_indices map");
                 skip_next_separator = false;
                 if cluster.len() == 1 {
@@ -213,7 +213,7 @@ fn highlight_duplicate_signatures<'a>(
 }
 
 /// Check if a merged element is a separator of its commutative parent
-fn is_separator<'a>(element: &MergedTree<'a>, trimmed_separator: &'static str) -> bool {
+fn is_separator(element: &MergedTree, trimmed_separator: &'static str) -> bool {
     match element {
         MergedTree::ExactTree { node, .. } => {
             node.as_representative().node.source.trim() == trimmed_separator
@@ -279,13 +279,13 @@ fn merge_same_sigs<'a>(
 }
 
 /// Get the versions of the merged nodes in the original revisions
-fn filter_by_revision<'a, 'b>(
-    elements: &Vec<&'b MergedTree<'a>>,
+fn filter_by_revision<'a>(
+    elements: &[&MergedTree<'a>],
     revision: Revision,
     class_mapping: &ClassMapping<'a>,
 ) -> Vec<&'a AstNode<'a>> {
     elements
-        .into_iter()
+        .iter()
         .copied()
         .flat_map(|element| match element {
             MergedTree::ExactTree { node, .. }
@@ -312,10 +312,8 @@ fn add_separators<'a>(
     for element in elements.iter() {
         if first {
             first = false
-        } else {
-            if let Some(separator) = separator {
-                result.push(separator)
-            }
+        } else if let Some(separator) = separator {
+            result.push(separator)
         }
         result.push(element)
     }
@@ -327,7 +325,7 @@ fn add_separators<'a>(
     result
 }
 
-//// Find an example of a separator among the list of children of the parent in all three revisions
+/// Find an example of a separator among the list of children of the parent in all three revisions
 fn find_separator<'a>(
     parent: Leader<'a>,
     trimmed_separator: &'static str,

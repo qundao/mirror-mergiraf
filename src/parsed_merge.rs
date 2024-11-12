@@ -266,19 +266,19 @@ impl ParsedMerge {
         let mut result = String::new();
         for chunk in self.chunks.iter() {
             match chunk {
-                MergedChunk::Resolved { contents, .. } => result.push_str(&contents),
+                MergedChunk::Resolved { contents, .. } => result.push_str(contents),
                 MergedChunk::Conflict { left, base, right } => {
                     result.push_str(&settings.left_marker());
                     result.push('\n');
-                    result.push_str(&left);
+                    result.push_str(left);
                     if settings.diff3 {
                         result.push_str(&settings.base_marker());
                         result.push('\n');
-                        result.push_str(&base);
+                        result.push_str(base);
                     }
                     result.push_str(&settings.middle_marker());
                     result.push('\n');
-                    result.push_str(&right);
+                    result.push_str(right);
                     result.push_str(&settings.right_marker());
                     result.push('\n');
                 }
@@ -298,12 +298,12 @@ impl ParsedMerge {
         }
     }
 
-    fn binary_search(vec: &Vec<OffsetMap>, start: usize, length: usize) -> Option<usize> {
+    fn binary_search(slice: &[OffsetMap], start: usize, length: usize) -> Option<usize> {
         let mut left = 0;
-        let mut right = vec.len();
+        let mut right = slice.len();
         while left < right {
             let guess = (left + right) / 2;
-            let offset = vec
+            let offset = slice
                 .get(guess)
                 .expect("Programming error in binary search, oops!");
             if offset.rev_start <= start && start + length <= offset.rev_start + offset.length {
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn test_parse() {
         let source = "\nwe reached a junction.\n<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
-        let parsed = ParsedMerge::parse(&source).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
@@ -480,7 +480,7 @@ mod tests {
     #[test]
     fn test_parse_start_with_conflict() {
         let source = "<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
-        let parsed = ParsedMerge::parse(&source).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Conflict {
@@ -512,7 +512,7 @@ mod tests {
     #[test]
     fn test_parse_end_with_conflict() {
         let source = "\nwe reached a junction.\n<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\n";
-        let parsed = ParsedMerge::parse(&source).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {

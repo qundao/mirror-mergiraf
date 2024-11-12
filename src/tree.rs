@@ -65,7 +65,7 @@ impl<'a> Ast<'a> {
         arena: &'a Arena<AstNode<'a>>,
     ) -> Result<Ast<'a>, String> {
         let root = AstNode::internal_new(&mut tree.walk(), source, lang_profile, arena)?;
-        Ok(Ast { source, root: root })
+        Ok(Ast { source, root })
     }
 
     /// The height of the tree
@@ -139,7 +139,7 @@ impl<'a> AstNode<'a> {
 
         // if this is a leaf that spans multiple lines, create one child per line,
         // to ease matching and diffing (typically, for multi-line comments)
-        if children.len() == 0 && local_source.contains("\n") {
+        if children.is_empty() && local_source.contains("\n") {
             let lines = local_source.split("\n");
             let mut offset = range.start;
             for line in lines {
@@ -381,7 +381,7 @@ impl<'a> AstNode<'a> {
                 .map(|(k, v)| {
                     (
                         *k,
-                        v.into_iter()
+                        v.iter()
                             .map(|child| *child_id_map.get(&child.id).unwrap())
                             .collect(),
                     )
@@ -432,8 +432,7 @@ impl<'a> AstNode<'a> {
     pub fn ancestor_indentation(&'a self) -> Option<&'a str> {
         self.ancestors()
             .skip(1)
-            .map(|ancestor| ancestor.preceding_indentation())
-            .flatten()
+            .filter_map(|ancestor| ancestor.preceding_indentation())
             .next()
     }
 
@@ -467,7 +466,7 @@ impl<'a> AstNode<'a> {
                         .next()
                     })
             }
-            None => Some(&own_indentation),
+            None => Some(own_indentation),
         }
     }
 
@@ -483,14 +482,14 @@ impl<'a> AstNode<'a> {
         let mut idx = own_indentation.len();
         let mut remaining_spaces = suffix.len();
         for char in own_indentation.chars().rev() {
-            if remaining_spaces <= 0 {
+            if remaining_spaces == 0 {
                 break;
             }
             let width = match char {
                 '\t' => tab_width,
                 _ => 1,
             };
-            remaining_spaces = remaining_spaces.checked_sub(width).unwrap_or(0);
+            remaining_spaces = remaining_spaces.saturating_sub(width);
             idx -= char.len_utf8();
         }
         idx = max(idx, 0);
@@ -569,8 +568,8 @@ impl<'a> AstNode<'a> {
             },
             if num_children == 0 && self.source != self.grammar_name {
                 format!(" \x1b[0;31m{}\x1b[0m", self.source.replace("\n", "\\n"))
-            } else if let Some(_) = next_parent {
-                format!(" \x1b[0;95mCommutative\x1b[0m")
+            } else if next_parent.is_some() {
+                " \x1b[0;95mCommutative\x1b[0m".to_string()
             } else if let (Some(_), Some(sig)) = (
                 parent,
                 lang_profile.extract_signature_from_original_node(self)
@@ -725,7 +724,7 @@ mod tests {
         assert_eq!(
             pair.children_by_field_name("key")
                 .unwrap()
-                .get(0)
+                .first()
                 .unwrap()
                 .source,
             "\"foo\""

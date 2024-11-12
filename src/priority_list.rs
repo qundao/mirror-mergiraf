@@ -145,7 +145,7 @@ mod tests {
 
         let node1 = ctx.parse_rust("fn x() { 1 + (2 + 5) }").root();
         let node1 = node1.child(0).unwrap().child(3).unwrap().child(1).unwrap();
-        priority_list.open(&node1);
+        priority_list.open(node1);
         let child1 = node1.child(0).unwrap();
         let child2 = node1.child(1).unwrap();
         let child3 = node1.child(2).unwrap();

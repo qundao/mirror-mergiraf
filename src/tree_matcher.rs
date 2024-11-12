@@ -61,20 +61,19 @@ impl TreeMatcher {
         debug!("top-down phase yielded {} matches", exact_matching.len());
 
         let arena = Arena::new();
-        let truncated_left = left.root().truncate(
-            &|node| !exact_matching.get_from_left(node).is_none(),
-            &arena,
-        );
+        let truncated_left = left
+            .root()
+            .truncate(&|node| exact_matching.get_from_left(node).is_some(), &arena);
 
         let truncated_right = right.root().truncate(
-            &|node| !exact_matching.get_from_right(node).is_none(),
+            &|node| exact_matching.get_from_right(node).is_some(),
             &arena,
         );
         let mut truncated_matching: Matching = matching.translate(truncated_left, truncated_right);
 
         // Second pass for container mappings
         let (container_matching, recovery_matches) =
-            self.bottom_up_pass(&truncated_left, &truncated_right, &mut truncated_matching);
+            self.bottom_up_pass(truncated_left, truncated_right, &mut truncated_matching);
         debug!("matching took {:?}", start.elapsed());
         let mut full = matching;
         let container = container_matching.translate(left.root(), right.root());
@@ -196,10 +195,10 @@ impl TreeMatcher {
                     &mut recovery_matches,
                     &mut container_matching,
                 );
-            } else if !matching.get_from_left(left_node).is_none() || left_node.is_leaf() {
+            } else if matching.get_from_left(left_node).is_some() || left_node.is_leaf() {
                 continue;
             }
-            let candidates = self.find_candidates(left_node, &matching);
+            let candidates = self.find_candidates(left_node, matching);
             let mut max_sim = -1.0_f32;
             let mut best_candidate = None;
             for candidate in candidates {
@@ -278,14 +277,7 @@ impl TreeMatcher {
                     "falling back on linear recovery from {} because size is {}, {}",
                     left.grammar_name, left_stripped.size, right_stripped.size,
                 );
-                self.match_subtrees_linearly(
-                    left,
-                    right,
-                    true,
-                    matching,
-                    recovery_matching,
-                    container_matching,
-                );
+                self.match_subtrees_linearly(left, right, true, matching, recovery_matching);
             } else {
                 // add candidates via tree edit distance matching
                 let (edits, _cost) = diff(&left_stripped, &right_stripped);
@@ -300,14 +292,7 @@ impl TreeMatcher {
                 );
             }
         } else {
-            self.match_subtrees_linearly(
-                left,
-                right,
-                false,
-                matching,
-                recovery_matching,
-                container_matching,
-            );
+            self.match_subtrees_linearly(left, right, false, matching, recovery_matching);
         }
         matching.add(left, right);
         container_matching.add(left, right);
@@ -322,7 +307,6 @@ impl TreeMatcher {
         recursive: bool,
         matching: &mut Matching<'a>,
         recovery_matching: &mut Matching<'a>,
-        container_matching: &mut Matching<'a>,
     ) {
         // index children by type and signature
         let left_children: MultiMap<(&'static str, Option<Signature>), &'a AstNode<'a>> = left
@@ -360,7 +344,6 @@ impl TreeMatcher {
                                 recursive,
                                 matching,
                                 recovery_matching,
-                                container_matching,
                             );
                         }
                         matching.add(child_l, child_r);

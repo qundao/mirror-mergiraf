@@ -95,7 +95,7 @@ impl LangProfile {
         conflict_in_children
             || (if node.children.len() < 2 {
                 false
-            } else if self.get_commutative_parent(&node.grammar_name).is_some() {
+            } else if self.get_commutative_parent(node.grammar_name).is_some() {
                 !node
                     .children
                     .iter()

@@ -189,7 +189,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 &args.debug_dir,
             );
             if git {
-                write_string_to_file(&fname_left, &merge_result.contents)?
+                write_string_to_file(fname_left, &merge_result.contents)?
             } else {
                 print!(
                     "{}",

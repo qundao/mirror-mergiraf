@@ -38,7 +38,7 @@ pub(crate) fn line_based_merge(
     contents_right: &str,
     settings: &DisplaySettings,
 ) -> MergeResult {
-    let merged = diffy::merge(&contents_base, &contents_left, &contents_right);
+    let merged = diffy::merge(contents_base, contents_left, contents_right);
     let merged_contents = match merged {
         Ok(contents) => contents,
         Err(contents) => contents,
@@ -46,7 +46,7 @@ pub(crate) fn line_based_merge(
     let parsed_merge = ParsedMerge::parse(&merged_contents)
         .expect("diffy returned a merge that we cannot parse the conflicts of");
     MergeResult {
-        contents: parsed_merge.render(&settings),
+        contents: parsed_merge.render(settings),
         conflict_count: parsed_merge.conflict_count(),
         conflict_mass: parsed_merge.conflict_mass(),
         method: LINE_BASED_METHOD,
@@ -58,7 +58,7 @@ impl MergeResult {
     /// Helper to store a merge result in an attempt
     pub(crate) fn store_in_attempt(&self, attempt: &Option<Attempt>) {
         if let Some(attempt) = attempt {
-            attempt.write(&self.method, &self.contents).ok();
+            attempt.write(self.method, &self.contents).ok();
         }
     }
 

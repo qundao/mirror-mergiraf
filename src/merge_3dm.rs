@@ -171,15 +171,16 @@ pub fn three_way_merge<'a>(
     for pcs in changeset.iter() {
         let mut conflict_found = false;
         if pcs.revision == Revision::Base {
-            let conflicting_triples = changeset.inconsistent_triples(*pcs);
+            let mut conflicting_triples = changeset.inconsistent_triples(*pcs);
             let count = changeset.inconsistent_triples(*pcs).count();
             if count > 0 {
                 debug!("number of conflicting triples: {}", count);
             }
-            for triple in conflicting_triples.filter(|triple| triple.revision != Revision::Base) {
+            if let Some(triple) =
+                conflicting_triples.find(|triple| triple.revision != Revision::Base)
+            {
                 debug!("eliminating {} by {}", pcs, triple);
                 conflict_found = true;
-                break;
             }
         }
         if !conflict_found {
@@ -238,7 +239,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile: lang_profile,
+            lang_profile,
         };
         (primary_matcher, auxiliary_matcher)
     }

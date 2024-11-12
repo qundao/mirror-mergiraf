@@ -123,7 +123,7 @@ impl<'a> ClassMapping<'a> {
             // keep track of exact matchings
             if is_exact && !repr.contains_key(&to_rev) {
                 let exacts = self.exact_matchings.entry(leader).or_default();
-                *exacts = *exacts + 1;
+                *exacts += 1;
             }
             repr.insert(to_rev, key);
             repr.insert(from_rev, left_rev_node);
@@ -267,7 +267,7 @@ impl RevisionSet {
 
     /// Adds a revision to the set by making a copy
     pub fn with(&self, revision: Revision) -> RevisionSet {
-        let mut copy = self.clone();
+        let mut copy = *self;
         copy.add(revision);
         copy
     }
