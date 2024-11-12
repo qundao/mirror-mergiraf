@@ -15,3 +15,6 @@ profile.json
 
 # other tools
 gumtree/
+
+# Nix
+/result
