@@ -216,7 +216,7 @@ pub fn supported_languages() -> Vec<LangProfile> {
                 signature(
                     "function_definition",
                     vec![
-                        vec![Field("declarator"), Field("identifier")],
+                        vec![Field("declarator"), Field("declarator")],
                         vec![
                             Field("declarator"),
                             Field("parameters"),

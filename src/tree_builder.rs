@@ -563,7 +563,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         trimmed_left_delim: &str,
         trimmed_right_delim: &str,
     ) -> T {
-        slice.iter()
+        slice
+            .iter()
             .filter(|n| {
                 let trimmed = n.source.trim();
                 trimmed != trimmed_sep
@@ -576,15 +577,20 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Collects examples of separators with the surrounding whitespace
     /// among a list of children of a commutative parent.
-    fn find_separators_with_whitespace(slice: &[&'a AstNode<'a>], trimmed_sep: &str) -> Vec<&'a str> {
+    fn find_separators_with_whitespace(
+        slice: &[&'a AstNode<'a>],
+        trimmed_sep: &str,
+    ) -> Vec<&'a str> {
         if trimmed_sep.is_empty() {
-            slice.iter()
+            slice
+                .iter()
                 .skip(1)
                 .filter_map(|node| node.preceding_whitespace())
                 .filter(|s| !s.is_empty())
                 .collect_vec()
         } else {
-            slice.iter()
+            slice
+                .iter()
                 .filter(|n| n.source.trim() == trimmed_sep)
                 .map(|n| n.source_with_surrounding_whitespace())
                 .collect_vec()
