@@ -204,7 +204,7 @@ pub fn supported_languages() -> Vec<LangProfile> {
         },
         LangProfile {
             name: "C/C++",
-            extensions: vec![".c", ".h", ".cpp", ".hpp"],
+            extensions: vec![".c", ".h", ".cc", ".cpp", ".hpp"],
             language: tree_sitter_cpp::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![

@@ -46,6 +46,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.xhtml merge=mergiraf
 *.xml merge=mergiraf
 *.c merge=mergiraf
+*.cc merge=mergiraf
 *.h merge=mergiraf
 *.cpp merge=mergiraf
 *.hpp merge=mergiraf

@@ -5,7 +5,7 @@ Mergiraf currently supports the following programming languages:
 * Rust (*.rs)
 * Go (*.go)
 * Javascript (*.js, *.jsx)
-* C/C++ (*.c, *.h, *.cpp, *.hpp)
+* C/C++ (*.c, *.h, *.cc, *.cpp, *.hpp)
 * C# (*.cs)
 * Dart (*.dart)
 
