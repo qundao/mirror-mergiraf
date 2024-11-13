@@ -8,11 +8,12 @@ keywords = ["git", "tree-sitter", "merge-driver"]
 categories = ["development-tools"]
 homepage = "https://mergiraf.org/"
 documentation = "https://mergiraf.org/"
+description = "A syntax-aware merge driver for Git"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-cc="*"
+cc=">=1.1"
 
 [dependencies]
 tree-sitter = "0.24"
