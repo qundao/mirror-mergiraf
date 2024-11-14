@@ -8,6 +8,9 @@ fi
 
 suite=$1
 
+script_path="$(realpath "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "${script_path}")"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -32,7 +35,7 @@ for testid in `find $suite -type d`; do
         continue
     fi
 
-    NO_DEBUG="true" /usr/bin/time -o /tmp/timings -f "%e" ./helpers/run.sh $testid > /tmp/our_merge_raw.$ext 2> /dev/null
+    NO_DEBUG="true" /usr/bin/time -o /tmp/timings -f "%e" ${script_dir}/run.sh $testid > /tmp/our_merge_raw.$ext 2> /dev/null
     retcode=$?
     cat /tmp/our_merge_raw.$ext | sed -e '$a\' > /tmp/our_merge.$ext
     if [ -e "$testid/Better.$ext" ]; then

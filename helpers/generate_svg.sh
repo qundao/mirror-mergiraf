@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
-cd debug/
+
+script_path="$(realpath "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "${script_path}")"
+
+cd ${script_dir}/../debug/
 echo "Generating debug/base_left.svg"
 dot -Tsvg base_left.dot > base_left.svg
 echo "Generating debug/base_right.svg"

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 if [ "$#" -ne 1 ]; then
     echo "usage: ./helpers/inspect.sh <path>"
@@ -6,10 +6,13 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
+script_path="$(realpath "${BASH_SOURCE[0]}")"
+script_dir="$(dirname "${script_path}")"
+
 # infer the extension
 ext=`ls $1 | grep Base. | sed -e 's/Base.//'`
 
-./helpers/run.sh $1 | sed -e '$a\' > /tmp/out$$
+${script_dir}/run.sh $1 | sed -e '$a\' > /tmp/out$$
 
 echo "------ RESULT ------"
 cat /tmp/out$$
