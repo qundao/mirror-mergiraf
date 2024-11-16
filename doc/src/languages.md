@@ -8,6 +8,7 @@ Mergiraf currently supports the following programming languages:
 * C/C++ (*.c, *.h, *.cc, *.cpp, *.hpp)
 * C# (*.cs)
 * Dart (*.dart)
+* Scala (*.scala, *.sbt)
 
 and the following declarative file formats:
 * JSON (*.json)

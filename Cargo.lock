@@ -712,6 +712,7 @@ dependencies = [
  "tree-sitter-javascript",
  "tree-sitter-json",
  "tree-sitter-rust",
+ "tree-sitter-scala",
  "tree-sitter-xml",
  "tree-sitter-yaml",
  "typed-arena",
@@ -1252,6 +1253,16 @@ name = "tree-sitter-rust"
 version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cffbbcb780348fbae8395742ae5b34c1fd794e4085d43aac9f259387f9a84dc8"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-scala"
+version = "0.23.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab837c0df7ffb6c315fd1cd792164375b3ec0c282ea35f639231f138044f8d0c"
 dependencies = [
  "cc",
  "tree-sitter-language",
