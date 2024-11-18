@@ -39,29 +39,27 @@ pub(crate) fn extract_revision_from_git(
             Revision::Right => "--stage=3",
         })
         .arg(path)
-        .current_dir(repo_dir)
-        .output()
-        .map_err(|err| err.to_string())
-        .and_then(|output| {
-            if !output.status.success() {
-                let error_str = str::from_utf8(&output.stderr).map_err(|err| err.to_string())?;
-                return Err(format!(
-                    "error while retrieving {} revision for {}:\n{}",
-                    revision,
-                    path.display(),
-                    error_str
-                ));
-            }
-            let output_str = str::from_utf8(&output.stdout).map_err(|err| err.to_string())?;
-            let temp_file_path = output_str.split_ascii_whitespace().next().ok_or_else(|| {
-                format!(
-                    "git did not return a temporary file path for {} revision of {}",
-                    revision,
-                    path.display()
-                )
-            })?;
-            Ok(GitTempFile {
-                path: repo_dir.join(PathBuf::from(temp_file_path)),
-            })
-        })
+        .current_dir(repo_dir);
+    let output = command.output().map_err(|err| err.to_string())?;
+
+    if !output.status.success() {
+        let error_str = str::from_utf8(&output.stderr).map_err(|err| err.to_string())?;
+        return Err(format!(
+            "error while retrieving {} revision for {}:\n{}",
+            revision,
+            path.display(),
+            error_str
+        ));
+    }
+    let output_str = str::from_utf8(&output.stdout).map_err(|err| err.to_string())?;
+    let temp_file_path = output_str.split_ascii_whitespace().next().ok_or_else(|| {
+        format!(
+            "git did not return a temporary file path for {} revision of {}",
+            revision,
+            path.display()
+        )
+    })?;
+    Ok(GitTempFile {
+        path: repo_dir.join(PathBuf::from(temp_file_path)),
+    })
 }
