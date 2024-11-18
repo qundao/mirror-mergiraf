@@ -54,6 +54,7 @@ use git::extract_revision_from_git;
 #[cfg(feature = "dotty")]
 use graphviz_rust::printer::{DotPrinter, PrinterContext};
 
+use itertools::Itertools;
 use lang_profile::LangProfile;
 use line_based::{
     line_based_merge, with_final_newline, MergeResult, FULLY_STRUCTURED_METHOD, LINE_BASED_METHOD,
@@ -243,15 +244,10 @@ fn select_best_merge(merges: &mut Vec<MergeResult>) -> MergeResult {
             merge.method, merge.conflict_count, merge.conflict_mass, merge.has_additional_issues
         );
     }
-    let mut first_merge = None;
-    for merge in merges {
-        if !merge.has_additional_issues {
-            return merge;
-        } else if first_merge.is_none() {
-            first_merge = Some(merge)
-        }
-    }
-    first_merge.expect("At least one merge result should be present")
+    merges
+        .into_iter()
+        .find_or_first(|merge| !merge.has_additional_issues)
+        .expect("At least one merge result should be present")
 }
 
 /// Do a line-based merge. If it is conflict-free, also check if it introduced any duplicate signatures,
