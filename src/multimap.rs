@@ -11,7 +11,11 @@ pub struct MultiMap<K, V> {
     empty: HashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
 }
 
-impl<K: Eq + PartialEq + Hash, V: Eq + PartialEq + Hash> MultiMap<K, V> {
+impl<K, V> MultiMap<K, V>
+where
+    K: Eq + PartialEq + Hash,
+    V: Eq + PartialEq + Hash,
+{
     /// Creates an empty multimap
     pub fn new() -> MultiMap<K, V> {
         MultiMap {
@@ -61,14 +65,25 @@ impl<K: Eq + PartialEq + Hash, V: Eq + PartialEq + Hash> MultiMap<K, V> {
     }
 }
 
-impl<K: Eq + PartialEq + Hash, V: Eq + PartialEq + Hash> Default for MultiMap<K, V> {
+impl<K, V> Default for MultiMap<K, V>
+where
+    K: Eq + PartialEq + Hash,
+    V: Eq + PartialEq + Hash,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<K: Eq + PartialEq + Hash, V: Eq + PartialEq + Hash> FromIterator<(K, V)> for MultiMap<K, V> {
-    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+impl<K, V> FromIterator<(K, V)> for MultiMap<K, V>
+where
+    K: Eq + PartialEq + Hash,
+    V: Eq + PartialEq + Hash,
+{
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = (K, V)>,
+    {
         let mut result = Self::new();
         for (k, v) in iter {
             result.add(k, v);
