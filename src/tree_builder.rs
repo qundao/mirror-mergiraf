@@ -29,7 +29,7 @@ impl<'a> SuccessorMap<'a> {
             MultiMap<PCSNode<'a>, (Revision, PCSNode<'a>)>,
         > = HashMap::new();
         for pcs in changeset.iter() {
-            let parent_map = &mut parent_to_children.entry(pcs.parent).or_default();
+            let parent_map = parent_to_children.entry(pcs.parent).or_default();
             parent_map.add(pcs.predecessor, (pcs.revision, pcs.successor));
         }
         SuccessorMap {
