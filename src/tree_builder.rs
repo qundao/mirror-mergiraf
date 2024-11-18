@@ -297,36 +297,37 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 "{pad}{node} Checking unvisited base node {}",
                 unvisited_base_node
             );
-            if let PCSNode::Node {
+            let PCSNode::Node {
                 node: unvisited,
                 revisions,
             } = unvisited_base_node
-            {
-                if visiting_state.visited_nodes.contains(&unvisited) {
-                    continue;
-                }
-                let (modified_revision, target_revision) = if revisions.contains(Revision::Left) {
-                    (Revision::Left, Revision::Right)
-                } else if revisions.contains(Revision::Right) {
-                    (Revision::Right, Revision::Left)
-                } else {
-                    continue; // node was deleted on both sides, we don't care about preserving any changes made to it
-                };
-                // recursively build the tree representation for the unvisited base node to see if it has any changes
-                self.build_subtree(unvisited_base_node, visiting_state)
-                    .and_then(|base_tree| {
-                        self.cover_modified_nodes(&base_tree, target_revision, modified_revision)
-                            .ok_or("no cover found".to_owned())
-                    })
-                    .map(|cover| {
-                        visiting_state.deleted_and_modified.extend(cover.iter());
-                    })
-                    .unwrap_or_else(|_| {
-                        // as a fallback solution, if we could not compute a cover of the changes in the deleted tree,
-                        // we request that the root of the subtree is present in the merged output.
-                        visiting_state.deleted_and_modified.insert(unvisited);
-                    });
+            else {
+                continue;
+            };
+            if visiting_state.visited_nodes.contains(&unvisited) {
+                continue;
             }
+            let (modified_revision, target_revision) = if revisions.contains(Revision::Left) {
+                (Revision::Left, Revision::Right)
+            } else if revisions.contains(Revision::Right) {
+                (Revision::Right, Revision::Left)
+            } else {
+                continue; // node was deleted on both sides, we don't care about preserving any changes made to it
+            };
+            // recursively build the tree representation for the unvisited base node to see if it has any changes
+            self.build_subtree(unvisited_base_node, visiting_state)
+                .and_then(|base_tree| {
+                    self.cover_modified_nodes(&base_tree, target_revision, modified_revision)
+                        .ok_or("no cover found".to_owned())
+                })
+                .map(|cover| {
+                    visiting_state.deleted_and_modified.extend(cover.iter());
+                })
+                .unwrap_or_else(|_| {
+                    // as a fallback solution, if we could not compute a cover of the changes in the deleted tree,
+                    // we request that the root of the subtree is present in the merged output.
+                    visiting_state.deleted_and_modified.insert(unvisited);
+                });
         }
 
         match node {
