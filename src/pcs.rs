@@ -32,6 +32,7 @@ pub enum PCSNode<'a> {
 /// It records that:
 /// * the `parent` node is the parent of both `predecessor` and `successor`
 /// * the `precessor` appears immediately before `successor` in the list of children of `parent`
+///
 /// The PCS triple also records in which revision this fact holds.
 /// To encode that a given node is the first child of its parent, we use [`PCSNode::LeftMarker`] as
 /// predecessor, and similarly [`PCSNode::RightMarker`] is used as successor to encod the last child.
