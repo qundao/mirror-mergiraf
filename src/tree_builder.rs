@@ -844,10 +844,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             Box::new(children_left.iter()),
             Box::new(children_right.iter()),
         );
-        let common_prefix = &children_base.as_slice()[..common_prefix_length];
-        let children_base = &children_base.as_slice()[common_prefix_length..];
-        let children_left = &children_left.as_slice()[common_prefix_length..];
-        let children_right = &children_right.as_slice()[common_prefix_length..];
+        let common_prefix = &children_base[..common_prefix_length];
+        let children_base = &children_base[common_prefix_length..];
+        let children_left = &children_left[common_prefix_length..];
+        let children_right = &children_right[common_prefix_length..];
 
         // remove the common suffix of all three
         let common_suffix_length = Self::common_prefix(
