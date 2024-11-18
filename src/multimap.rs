@@ -6,7 +6,7 @@ use std::{
 
 /// A map which associates a set of values to each key.
 #[derive(Debug)]
-pub struct MultiMap<K: Eq + PartialEq + Hash, V: Eq + PartialEq + Hash> {
+pub struct MultiMap<K, V> {
     map: HashMap<K, HashSet<V>>,
     empty: HashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
 }
