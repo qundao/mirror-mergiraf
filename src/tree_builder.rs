@@ -658,7 +658,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         // check which right removed elements have been modified on the left-hand side,
         // in which case they should be kept
         let mut removed_visiting_state = visiting_state.clone();
-        let right_removed_content = right_removed
+        let right_removed_content: Vec<_> = right_removed
             .iter()
             .map(|revnode| {
                 let subtree = self.build_subtree(
@@ -670,33 +670,33 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 )?;
                 Ok((**revnode, subtree))
             })
-            .collect::<Result<Vec<(Leader<'a>, MergedTree<'a>)>, String>>()?;
-        let right_removed_and_not_modified = right_removed_content
+            .collect::<Result<_, String>>()?;
+        let right_removed_and_not_modified: HashSet<_> = right_removed_content
             .iter()
             .filter(|(_, result_tree)| match result_tree {
                 MergedTree::ExactTree { revisions, .. } => revisions.contains(Revision::Base),
                 _ => false,
             })
             .map(|(revnode, _)| revnode)
-            .collect::<HashSet<&Leader>>();
+            .collect();
 
-        let left_added = left_leaders
+        let left_added: HashSet<_> = left_leaders
             .iter()
             .filter(|x| !base_leaders.contains(x))
-            .collect::<HashSet<&Leader>>();
+            .collect();
         debug!("{pad}left_added: {}", left_added.iter().join(", "));
-        let right_added = right_leaders
+        let right_added: Vec<_> = right_leaders
             .iter()
             .filter(|x| !base_leaders.contains(x) && !left_added.contains(x))
-            .collect_vec();
+            .collect();
         debug!("{pad}right_added: {}", right_removed.iter().join(", "));
 
         // apply this symmetric difference to the left list
-        let merged = left_leaders
+        let merged: Vec<_> = left_leaders
             .iter()
             .filter(|n| !right_removed_and_not_modified.contains(n))
             .chain(right_added)
-            .collect_vec();
+            .collect();
 
         // build the result tree for each element of the result
         let merged_content: Vec<MergedTree<'a>> = merged
