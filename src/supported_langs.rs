@@ -349,18 +349,24 @@ pub fn supported_languages() -> Vec<LangProfile> {
             name: "Python",
             extensions: vec![".py"],
             language: tree_sitter_python::LANGUAGE.into(),
-            atomic_nodes: vec![],
+            atomic_nodes: vec!["string", "dotted_name"],
             commutative_parents: vec![
-                CommutativeParent::without_delimiters("module", "\n"),
-                CommutativeParent::without_delimiters("block", "\n"),
+                CommutativeParent::without_delimiters("module", "\n")
+                    .restricted_to_groups(&[&["import_statement"], &["class_definition"]]),
+                CommutativeParent::without_delimiters("block", "\n\n")
+                    .restricted_to_groups(&[&["function_definition"]]),
+                CommutativeParent::without_delimiters("import_from_statement", ", ")
+                    .restricted_to_groups(&[&["dotted_name"]]),
+                CommutativeParent::new("argument_list", "(", ", ", ")")
+                    .restricted_to_groups(&[&["keyword_argument"]]),
+                CommutativeParent::new("set", "{", ", ", "}"),
             ],
             signatures: vec![
                 signature("import_from_statement", vec![vec![]]),
                 signature("class_definition", vec![vec![Field("name")]]),
-                signature("function_definition", vec![
-                    vec![Field("name")],
-                    vec![Field("parameters")]
-                ]),
+                signature("function_definition", vec![vec![Field("name")]]),
+                signature("dotted_name", vec![vec![]]),
+                signature("keyword_argument", vec![vec![Field("name")]]),
             ],
         },
     ]
