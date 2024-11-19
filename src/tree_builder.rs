@@ -647,6 +647,16 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             trimmed_right_delim,
         );
 
+        // check that all the nodes involved are allowed to commute in this context
+        let child_types: HashSet<&str> = base_leaders.iter()
+            .chain(left_leaders.iter())
+            .chain(right_leaders.iter())
+            .map(|leader| leader.grammar_name())
+            .collect();
+        if !commutative_parent.children_can_commute(&child_types) {
+            return Err("The children are not allowed to commute".to_string())
+        }
+
         // then, compute the symmetric difference between the base and right lists
         let right_removed = base_leaders
             .iter()

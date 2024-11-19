@@ -1,3 +1,5 @@
+use std::{collections::HashSet, process::Child};
+
 use itertools::Itertools;
 use tree_sitter::Language;
 
@@ -122,7 +124,9 @@ pub struct CommutativeParent {
     // any left delimiter that can come before all children
     pub left_delim: Option<&'static str>,
     // any right delimiter that can come after all children
-    pub right_delim: Option<&'static str>,
+    pub right_delim: Option<&'static str>, 
+    // any restrictions on which types of children are allowed to commute together. If empty, all children can commute together.
+    pub children_groups: Vec<ChildrenGroup>,
 }
 
 impl CommutativeParent {
@@ -133,6 +137,7 @@ impl CommutativeParent {
             separator,
             left_delim: None,
             right_delim: None,
+            children_groups: Vec::new(),
         }
     }
 
@@ -148,6 +153,7 @@ impl CommutativeParent {
             separator,
             left_delim: Some(left_delim),
             right_delim: Some(right_delim),
+            children_groups: Vec::new(),
         }
     }
 
@@ -162,6 +168,38 @@ impl CommutativeParent {
             separator,
             left_delim: Some(left_delim),
             right_delim: None,
+            children_groups: Vec::new(),
+        }
+    }
+
+    /// Short-hand to restrict a commutative parent to some children groups
+    pub(crate) fn restricted_to_groups(mut self, groups: &[&[&'static str]]) -> CommutativeParent {
+        let children_groups = groups
+            .into_iter().map(|types| ChildrenGroup::new(&types))
+            .collect();
+        self.children_groups = children_groups;
+        self
+    }
+
+    /// Can children with the supplied types commute together?
+    pub(crate) fn children_can_commute(&self, node_types: &HashSet<&str>) -> bool {
+        self.children_groups.is_empty() ||
+        self.children_groups.iter()
+            .any(|group| group.node_types.is_superset(&node_types))
+    }
+}
+
+/// A group of children of a commutative node which are allowed to commute together
+#[derive(Debug, Clone)]
+pub struct ChildrenGroup {
+    /// The types of nodes, as gramman names
+    pub node_types: HashSet<&'static str>,
+}
+
+impl ChildrenGroup {
+    pub(crate) fn new(types: &[&'static str]) -> ChildrenGroup {
+        ChildrenGroup {
+            node_types: types.iter().copied().collect(),
         }
     }
 }

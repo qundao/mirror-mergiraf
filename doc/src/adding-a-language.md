@@ -112,14 +112,11 @@ which gives:
 
 This shows us how our source code is parsed into a tree. We see that the `using` statements are parsed as `using_directive` nodes in the tree.
 
-To let Mergiraf reorder `using` statements to fix conflicts, we actually need to specify that they can be reordered with any of their siblings (any other child of their parent in the syntax tree).
-In this example, their parent is the root of the tree (with type `compilation_unit`), which means that we'll allow reordering `using` statements with other top-level elements, such as the namespace declaration.
+To let Mergiraf reorder `using` statements to fix conflicts, we declare that their parent is a commutative root, which will by default let them commute with any of their siblings (any other child of their parent in the syntax tree).
+In this example, their parent is the root of the tree (with type `compilation_unit`), which means that we'll allow reordering `using` statements with other top-level elements, such as the namespace declaration. 
+We'll see later how to restrict this commutativity by defining children groups.
 
-This might feel a little odd, given that `using` statements will almost
-invariably appear at the top of the file, and we definitely don't want to have Mergiraf move them to the end of the file when merging for instance.
-However, Mergiraf only relies on commutative parents to solve conflicts, such as inserting two elements at the same place. It keeps the order of other existing elements. C# being an object-oriented language, it does not allow for top-level instructions (everything happens inside classes, whose declaration order does not matter either), so in this case it is appropriate to declare `compilation_unit` as a commutative parent.
-
-We can do so in the language profile:
+The commutative parent can be defined in the language profile:
 ```rust
 LangProfile {
     commutative_parents: vec![
@@ -178,6 +175,31 @@ We can add other commutative parent definitions in the language profile. For ins
 CommutativeRoot::new("declaration_list", "{", "\n\n", "}")
 ```
 and so on. While it is useful to identify as many commutative parent types as possible, not being exhaustive is not a problem as it will only prevent the automated resolution of certain conflicts, but should not otherwise degrade the quality of merges.
+
+## Adding children groups
+
+Within a commutative parent, it is possible to restrict which types of children are able to commute together.
+In C#, the `compilation_unit` root node can not only contain `using` statements, but also some global statements, namespace declarations and type declarations, for instance.
+We can declare *children groups*, which are sets of node types which are allowed to commute together.
+By declaring a children group which contains only `using_directive`, we make sure that `using` directive can only be reordered with other `using` directives:
+```rust
+CommutativeRoot::new("declaration_list", "{", "\n\n", "}")
+    .restricted_to_groups(&[
+        &["using_directive"]
+    ])
+```
+
+As soon as a children group is declared, that restricts the commutativity of all children of the commutative parent.
+Conflicts can only be solved if all children involved are part of the same group. So, in this case it's also worth
+adding other children groups for other types of nodes which can be reordered together:
+```rust
+CommutativeRoot::new("declaration_list", "{", "\n\n", "}")
+    .restricted_to_groups(&[
+        &["using_directive"],
+        &["namespace_declaration"],
+        &["global_attribute"],
+    ])
+```
 
 ## Add signatures
 
