@@ -1,8 +1,10 @@
-use std::process::Child;
 
 use crate::{
-    lang_profile::{ChildrenGroup, CommutativeParent, LangProfile},
-    signature::{signature, PathStep::{ChildType, Field}},
+    lang_profile::{CommutativeParent, LangProfile},
+    signature::{
+        signature,
+        PathStep::{ChildType, Field},
+    },
 };
 
 /// Returns the list of supported language profiles,
@@ -212,10 +214,7 @@ pub fn supported_languages() -> Vec<LangProfile> {
             commutative_parents: vec![
                 CommutativeParent::new("initializer_list", "{", ",", "}"),
                 CommutativeParent::new("field_declaration_list", "{\n", "\n", "\n}\n")
-                    .restricted_to_groups(&[
-                        &["field_declaration"],
-                        &["function_definition"]
-                    ])
+                    .restricted_to_groups(&[&["field_declaration"], &["function_definition"]]),
             ],
             signatures: vec![
                 signature("initializer_pair", vec![vec![Field("designator")]]),
