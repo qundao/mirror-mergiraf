@@ -79,11 +79,12 @@ pub(crate) fn parse<'a>(
     contents: &'a str,
     lang_profile: &LangProfile,
     arena: &'a Arena<AstNode<'a>>,
+    ref_arena: &'a Arena<&'a AstNode<'a>>,
 ) -> Result<Ast<'a>, String> {
     let tree = parser
         .parse(contents, None)
         .expect("Parsing example source code failed");
-    Ast::new(tree, contents, lang_profile, arena)
+    Ast::new(tree, contents, lang_profile, arena, ref_arena)
 }
 
 /// Performs a fully structured merge, parsing the contents of all three revisions,
@@ -103,6 +104,7 @@ pub fn structured_merge(
     debug_dir: &Option<String>,
 ) -> Result<MergeResult, String> {
     let arena = Arena::new();
+    let ref_arena = Arena::new();
 
     let start = Instant::now();
     let mut parser = TSParser::new();
@@ -127,9 +129,15 @@ pub fn structured_merge(
     };
 
     let start = Instant::now();
-    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena)?;
-    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena)?;
-    let tree_right = parse(&mut parser, contents_right, lang_profile, &arena)?;
+    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena, &ref_arena)?;
+    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena, &ref_arena)?;
+    let tree_right = parse(
+        &mut parser,
+        contents_right,
+        lang_profile,
+        &arena,
+        &ref_arena,
+    )?;
     debug!("parsing all three files took {:?}", start.elapsed());
 
     let initial_matchings = parsed_merge.map(|parsed_merge| {
@@ -270,11 +278,13 @@ fn line_based_merge_with_duplicate_signature_detection(
                 .set_language(&lang_profile.language)
                 .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
             let arena = Arena::new();
+            let ref_arena = Arena::new();
             let tree_left = parse(
                 &mut parser,
                 &line_based_merge.contents,
                 lang_profile,
                 &arena,
+                &ref_arena,
             );
 
             if let Ok(ast) = tree_left {

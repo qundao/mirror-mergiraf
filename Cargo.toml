@@ -41,6 +41,7 @@ rand = "0.8.5"
 etcetera = "0.8.0"
 zip = { version = "2.2.0", features = ["deflate"], default-features = false }
 tree-sitter-scala = "0.23.3"
+either = "1.13.0"
 
 [dev-dependencies]
 rstest = "0.21.0"

@@ -11,11 +11,13 @@ use crate::{
 /// Provides a set of utilities to help write concise tests
 pub struct TestContext<'a> {
     pub(crate) arena: Arena<AstNode<'a>>,
+    pub(crate) ref_arena: Arena<&'a AstNode<'a>>,
 }
 
 pub fn ctx<'a>() -> TestContext<'a> {
     TestContext {
         arena: Arena::new(),
+        ref_arena: Arena::new(),
     }
 }
 
@@ -30,7 +32,8 @@ impl<'a> TestContext<'a> {
         let tree = parser
             .parse(source, None)
             .expect("Parsing example source code failed");
-        Ast::new(tree, source, &lang_profile, &self.arena).expect("syntax error in source")
+        Ast::new(tree, source, &lang_profile, &self.arena, &self.ref_arena)
+            .expect("syntax error in source")
     }
 
     pub fn parse_rust(&'a self, source: &'a str) -> Ast<'a> {

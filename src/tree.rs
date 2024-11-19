@@ -7,6 +7,7 @@ use std::{
     ops::Range,
 };
 
+use either::Either;
 use itertools::Itertools;
 use tree_sitter::{Tree, TreeCursor};
 use typed_arena::Arena;
@@ -53,6 +54,11 @@ pub struct AstNode<'a> {
     descendant_count: usize,
     /// The parent of this node, if any.
     parent: UnsafeCell<Option<&'a AstNode<'a>>>,
+    /// As the DFS of a child is a subslice of the DFS of its parent, we compute the entire DFS of
+    /// the root once and slice all child DFS into this slice.
+    /// This is computed right after construction and then never written to again.
+    /// On nodes that have been truncated (which is rare) this will be `None`.
+    dfs: UnsafeCell<Option<&'a [&'a AstNode<'a>]>>,
 }
 
 impl<'a> Ast<'a> {
@@ -63,8 +69,10 @@ impl<'a> Ast<'a> {
         source: &'a str,
         lang_profile: &LangProfile,
         arena: &'a Arena<AstNode<'a>>,
+        ref_arena: &'a Arena<&'a AstNode<'a>>,
     ) -> Result<Ast<'a>, String> {
         let root = AstNode::internal_new(&mut tree.walk(), source, lang_profile, arena)?;
+        root.internal_precompute_root_dfs(ref_arena);
         Ok(Ast { source, root })
     }
 
@@ -161,6 +169,7 @@ impl<'a> AstNode<'a> {
                     id: 2 * start_position + 1, // start_position is known to be unique among virtual lines
                     descendant_count: 1,
                     parent: UnsafeCell::new(None),
+                    dfs: UnsafeCell::new(None),
                 }));
                 offset += line.len() + 1
             }
@@ -197,6 +206,7 @@ impl<'a> AstNode<'a> {
             id: 2 * node.id(), // 2* to make it disjoint from the split lines we introduce above
             descendant_count,
             parent: UnsafeCell::new(None),
+            dfs: UnsafeCell::new(None),
         });
         result.internal_set_parent_on_children();
         Ok(result)
@@ -206,6 +216,33 @@ impl<'a> AstNode<'a> {
         for child in self.children.iter() {
             unsafe { *child.parent.get() = Some(self) }
         }
+    }
+
+    fn internal_precompute_root_dfs(&'a self, ref_arena: &'a Arena<&'a AstNode<'a>>) {
+        let mut result = vec![];
+
+        let mut worklist = vec![self];
+        while let Some(node) = worklist.pop() {
+            for child in node.children.iter().rev() {
+                worklist.push(child);
+            }
+            result.push(node);
+        }
+
+        let result = ref_arena.alloc_extend(result);
+
+        fn process_node<'a>(node: &'a AstNode<'a>, result: &'a [&'a AstNode<'a>], i: &mut usize) {
+            let start = *i;
+            *i += 1;
+            for child in &node.children {
+                process_node(*child, result, i);
+            }
+            let end = *i;
+            unsafe { (*node.dfs.get()) = Some(&result[start..end]) };
+        }
+
+        let mut i = 0;
+        process_node(self, result, &mut i);
     }
 
     /// The height of the subtree under that node
@@ -259,8 +296,13 @@ impl<'a> AstNode<'a> {
 
     /// Depth-first search iterator
     pub fn dfs(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
-        DfsIterator {
-            current: vec![&self],
+        // SAFETY: This is not written to after construction.
+        if let Some(dfs) = unsafe { &*self.dfs.get() } {
+            Either::Left(dfs.into_iter().copied())
+        } else {
+            Either::Right(DfsIterator {
+                current: vec![&self],
+            })
         }
     }
 
@@ -399,6 +441,7 @@ impl<'a> AstNode<'a> {
             id: self.id,
             descendant_count: self.descendant_count,
             parent: UnsafeCell::new(None),
+            dfs: UnsafeCell::new(None),
         });
         result.internal_set_parent_on_children();
         result
@@ -789,6 +832,7 @@ mod tests {
         let fake_hash_collision = AstNode {
             hash: node_1.hash,
             parent: UnsafeCell::new(None),
+            dfs: UnsafeCell::new(None),
             children: node_2.children.to_owned(),
             field_to_children: HashMap::new(),
             byte_range: node_2.byte_range.to_owned(),
