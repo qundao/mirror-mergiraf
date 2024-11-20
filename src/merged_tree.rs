@@ -1,7 +1,7 @@
 use std::{
     collections::HashSet,
     fmt::Display,
-    hash::{DefaultHasher, Hash, Hasher},
+    hash::{Hash, Hasher},
 };
 
 use itertools::Itertools;
@@ -91,7 +91,7 @@ impl<'a> MergedTree<'a> {
     /// Creates a new mixed tree, taking care of the pre-computation of the hash
     pub(crate) fn new_mixed(node: Leader<'a>, children: Vec<MergedTree<'a>>) -> Self {
         // TODO we could refuse to create a new mixed tree with no children
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = crate::fxhasher();
         node.grammar_name().hash(&mut hasher);
         children
             .iter()

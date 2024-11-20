@@ -3,7 +3,7 @@ use std::{
     cmp::{max, min},
     collections::HashMap,
     fmt::Display,
-    hash::{DefaultHasher, Hash, Hasher},
+    hash::{Hash, Hasher},
     ops::Range,
 };
 
@@ -153,7 +153,7 @@ impl<'a> AstNode<'a> {
             for line in lines {
                 let trimmed = line.trim_start();
                 let start_position = offset + line.len() - trimmed.len();
-                let mut hasher = DefaultHasher::new();
+                let mut hasher = crate::fxhasher();
                 trimmed.hash(&mut hasher);
                 children.push(arena.alloc(AstNode {
                     hash: hasher.finish(),
@@ -176,7 +176,7 @@ impl<'a> AstNode<'a> {
         }
 
         // pre-compute a hash value that is invariant under isomorphism
-        let mut hasher = DefaultHasher::new();
+        let mut hasher = crate::fxhasher();
         if children.is_empty() {
             node.grammar_name().hash(&mut hasher);
             local_source.hash(&mut hasher);

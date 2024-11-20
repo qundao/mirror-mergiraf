@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 
 use itertools::Itertools;
 
@@ -184,10 +184,10 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                         )
                     } else {
                         // we don't have access to a class mapping so we resort on hash equality
-                        let mut hasher = DefaultHasher::new();
+                        let mut hasher = crate::fxhasher();
                         self.hash(&mut hasher);
                         let hash_a = hasher.finish();
-                        hasher = DefaultHasher::new();
+                        hasher = crate::fxhasher();
                         other.hash(&mut hasher);
                         let hash_b = hasher.finish();
                         hash_a == hash_b

@@ -1,5 +1,4 @@
-use std::hash::{DefaultHasher, Hash, Hasher};
-
+use std::hash::{Hash, Hasher};
 use tree_sitter::Parser;
 use typed_arena::Arena;
 
@@ -58,7 +57,7 @@ impl<'a> TestContext<'a> {
 }
 
 pub fn hash<T: Hash>(node: &T) -> u64 {
-    let mut hasher = DefaultHasher::new();
+    let mut hasher = crate::fxhasher();
     node.hash(&mut hasher);
     hasher.finish()
 }

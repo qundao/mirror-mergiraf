@@ -1,12 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use rustc_hash::FxHashMap;
+use std::collections::HashSet;
 
 use crate::tree::AstNode;
 
 /// A one-to-one relation between nodes of two trees.
 #[derive(Debug)]
 pub struct Matching<'tree> {
-    left_to_right: HashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
-    right_to_left: HashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
+    left_to_right: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
+    right_to_left: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
 }
 
 impl<'tree> Default for Matching<'tree> {
@@ -19,8 +20,8 @@ impl<'tree> Matching<'tree> {
     /// Creates an empty matching.
     pub fn new() -> Matching<'tree> {
         Matching {
-            left_to_right: HashMap::new(),
-            right_to_left: HashMap::new(),
+            left_to_right: FxHashMap::default(),
+            right_to_left: FxHashMap::default(),
         }
     }
 
@@ -104,8 +105,8 @@ impl<'tree> Matching<'tree> {
 
     // Compose two matchings together
     pub fn compose(&self, other_matching: &Matching<'tree>) -> Matching<'tree> {
-        let mut left_to_right = HashMap::new();
-        let mut right_to_left = HashMap::new();
+        let mut left_to_right = FxHashMap::default();
+        let mut right_to_left = FxHashMap::default();
         for (source, target) in self.left_to_right.iter() {
             if let Some(final_target) = other_matching.get_from_left(target) {
                 left_to_right.insert(*source, final_target);
@@ -179,7 +180,7 @@ impl<'tree> Matching<'tree> {
         matching
     }
 
-    fn index_tree<'a>(node: &'a AstNode<'a>) -> HashMap<usize, &'a AstNode<'a>> {
+    fn index_tree<'a>(node: &'a AstNode<'a>) -> FxHashMap<usize, &'a AstNode<'a>> {
         node.dfs().map(|node| (node.id, node)).collect()
     }
 }

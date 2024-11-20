@@ -535,3 +535,8 @@ fn save_matching<'a>(
     let dotty = graph.print(&mut ctx);
     fs::write(fname, dotty).expect("Unable to write debug graph file")
 }
+
+fn fxhasher() -> rustc_hash::FxHasher {
+    use std::hash::BuildHasher;
+    rustc_hash::FxBuildHasher::default().build_hasher()
+}
