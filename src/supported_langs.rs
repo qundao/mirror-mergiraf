@@ -345,5 +345,23 @@ pub fn supported_languages() -> Vec<LangProfile> {
                 signature("pair_pattern", vec![vec![Field("key")]]),
             ],
         },
+        LangProfile {
+            name: "Python",
+            extensions: vec![".py"],
+            language: tree_sitter_python::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("module", "\n"),
+                CommutativeParent::without_delimiters("block", "\n"),
+            ],
+            signatures: vec![
+                signature("import_from_statement", vec![vec![]]),
+                signature("class_definition", vec![vec![Field("name")]]),
+                signature("function_definition", vec![
+                    vec![Field("name")],
+                    vec![Field("parameters")]
+                ]),
+            ],
+        },
     ]
 }
