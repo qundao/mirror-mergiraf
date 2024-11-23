@@ -41,29 +41,29 @@ enum CliCommand {
         right: String,
         /// Only attempt to merge the files by solving textual conflicts,
         /// without doing a full structured merge from the ground up.
-        #[clap(long = "fast")]
+        #[clap(long)]
         fast: bool,
         /// Display compact conflicts, breaking down lines
-        #[clap(short = 'c', long = "compact", default_value_t = false)]
+        #[arg(short, long, default_value_t = false)]
         compact: bool,
         /// Behave as a git merge driver: overwrite the left revision
-        #[clap(short = 'g', long = "git")]
+        #[clap(short, long)]
         git: bool,
         /// The path to the file to write the merge result to
         #[clap(short, long, conflicts_with = "git")]
         output: Option<String>,
         /// Final path in which the merged result will be stored.
         /// It is used to detect the language of the files using the file extension.
-        #[clap(short = 'p', long = "path-name")]
+        #[clap(short, long)]
         path_name: Option<String>,
         /// Name to use for the base revision in conflict markers
-        #[clap(short = 's', long = "base-name")]
+        #[clap(short, long)]
         base_name: Option<String>,
         /// Name to use for the left revision in conflict markers
-        #[clap(short = 'x', long = "left-name")]
+        #[clap(short, long)]
         left_name: Option<String>,
         /// Name to use for the right revision in conflict markers
-        #[clap(short = 'y', long = "right-name")]
+        #[clap(short, long)]
         right_name: Option<String>,
     },
     /// Solve the conflicts in a merged file
