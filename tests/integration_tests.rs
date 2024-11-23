@@ -126,9 +126,7 @@ fn test_solve_command(#[case] conflict_style: &str) {
     );
     command.env("MERGIRAF_DISABLE", "1"); // in case Git is configured to use Mergiraf
     let output = command.output().expect("Failed to execute git command");
-    if output.status.success() {
-        panic!("expected a rebase conflict");
-    }
+    assert!(!output.status.success(), "expected a rebase conflict");
 
     // call mergiraf to the rescue
     let conflicts_contents =
