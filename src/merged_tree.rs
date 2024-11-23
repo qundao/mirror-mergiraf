@@ -443,7 +443,7 @@ impl<'a> MergedTree<'a> {
                             .filter_map(|repr| {
                                 let indentation_shift = repr.node.indentation_shift().unwrap_or("").to_owned();
                                 let ancestor_newlines = format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
-                                let new_newlines = format!("\n{}", indentation);
+                                let new_newlines = format!("\n{indentation}");
                                 if let Some(preceding_whitespace) = repr.node.preceding_whitespace() {
                                     let new_whitespace = preceding_whitespace.replace(&ancestor_newlines, &new_newlines);
                                     Some((new_whitespace, indentation_shift))
@@ -456,7 +456,7 @@ impl<'a> MergedTree<'a> {
                     });
 
                 output.push_merged(preceding_whitespace);
-                format!("{}{}", indentation, indentation_shift)
+                format!("{indentation}{indentation_shift}")
             }
             Some(PreviousSibling::CommutativeSeparator(separator)) => {
                 if separator.ends_with("\n") {
@@ -464,7 +464,7 @@ impl<'a> MergedTree<'a> {
                         .indentation_shift()
                         .unwrap_or("")
                         .to_owned();
-                    let new_indentation = format!("{indentation}{}", shift);
+                    let new_indentation = format!("{indentation}{shift}");
                     output.push_merged(new_indentation.clone());
                     return new_indentation;
                 }
@@ -522,7 +522,7 @@ impl<'a> MergedTree<'a> {
     }
 
     fn extract_indentation_shift(ancestor_indentation: &str, preceding_whitespace: &str) -> String {
-        let line_with_ancestor_indentation = format!("\n{}", ancestor_indentation);
+        let line_with_ancestor_indentation = format!("\n{ancestor_indentation}");
         preceding_whitespace
             .rfind(&line_with_ancestor_indentation)
             .map(|s| preceding_whitespace[(s + line_with_ancestor_indentation.len())..].to_owned())
@@ -581,13 +581,13 @@ impl<'a> MergedTree<'a> {
         let c = match self {
             MergedTree::ExactTree {
                 node, revisions, ..
-            } => format!("Exact({}{})", node, revisions),
+            } => format!("Exact({node}{revisions})"),
             MergedTree::MixedTree { node, children, .. } => {
                 let children_printed = children
                     .iter()
                     .map(|c| c.debug_print(indentation + 2))
                     .join("\n");
-                format!("Mixed({}\n{}{})", node, children_printed, result)
+                format!("Mixed({node}\n{children_printed}{result})")
             }
             MergedTree::Conflict { .. } => "Conflict()".to_string(),
             MergedTree::LineBasedMerge { .. } => "LineBasedConflict()".to_string(),

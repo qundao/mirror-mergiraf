@@ -69,7 +69,7 @@ impl<'a> Display for PCSNode<'a> {
         match self {
             PCSNode::VirtualRoot => write!(f, "⊥"),
             PCSNode::LeftMarker => write!(f, "⊣"),
-            PCSNode::Node { node: rn, .. } => write!(f, "{}", rn),
+            PCSNode::Node { node: rn, .. } => write!(f, "{rn}"),
             PCSNode::RightMarker => write!(f, "⊢"),
         }
     }

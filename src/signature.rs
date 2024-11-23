@@ -265,8 +265,8 @@ impl<'a, 'b> Hash for AstNodeEquiv<'a, 'b> {
 impl<'a, 'b> Display for AstNodeEquiv<'a, 'b> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AstNodeEquiv::Original(ast_node) => write!(f, "Original({})", ast_node),
-            AstNodeEquiv::Merged(merged) => write!(f, "Merged({})", merged),
+            AstNodeEquiv::Original(ast_node) => write!(f, "Original({ast_node})"),
+            AstNodeEquiv::Merged(merged) => write!(f, "Merged({merged})"),
         }
     }
 }
@@ -416,8 +416,8 @@ impl Display for AstPath {
 impl Display for PathStep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PathStep::Field(field_name) => write!(f, "field({})", field_name),
-            PathStep::ChildType(child_type) => write!(f, "child_type({})", child_type),
+            PathStep::Field(field_name) => write!(f, "field({field_name})"),
+            PathStep::ChildType(child_type) => write!(f, "child_type({child_type})"),
         }
     }
 }

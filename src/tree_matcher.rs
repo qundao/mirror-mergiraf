@@ -498,7 +498,7 @@ impl<'a> TEDTree<'a> {
             child.display(f, indentation + 2)?;
         }
         if !self.children.is_empty() {
-            writeln!(f, "{})", pad)?;
+            writeln!(f, "{pad})")?;
         }
         Ok(())
     }

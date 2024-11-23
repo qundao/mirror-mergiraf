@@ -94,7 +94,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let merged_tree = self.build_subtree(PCSNode::VirtualRoot, &mut visiting_state)
             .expect("Recovering the result tree from the virtual root failed, this should not be allowed to happen!");
 
-        debug!("{}", merged_tree);
+        debug!("{merged_tree}");
 
         let deleted_and_modified = visiting_state.deleted_and_modified;
         // check if any deleted and modified nodes are absent from the resulting tree
@@ -486,8 +486,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 .map(|(_, node)| node)
                 .next()
                 .ok_or(format!(
-                    "no candidate successor found for {} at {}",
-                    cursor, revision
+                    "no candidate successor found for {cursor} at {revision}"
                 ))?;
 
             if candidate == PCSNode::RightMarker || !other_successors.get(candidate).is_empty() {
@@ -534,8 +533,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             ))
         } else {
             Err(format!(
-                "impossible to do a line-based local fallback for a virtual PCS node {}",
-                node
+                "impossible to do a line-based local fallback for a virtual PCS node {node}"
             ))
         }
     }
@@ -1026,7 +1024,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 }
 
 fn fmt_set(s: &HashSet<(Revision, PCSNode<'_>)>) -> String {
-    s.iter().map(|(r, n)| format!("({},{})", r, n)).join(", ")
+    s.iter().map(|(r, n)| format!("({r},{n})")).join(", ")
 }
 
 #[cfg(test)]

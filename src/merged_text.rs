@@ -100,7 +100,7 @@ impl MergedText {
                 if line.is_empty() || (idx == 0 && !reindent_first) {
                     line.to_owned()
                 } else {
-                    format!("{}{}", indentation, line)
+                    format!("{indentation}{line}")
                 }
             })
             .join("\n");

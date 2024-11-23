@@ -169,10 +169,7 @@ impl AttemptsCache {
         let dir_name = format!("{file_name}_{uid}");
         let dir = self.base_dir.join(dir_name);
         if !dir.exists() {
-            return Err(format!(
-                "Could not find merge attempt with id {}",
-                attempt_id
-            ));
+            return Err(format!("Could not find merge attempt with id {attempt_id}"));
         }
         Ok(Attempt {
             file_name: file_name.clone(),

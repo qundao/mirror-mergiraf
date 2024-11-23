@@ -150,13 +150,13 @@ fn test_solve_command(#[case] conflict_style: &str) {
 fn run_test_from_dir(test_dir: &Path) {
     let ext = detect_extension(test_dir);
     let test_dir = test_dir.display();
-    let fname_base = format!("{}/Base.{}", test_dir, ext);
+    let fname_base = format!("{test_dir}/Base.{ext}");
     let contents_base = fs::read_to_string(&fname_base).expect("Unable to read left file");
-    let fname_left = format!("{}/Left.{}", test_dir, ext);
+    let fname_left = format!("{test_dir}/Left.{ext}");
     let contents_left = fs::read_to_string(fname_left).expect("Unable to read left file");
-    let fname_right = format!("{}/Right.{}", test_dir, ext);
+    let fname_right = format!("{test_dir}/Right.{ext}");
     let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
-    let fname_expected = format!("{}/Expected.{}", test_dir, ext);
+    let fname_expected = format!("{test_dir}/Expected.{ext}");
     let contents_expected = fs::read_to_string(fname_expected).expect("Unable to read right file");
 
     let merge_result = line_merge_and_structured_resolution(
