@@ -722,7 +722,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             (&right, Revision::Right),
         ]
         .iter()
-        .flat_map(|(nodes, revision)| {
+        .find_map(|(nodes, revision)| {
             nodes.iter().next().and_then(|first| {
                 if first.source.trim() == trimmed_left_delim {
                     Some(
@@ -733,15 +733,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     None
                 }
             })
-        })
-        .next();
+        });
         let right_delim = [
             (&base, Revision::Base),
             (&left, Revision::Left),
             (&right, Revision::Right),
         ]
         .iter()
-        .flat_map(|(nodes, revision)| {
+        .find_map(|(nodes, revision)| {
             nodes.iter().last().and_then(|last| {
                 if last.source.trim() == trimmed_right_delim {
                     Some(
@@ -752,8 +751,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     None
                 }
             })
-        })
-        .next();
+        });
         let starts_with_separator = [&base, &left, &right].iter().any(|rev| {
             rev.iter()
                 .map(|n| n.source.trim())

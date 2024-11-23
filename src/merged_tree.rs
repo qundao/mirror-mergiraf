@@ -348,10 +348,9 @@ impl<'a> MergedTree<'a> {
                     (base.first(), Revision::Base),
                 ]
                 .iter()
-                .filter_map(|(maybe_node, rev)| {
+                .find_map(|(maybe_node, rev)| {
                     maybe_node.map(|node| class_mapping.map_to_leader(RevNode::new(*rev, node)))
                 })
-                .next()
                 .expect("The conflict should contain at least one node");
                 Self::add_preceding_whitespace(
                     output,
@@ -440,7 +439,7 @@ impl<'a> MergedTree<'a> {
                             .next()
                     }.unwrap_or_else(|| {
                         representatives.iter()
-                            .filter_map(|repr| {
+                            .find_map(|repr| {
                                 let indentation_shift = repr.node.indentation_shift().unwrap_or("").to_owned();
                                 let ancestor_newlines = format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
                                 let new_newlines = format!("\n{indentation}");
@@ -451,7 +450,6 @@ impl<'a> MergedTree<'a> {
                                     None
                                 }
                             })
-                            .next()
                             .unwrap_or_else(|| ("".to_owned(), "".to_owned()))
                     });
 
@@ -473,8 +471,7 @@ impl<'a> MergedTree<'a> {
             None => {
                 let whitespace = representatives
                     .iter()
-                    .filter_map(|repr| repr.node.preceding_whitespace())
-                    .next()
+                    .find_map(|repr| repr.node.preceding_whitespace())
                     .unwrap_or("");
                 output.push_merged(whitespace.to_owned());
                 indentation.to_string()
