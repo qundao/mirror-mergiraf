@@ -798,7 +798,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             ));
         }
         let mut first = !starts_with_separator;
-        for merged in merged_content.into_iter() {
+        for merged in merged_content {
             if first {
                 first = false;
             } else {

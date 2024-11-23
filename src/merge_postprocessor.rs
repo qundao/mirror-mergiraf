@@ -309,7 +309,7 @@ fn add_separators<'a>(
             result.push(separator);
         }
     }
-    for element in elements.iter() {
+    for element in &elements {
         if first {
             first = false;
         } else if let Some(separator) = separator {

@@ -230,7 +230,7 @@ impl AttemptsCache {
             })
             .collect();
         if subdirs.len() > self.max_size {
-            for (f, _) in subdirs[self.max_size..].iter() {
+            for (f, _) in &subdirs[self.max_size..] {
                 if let Err(err) = fs::remove_dir_all(f.path()) {
                     warn!(
                         "Could not delete cached attempt {}: {}",

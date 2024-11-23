@@ -318,7 +318,7 @@ impl<'a> MergedTree<'a> {
                     class_mapping,
                 );
                 let mut previous_sibling = None;
-                for c in children.iter() {
+                for c in children {
                     c.pretty_print_recursively(
                         output,
                         class_mapping,

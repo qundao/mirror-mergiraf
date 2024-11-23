@@ -134,7 +134,7 @@ impl ParsedMerge {
         let mut left = Vec::new();
         let mut base = Vec::new();
         let mut right = Vec::new();
-        for chunk in chunks.iter() {
+        for chunk in &chunks {
             match chunk {
                 MergedChunk::Resolved { offset, contents } => {
                     let length = contents.len();

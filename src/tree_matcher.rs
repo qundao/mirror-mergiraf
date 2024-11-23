@@ -143,8 +143,8 @@ impl TreeMatcher {
                         .collect::<HashSet<u64>>();
                     let mut matched_1: HashSet<&AstNode<'a>> = HashSet::new();
                     let mut matched_2: HashSet<&AstNode<'a>> = HashSet::new();
-                    for t1 in h1.iter() {
-                        for t2 in h2.iter() {
+                    for t1 in &h1 {
+                        for t2 in &h2 {
                             if exact_matching.are_matched(t1, t2) {
                                 matched_1.insert(t1);
                                 matched_2.insert(t2);
@@ -370,7 +370,7 @@ impl TreeMatcher {
             matching.get_from_right(node)
         };
         if matched_node.is_none() {
-            for child in node.children.iter() {
+            for child in &node.children {
                 children.push(self.strip_matched_subtrees(child, matching, left_side));
             }
         }
@@ -399,7 +399,7 @@ impl TreeMatcher {
         let mut right_iterator = right_nodes.iter();
         let mut left_cursor = left_iterator.next();
         let mut right_cursor = right_iterator.next();
-        for edit in edits.iter() {
+        for edit in edits {
             match edit {
                 Edit::Replace(child_edits) => {
                     if let (Some(left_node), Some(right_node)) = (left_cursor, right_cursor) {
@@ -494,7 +494,7 @@ impl<'a> TEDTree<'a> {
                 ":\n"
             }
         )?;
-        for child in self.children.iter() {
+        for child in &self.children {
             child.display(f, indentation + 2)?;
         }
         if !self.children.is_empty() {

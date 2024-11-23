@@ -79,7 +79,7 @@ impl<'a> ChangeSet<'a> {
         // then no need to do convert its subtree into PCS triples, we can just pretend it's a leaf
         if !classmapping.is_isomorphic_in_all_revisions(leader) {
             let mut current_predecessor = PCSNode::LeftMarker;
-            for child in node.children.iter() {
+            for child in &node.children {
                 current_predecessor = self.add_node_recursively(
                     child,
                     wrapped,
@@ -241,7 +241,7 @@ mod tests {
         let empty_conflicts: Vec<&PCS> = vec![];
         for pcs in changeset.iter() {
             let conflicts = changeset.other_successors(*pcs).collect_vec();
-            for conflicting_pcs in conflicts.iter() {
+            for conflicting_pcs in &conflicts {
                 debug!("conflict between {} and {}", pcs, conflicting_pcs);
             }
             assert_eq!(conflicts, empty_conflicts);

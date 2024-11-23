@@ -238,7 +238,7 @@ fn select_best_merge(merges: &mut Vec<MergeResult>) -> MergeResult {
     let mut merges: Vec<MergeResult> = std::mem::take(merges);
     merges.sort_by_key(|merge| merge.conflict_mass);
     debug!("~~~ Merge statistics ~~~");
-    for merge in merges.iter() {
+    for merge in &merges {
         debug!(
             "{}: {} conflict(s), {} mass, has_additional_issues: {}",
             merge.method, merge.conflict_count, merge.conflict_mass, merge.has_additional_issues

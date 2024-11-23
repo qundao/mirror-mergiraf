@@ -58,7 +58,7 @@ impl MergedText {
         let parsed =
             ParsedMerge::parse(line_based_merge).expect("Parsing the line-based merge failed");
         let mut newline_found = false;
-        for section in parsed.chunks.into_iter() {
+        for section in parsed.chunks {
             self.sections.push(match section {
                 crate::parsed_merge::MergedChunk::Resolved { contents, .. } => {
                     let result = MergeSection::Merged(Self::reindent_line_based_merge(
@@ -127,7 +127,7 @@ impl MergedText {
         let mut left_buffer = String::new();
         let mut right_buffer = String::new();
         let mut gathering_conflict = false;
-        for section in self.sections.iter() {
+        for section in &self.sections {
             match section {
                 MergeSection::Merged(contents) => {
                     if gathering_conflict {
@@ -247,7 +247,7 @@ impl MergedText {
         let mut last_was_conflict = false;
         let leading_whitespace_pattern = Regex::new("^[\t ]*\n").expect("Invalid regex");
         let trailing_whitespace_pattern = Regex::new("[\t ]+$").expect("Invalid regex");
-        for section in self.sections.iter() {
+        for section in &self.sections {
             match section {
                 MergeSection::Merged(contents) => {
                     if last_was_conflict {
