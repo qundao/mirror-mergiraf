@@ -100,10 +100,10 @@ impl<'a> ClassMapping<'a> {
         }
     }
 
-    /// Adds a matching to the mapping. The from_rev indicates the revision that's on the left hand side of the mapping.
-    /// The to_rev indicates the revision that's on the right hand side of the matching.
+    /// Adds a matching to the mapping. The `from_rev` indicates the revision that's on the left hand side of the mapping.
+    /// The `to_rev` indicates the revision that's on the right hand side of the matching.
     /// We only add mappings for nodes which are previously not matched.
-    /// The is_exact parameters indicates if two nodes being matched indicates that they are isomorphic.
+    /// The `is_exact` parameters indicates if two nodes being matched indicates that they are isomorphic.
     pub fn add_matching(
         &mut self,
         matching: &Matching<'a>,
@@ -369,7 +369,7 @@ impl Display for RevisionSet {
     }
 }
 
-/// A non-empty [RevisionSet]
+/// A non-empty [`RevisionSet`]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub struct RevisionNESet(RevisionSet);
 

@@ -6,7 +6,7 @@ use crate::{parsed_merge::ParsedMerge, settings::DisplaySettings};
 /// A merged file represented as a sequence of sections,
 /// some being successfully merged and others being conflicts.
 ///
-/// This is different from [ParsedMerge] because the conflicts
+/// This is different from [`ParsedMerge`] because the conflicts
 /// don't necessarily need to match line boundaries, and the precise
 /// layout of the resulting text is not known yet as it depends on
 /// the output settings.
@@ -111,7 +111,7 @@ impl MergedText {
         }
     }
 
-    /// Renders the full file according to the supplied [DisplaySettings]
+    /// Renders the full file according to the supplied [`DisplaySettings`]
     pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
         if settings.compact {
             self.render_compact(settings)

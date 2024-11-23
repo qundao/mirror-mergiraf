@@ -45,7 +45,7 @@ pub struct DetailedMatching<'src> {
 }
 
 impl TreeMatcher {
-    /// The GumTree classic matching algorithm.
+    /// The `GumTree` classic matching algorithm.
     /// It can be supplied with an initial matching of nodes which are known
     pub fn match_trees<'a>(
         &self,
@@ -176,7 +176,7 @@ impl TreeMatcher {
         (matching, exact_matching)
     }
 
-    /// Second pass of the GumTree classic algorithm, inferring container and recovery matchings
+    /// Second pass of the `GumTree` classic algorithm, inferring container and recovery matchings
     fn bottom_up_pass<'a>(
         &self,
         left: &'a AstNode<'a>,

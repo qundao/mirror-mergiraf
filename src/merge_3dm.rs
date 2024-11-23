@@ -16,9 +16,9 @@ use crate::{
 /// This:
 /// * generates matchings between all three pairs of revisions,
 /// * creates a class mapping to cluster nodes together,
-/// * converts the trees to [ChangeSet]s
+/// * converts the trees to [`ChangeSet`]s
 /// * cleans up the union of the changesets
-/// * converts back the union of changesets to a [MergedTree]
+/// * converts back the union of changesets to a [`MergedTree`]
 ///
 /// A good overview of this algorithm can be found in
 /// [Spork: Structured Merge for Java with Formatting Preservation](https://arxiv.org/abs/2202.05329)

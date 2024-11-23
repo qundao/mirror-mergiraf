@@ -91,7 +91,7 @@ pub(crate) fn parse<'a>(
 /// Performs a fully structured merge, parsing the contents of all three revisions,
 /// creating tree matchings between all pairs, and merging them.
 ///
-/// The language to use is detected from the extension of fname_base.
+/// The language to use is detected from the extension of `fname_base`.
 /// If a debug dir is provided, various intermediate stages of the matching will be
 /// written as files in that directory.
 /// Fails if the language cannot be detected or loaded.

@@ -129,7 +129,7 @@ impl<'a> MergedTree<'a> {
         }
     }
 
-    /// The grammar_name of the underlying AST node, if any.
+    /// The `grammar_name` of the underlying AST node, if any.
     pub(crate) fn grammar_name(&self) -> Option<&'static str> {
         match self {
             MergedTree::ExactTree { node, .. }

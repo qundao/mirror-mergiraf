@@ -20,7 +20,7 @@ pub struct LangProfile {
     pub name: &'static str,
     /// the file extensions of files in this language
     pub extensions: Vec<&'static str>,
-    /// tree_sitter parser
+    /// `tree_sitter` parser
     pub language: Language,
     /// list of node types which should be treated as leaves (atomic parts of the syntax tree)
     pub atomic_nodes: Vec<&'static str>,

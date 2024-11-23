@@ -62,7 +62,7 @@ pub struct AstNode<'a> {
 }
 
 impl<'a> Ast<'a> {
-    /// Create a new tree from a tree_sitter tree, the source code it was generated from,
+    /// Create a new tree from a `tree_sitter` tree, the source code it was generated from,
     /// and an arena to allocate the nodes from.
     pub fn new(
         tree: Tree,

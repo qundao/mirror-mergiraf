@@ -147,7 +147,7 @@ impl<'a> ChangeSet<'a> {
             .chain(self.other_roots(pcs))
     }
 
-    /// Iterate over the PCS triples contained in this ChangeSet
+    /// Iterate over the PCS triples contained in this `ChangeSet`
     pub fn iter(&self) -> impl Iterator<Item = &PCS<'a>> {
         self.predecessors.iter_values()
     }

@@ -289,7 +289,7 @@ pub struct SignatureDefinition {
     pub paths: Vec<AstPath>,
 }
 
-/// Helper to ease declaring signatures in supported_langs.rs
+/// Helper to ease declaring signatures in `supported_langs.rs`
 pub fn signature(node_type: &'static str, paths: Vec<Vec<PathStep>>) -> SignatureDefinition {
     SignatureDefinition {
         node_type,
@@ -347,7 +347,7 @@ pub struct AstPath {
     pub steps: Vec<PathStep>,
 }
 
-/// A step in an [AstPath], consisting in walking either
+/// A step in an [`AstPath`], consisting in walking either
 /// into a particular field by its name, or selecting all
 /// children of a given type.
 #[derive(Debug, Clone)]
