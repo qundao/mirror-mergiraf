@@ -5,7 +5,7 @@ use crate::tree::AstNode;
 /// A priority queue which indexes trees by their height.
 /// This follows the "indexed priority list" of
 /// [Fine-grained and accurate source code differencing](https://hal.science/hal-01054552), Falleri et al. 2014.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PriorityList<'tree> {
     heap: BinaryHeap<Entry<'tree>>,
 }
@@ -62,12 +62,6 @@ impl Ord for Entry<'_> {
 impl PartialOrd for Entry<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
-    }
-}
-
-impl<'tree> Default for PriorityList<'tree> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
