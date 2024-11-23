@@ -87,12 +87,7 @@ impl AttemptsCache {
                     app_name: "Mergiraf".to_owned(),
                 })
                 .ok();
-                strategy.map(|project_dir| {
-                    project_dir
-                        .data_dir()
-                        .to_path_buf()
-                        .join(ATTEMPTS_DIRECTORY)
-                })
+                strategy.map(|project_dir| project_dir.data_dir().clone().join(ATTEMPTS_DIRECTORY))
             })
             .ok_or(
                 "Could not determine a suitable application data directory to store merge attempts"
