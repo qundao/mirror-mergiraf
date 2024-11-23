@@ -37,7 +37,7 @@ pub fn matching_to_graph<'a>(
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
             let matching_edge = edge!(node_id!(format!("{}{}", left_prefix, source_id)) => node_id!(format!("{}{}", right_prefix, target_id)),
             vec![attr!("color", "red"), attr!("constraint", "false")]);
-            g.add_stmt(Stmt::Edge(matching_edge))
+            g.add_stmt(Stmt::Edge(matching_edge));
         }
     }
 
@@ -45,7 +45,7 @@ pub fn matching_to_graph<'a>(
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
             let matching_edge = edge!(node_id!(format!("{}{}", left_prefix, source_id)) => node_id!(format!("{}{}", right_prefix, target_id)),
             vec![attr!("color", "blue"), attr!("constraint", "false")]);
-            g.add_stmt(Stmt::Edge(matching_edge))
+            g.add_stmt(Stmt::Edge(matching_edge));
         }
     }
 
@@ -53,7 +53,7 @@ pub fn matching_to_graph<'a>(
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
             let matching_edge = edge!(node_id!(format!("{}{}", left_prefix, source_id)) => node_id!(format!("{}{}", right_prefix, target_id)),
             vec![attr!("color", "green"), attr!("constraint", "false")]);
-            g.add_stmt(Stmt::Edge(matching_edge))
+            g.add_stmt(Stmt::Edge(matching_edge));
         }
     }
     g

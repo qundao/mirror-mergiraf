@@ -168,7 +168,7 @@ impl<'a> ClassMapping<'a> {
             .copied()
             .collect_vec();
         if vec.is_empty() {
-            vec.push(leader.as_representative())
+            vec.push(leader.as_representative());
         }
         vec
     }
@@ -262,7 +262,7 @@ impl RevisionSet {
 
     /// Adds a revision to the set
     pub fn add(&mut self, revision: Revision) {
-        self.set(revision, true)
+        self.set(revision, true);
     }
 
     /// Adds a revision to the set by making a copy
@@ -274,7 +274,7 @@ impl RevisionSet {
 
     /// Removes a revision from this set
     pub fn remove(&mut self, revision: Revision) {
-        self.set(revision, false)
+        self.set(revision, false);
     }
 
     /// Sets whether the revision belongs to the set
@@ -339,13 +339,13 @@ impl RevisionSet {
     pub fn iter(&self) -> impl Iterator<Item = Revision> {
         let mut vector = Vec::new();
         if self.left {
-            vector.push(Revision::Left)
+            vector.push(Revision::Left);
         }
         if self.right {
-            vector.push(Revision::Right)
+            vector.push(Revision::Right);
         }
         if self.base {
-            vector.push(Revision::Base)
+            vector.push(Revision::Base);
         }
         vector.into_iter()
     }
@@ -388,7 +388,7 @@ impl RevisionNESet {
 
     /// Adds a revision to the set
     pub fn add(&mut self, revision: Revision) {
-        self.0.set(revision, true)
+        self.0.set(revision, true);
     }
 
     /// Adds a revision to the set by making a copy

@@ -238,7 +238,7 @@ impl AttemptsCache {
                             .into_string()
                             .unwrap_or("<invalid_directory_name>".to_owned()),
                         err.to_string()
-                    )
+                    );
                 }
             }
         }
@@ -328,7 +328,7 @@ mod tests {
             .parse_attempt_id(&attempt_id)
             .expect("Could not parse attempt id");
 
-        assert_eq!(attempt, parsed_attempt)
+        assert_eq!(attempt, parsed_attempt);
     }
 
     #[test]
@@ -357,6 +357,6 @@ mod tests {
             .flatten()
             .collect_vec()
             .len();
-        assert_eq!(remaining_files, 2)
+        assert_eq!(remaining_files, 2);
     }
 }

@@ -190,5 +190,5 @@ fn integration(#[files("examples/*/working/*")] path: PathBuf) {
 // use this test to debug a specific test case by changing the path in it.
 #[rstest]
 fn debug_test() {
-    run_test_from_dir(&PathBuf::from("examples/go/working/remove_and_add_imports"))
+    run_test_from_dir(&PathBuf::from("examples/go/working/remove_and_add_imports"));
 }

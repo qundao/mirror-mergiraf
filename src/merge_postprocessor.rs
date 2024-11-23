@@ -123,7 +123,7 @@ fn highlight_duplicate_signatures<'a>(
                 if !(is_separator && skip_next_separator) {
                     filtered_elements.push((idx, is_separator, element));
                 }
-                skip_next_separator = false
+                skip_next_separator = false;
             }
             Some(signature) => {
                 let cluster = sig_to_indices
@@ -202,10 +202,10 @@ fn highlight_duplicate_signatures<'a>(
                         );
                         result.append(&mut merged);
                     } else {
-                        skip_next_separator = true
+                        skip_next_separator = true;
                     }
                 }
-                latest_element_is_separator = false
+                latest_element_is_separator = false;
             }
         }
     }
@@ -306,20 +306,20 @@ fn add_separators<'a>(
     let mut result = Vec::new();
     if let Some(separator) = separator {
         if !elements.is_empty() && add_separator == AddSeparator::AtBeginning {
-            result.push(separator)
+            result.push(separator);
         }
     }
     for element in elements.iter() {
         if first {
-            first = false
+            first = false;
         } else if let Some(separator) = separator {
-            result.push(separator)
+            result.push(separator);
         }
-        result.push(element)
+        result.push(element);
     }
     if let Some(separator) = separator {
         if !elements.is_empty() && add_separator == AddSeparator::AtEnd {
-            result.push(separator)
+            result.push(separator);
         }
     }
     result

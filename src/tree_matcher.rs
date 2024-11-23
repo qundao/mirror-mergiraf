@@ -120,12 +120,12 @@ impl TreeMatcher {
             match pm_1.cmp(&pm_2) {
                 Ordering::Greater => {
                     for t in l1.pop() {
-                        l1.open(t)
+                        l1.open(t);
                     }
                 }
                 Ordering::Less => {
                     for t in l2.pop() {
-                        l2.open(t)
+                        l2.open(t);
                     }
                 }
                 Ordering::Equal => {
@@ -205,7 +205,7 @@ impl TreeMatcher {
                 let sim = matching.dice(left_node, candidate);
                 if sim > max_sim && sim > self.sim_threshold {
                     max_sim = sim;
-                    best_candidate = Some(candidate)
+                    best_candidate = Some(candidate);
                 } else if sim > max_sim && sim > self.sim_threshold * 0.75 {
                     debug!(
                         "discarding match with similarity {}, close to threshold {}",
@@ -371,7 +371,7 @@ impl TreeMatcher {
         };
         if matched_node.is_none() {
             for child in node.children.iter() {
-                children.push(self.strip_matched_subtrees(child, matching, left_side))
+                children.push(self.strip_matched_subtrees(child, matching, left_side));
             }
         }
         let size = children.iter().map(|c| c.size).sum::<i32>() + 1;

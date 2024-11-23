@@ -27,7 +27,7 @@ impl<'tree> PriorityList<'tree> {
     /// Adds a new node to the priority list
     pub fn push(&mut self, node: &'tree AstNode<'tree>) {
         let height = node.height();
-        self.heap.push(Entry { height, node })
+        self.heap.push(Entry { height, node });
     }
 
     /// Returns the maximum height of the tree in the list
@@ -40,7 +40,7 @@ impl<'tree> PriorityList<'tree> {
         let desired_height = self.peek_max();
         let mut results = Vec::new();
         while desired_height.is_some() && desired_height == self.peek_max() {
-            results.push(self.heap.pop().unwrap().node)
+            results.push(self.heap.pop().unwrap().node);
         }
         results
     }
@@ -48,7 +48,7 @@ impl<'tree> PriorityList<'tree> {
     /// Adds all of the direct children of a node into the queue
     pub fn open(&mut self, node: &'tree AstNode<'tree>) {
         for child in node.children.as_slice() {
-            self.push(child)
+            self.push(child);
         }
     }
 }

@@ -392,14 +392,14 @@ impl AstPath {
                         node.children_by_field_name(field_name, class_mapping)
                             .into_iter()
                             .for_each(|child| {
-                                Self::extract_internal(rest, child, result, class_mapping)
-                            })
+                                Self::extract_internal(rest, child, result, class_mapping);
+                            });
                     }
                     PathStep::ChildType(grammar_name) => node
                         .children_by_grammar_name(grammar_name, class_mapping)
                         .into_iter()
                         .for_each(|child| {
-                            Self::extract_internal(rest, child, result, class_mapping)
+                            Self::extract_internal(rest, child, result, class_mapping);
                         }),
                 }
             }

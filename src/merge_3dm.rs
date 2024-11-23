@@ -79,7 +79,7 @@ pub fn three_way_merge<'a>(
                         left,
                         &base_left_matching,
                         &format!("{debug_dir}/base_left.dot"),
-                    )
+                    );
                 });
                 s.spawn(|| {
                     save_matching(

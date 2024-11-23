@@ -795,7 +795,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 left_delim,
                 self.class_mapping.revision_set(left_delim),
                 self.class_mapping,
-            ))
+            ));
         }
         let mut first = !starts_with_separator;
         for merged in merged_content.into_iter() {
@@ -814,7 +814,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 right_delim,
                 self.class_mapping.revision_set(right_delim),
                 self.class_mapping,
-            ))
+            ));
         }
 
         Ok(with_separators)
@@ -1066,7 +1066,7 @@ mod tests {
                 RevisionNESet::singleton(Revision::Base),
                 &class_mapping,
             )
-        )
+        );
     }
 
     #[test]

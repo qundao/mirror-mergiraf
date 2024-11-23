@@ -38,17 +38,17 @@ impl MergedText {
 
     /// Appends merged text at the end
     pub(crate) fn push_merged(&mut self, contents: String) {
-        self.sections.push(MergeSection::Merged(contents))
+        self.sections.push(MergeSection::Merged(contents));
     }
 
     /// Appends a conflict at the end
     pub(crate) fn push_conflict(&mut self, base: String, left: String, right: String) {
         if left == right {
             // well that's not really a conflict
-            self.push_merged(left)
+            self.push_merged(left);
         } else {
             self.sections
-                .push(MergeSection::Conflict { base, left, right })
+                .push(MergeSection::Conflict { base, left, right });
         }
     }
 
@@ -82,7 +82,7 @@ impl MergedText {
                         || base.contains("\n");
                     result
                 }
-            })
+            });
         }
     }
 
@@ -154,7 +154,7 @@ impl MergedText {
                             }
                         }
                     } else {
-                        output.push_str(contents)
+                        output.push_str(contents);
                     }
                 }
                 MergeSection::Conflict { base, left, right } => {
@@ -192,7 +192,7 @@ impl MergedText {
                             &mut output,
                         );
                     }
-                    gathering_conflict = !all_end_with_newline
+                    gathering_conflict = !all_end_with_newline;
                 }
             }
         }
@@ -251,7 +251,7 @@ impl MergedText {
             match section {
                 MergeSection::Merged(contents) => {
                     if last_was_conflict {
-                        output.push_str(&leading_whitespace_pattern.replace(contents, ""))
+                        output.push_str(&leading_whitespace_pattern.replace(contents, ""));
                     } else {
                         output.push_str(contents);
                     }
@@ -294,7 +294,7 @@ impl MergedText {
 
     fn maybe_add_newline(output: &mut String) {
         if !output.ends_with('\n') && !output.is_empty() {
-            output.push('\n')
+            output.push('\n');
         }
     }
 }

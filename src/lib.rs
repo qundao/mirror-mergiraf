@@ -382,7 +382,7 @@ pub fn cascading_merge(
                     debug!(
                         "full structured merge encountered an error: {}",
                         parse_error
-                    )
+                    );
                 }
             };
         }
@@ -486,7 +486,7 @@ pub fn resolve_merge_cascading(
                 match structured_merge {
                     Ok(merge) => merges.push(merge),
                     Err(err) => {
-                        warn!("Full structured merge failed: {err}")
+                        warn!("Full structured merge failed: {err}");
                     }
                 };
             } else {
@@ -529,7 +529,7 @@ fn save_matching<'a>(
     let mut ctx = PrinterContext::default();
 
     let dotty = graph.print(&mut ctx);
-    fs::write(fname, dotty).expect("Unable to write debug graph file")
+    fs::write(fname, dotty).expect("Unable to write debug graph file");
 }
 
 fn fxhasher() -> rustc_hash::FxHasher {

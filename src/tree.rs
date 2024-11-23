@@ -931,7 +931,7 @@ mod tests {
         assert_eq!(
             node_types,
             vec!["{", "pair", ",", "pair", "}", "object", "document"]
-        )
+        );
     }
 
     #[test]
@@ -963,7 +963,7 @@ mod tests {
         let core = import_list.child(2).unwrap();
         assert_eq!(core.source, "\"core\"");
         assert_eq!(core.preceding_whitespace(), Some("\n    "));
-        assert_eq!(core.ancestor_indentation(), None)
+        assert_eq!(core.ancestor_indentation(), None);
     }
 
     #[test]
