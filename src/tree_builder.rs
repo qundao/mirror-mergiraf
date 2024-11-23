@@ -194,74 +194,81 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         debug!("{pad}{node} build_subtree_from_changeset");
 
         loop {
-            if cursor.is_empty() {
-                // unexpected, this is a nasty conflict!
-                return self.commutative_or_line_based_local_fallback(node, visiting_state);
-            } else if cursor.len() == 2 {
-                let conflict = self.build_conflict(
-                    predecessor,
-                    children_map,
-                    base_children_map,
-                    &mut seen_nodes,
-                    visiting_state,
-                );
-                match conflict {
-                    Err(_) => {
-                        let line_based =
-                            self.commutative_or_line_based_local_fallback(node, visiting_state);
-                        return line_based;
-                    }
-                    Ok((next_cursor, conflict)) => {
-                        if let PCSNode::Node { node: leader, .. } = node {
-                            if let Some(commutative_parent) = self
-                                .lang_profile
-                                .get_commutative_parent(leader.grammar_name())
-                            {
-                                let solved_conflict = self.resolve_commutative_conflict(
-                                    conflict,
-                                    commutative_parent,
-                                    visiting_state,
-                                )?;
-                                for result in solved_conflict {
-                                    children.push(result);
+            match cursor.len() {
+                0 => {
+                    // unexpected, this is a nasty conflict!
+                    return self.commutative_or_line_based_local_fallback(node, visiting_state);
+                }
+                2 => {
+                    let conflict = self.build_conflict(
+                        predecessor,
+                        children_map,
+                        base_children_map,
+                        &mut seen_nodes,
+                        visiting_state,
+                    );
+                    match conflict {
+                        Err(_) => {
+                            let line_based =
+                                self.commutative_or_line_based_local_fallback(node, visiting_state);
+                            return line_based;
+                        }
+                        Ok((next_cursor, conflict)) => {
+                            if let PCSNode::Node { node: leader, .. } = node {
+                                if let Some(commutative_parent) = self
+                                    .lang_profile
+                                    .get_commutative_parent(leader.grammar_name())
+                                {
+                                    let solved_conflict = self.resolve_commutative_conflict(
+                                        conflict,
+                                        commutative_parent,
+                                        visiting_state,
+                                    )?;
+                                    for result in solved_conflict {
+                                        children.push(result);
+                                    }
+                                } else {
+                                    children.push(conflict);
                                 }
                             } else {
                                 children.push(conflict);
                             }
-                        } else {
-                            children.push(conflict);
+                            cursor = next_cursor;
                         }
-                        cursor = next_cursor;
                     }
                 }
-            } else if cursor.len() > 2 {
-                panic!("unexpected conflict size: more than two diverging sides!")
-            } else {
-                // only a single successor, great
-                let (_, current_child) = cursor
-                    .iter()
-                    .next()
-                    .expect("cursor.len() == 1 but it is actually empty?!");
-                if *current_child == PCSNode::RightMarker {
-                    break;
+                3.. => {
+                    panic!("unexpected conflict size: more than two diverging sides!")
                 }
-                if seen_nodes.contains(current_child) {
-                    // there is a loop of children: abort and fall back on line diffing
-                    let line_diff =
-                        self.commutative_or_line_based_local_fallback(node, visiting_state);
-                    return line_diff;
-                }
-                if let Ok(child_result_tree) = self.build_subtree(*current_child, visiting_state) {
-                    children.push(child_result_tree);
-                    predecessor = *current_child;
-                    seen_nodes.insert(predecessor);
-                    cursor = children_map.get(predecessor);
-                } else {
-                    // we failed to build the result tree for a child of this node, because of a nasty conflict.
-                    // We fall back on line diffing
-                    let line_diff =
-                        self.commutative_or_line_based_local_fallback(node, visiting_state);
-                    return line_diff;
+                1 => {
+                    // only a single successor, great
+                    let (_, current_child) = cursor
+                        .iter()
+                        .next()
+                        .expect("cursor.len() == 1 but it is actually empty?!");
+                    if *current_child == PCSNode::RightMarker {
+                        break;
+                    }
+                    if seen_nodes.contains(current_child) {
+                        // there is a loop of children: abort and fall back on line diffing
+                        let line_diff =
+                            self.commutative_or_line_based_local_fallback(node, visiting_state);
+                        return line_diff;
+                    }
+                    if let Ok(child_result_tree) =
+                        self.build_subtree(*current_child, visiting_state)
+                    {
+                        children.push(child_result_tree);
+                        predecessor = *current_child;
+                        seen_nodes.insert(predecessor);
+                        cursor = children_map.get(predecessor);
+                    } else {
+                        // we failed to build the result tree for a child of this node, because of a nasty conflict.
+                        // We fall back on line diffing
+                        let line_diff =
+                            self.commutative_or_line_based_local_fallback(node, visiting_state);
+                        return line_diff;
+                    }
                 }
             }
         }
