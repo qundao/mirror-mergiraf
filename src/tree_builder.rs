@@ -438,9 +438,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         )?;
 
         fn strip_revs<'a>(end: &HashSet<(Revision, PCSNode<'a>)>) -> HashSet<PCSNode<'a>> {
-            end.iter()
-                .map(|(_, node)| *node)
-                .collect::<HashSet<PCSNode<'a>>>()
+            end.iter().map(|(_, node)| *node).collect()
         }
 
         let base_stripped = strip_revs(end_base);
