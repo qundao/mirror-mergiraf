@@ -115,11 +115,11 @@ impl<'a> PartialOrd for PCSNode<'a> {
 
 impl Display for Revision {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Revision::Base => write!(f, "Base"),
-            Revision::Left => write!(f, "Left"),
-            Revision::Right => write!(f, "Right"),
-        }
+        f.write_str(match self {
+            Revision::Base => "Base",
+            Revision::Left => "Left",
+            Revision::Right => "Right",
+        })
     }
 }
 
