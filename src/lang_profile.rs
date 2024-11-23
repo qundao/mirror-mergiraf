@@ -175,8 +175,8 @@ impl CommutativeParent {
     /// Short-hand to restrict a commutative parent to some children groups
     pub(crate) fn restricted_to_groups(mut self, groups: &[&[&'static str]]) -> CommutativeParent {
         let children_groups = groups
-            .into_iter()
-            .map(|types| ChildrenGroup::new(&types))
+            .iter()
+            .map(|types| ChildrenGroup::new(types))
             .collect();
         self.children_groups = children_groups;
         self
@@ -188,7 +188,7 @@ impl CommutativeParent {
             || self
                 .children_groups
                 .iter()
-                .any(|group| group.node_types.is_superset(&node_types))
+                .any(|group| group.node_types.is_superset(node_types))
     }
 }
 

@@ -235,7 +235,7 @@ impl<'a> AstNode<'a> {
             let start = *i;
             *i += 1;
             for child in &node.children {
-                process_node(*child, result, i);
+                process_node(child, result, i);
             }
             let end = *i;
             unsafe { (*node.dfs.get()) = Some(&result[start..end]) };
@@ -298,7 +298,7 @@ impl<'a> AstNode<'a> {
     pub fn dfs(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
         // SAFETY: This is not written to after construction.
         if let Some(dfs) = unsafe { &*self.dfs.get() } {
-            Either::Left(dfs.into_iter().copied())
+            Either::Left(dfs.iter().copied())
         } else {
             Either::Right(DfsIterator {
                 current: vec![&self],

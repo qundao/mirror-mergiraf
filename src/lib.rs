@@ -534,5 +534,5 @@ fn save_matching<'a>(
 
 fn fxhasher() -> rustc_hash::FxHasher {
     use std::hash::BuildHasher;
-    rustc_hash::FxBuildHasher::default().build_hasher()
+    rustc_hash::FxBuildHasher.build_hasher()
 }
