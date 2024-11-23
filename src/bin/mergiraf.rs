@@ -49,6 +49,9 @@ enum CliCommand {
         /// Behave as a git merge driver: overwrite the left revision
         #[clap(short = 'g', long = "git")]
         git: bool,
+        /// The path to the file to write the merge result to
+        #[clap(short, long, conflicts_with = "git")]
+        output: Option<String>,
         /// Final path in which the merged result will be stored.
         /// It is used to detect the language of the files using the file extension.
         #[clap(short = 'p', long = "path-name")]
@@ -122,6 +125,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             fast,
             path_name,
             git,
+            output,
             base_name,
             left_name,
             right_name,
@@ -188,7 +192,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 attempts_cache.as_ref(),
                 &args.debug_dir,
             );
-            if git {
+            if let Some(fname_out) = output {
+                write_string_to_file(&fname_out, &merge_result.contents)?
+            } else if git {
                 write_string_to_file(fname_left, &merge_result.contents)?
             } else {
                 print!(
