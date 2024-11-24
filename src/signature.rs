@@ -160,18 +160,14 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
             (AstNodeEquiv::Merged(a), AstNodeEquiv::Merged(b)) => match (a, b) {
                 (
                     MergedTree::ExactTree {
-                        hash: _,
-                        revisions,
-                        node,
+                        revisions, node, ..
                     },
                     b,
                 )
                 | (
                     b,
                     MergedTree::ExactTree {
-                        hash: _,
-                        revisions,
-                        node,
+                        revisions, node, ..
                     },
                 ) => {
                     if let Some(class_mapping) = class_mapping {
@@ -235,21 +231,13 @@ impl<'a, 'b> Hash for AstNodeEquiv<'a, 'b> {
             AstNodeEquiv::Original(ast_node) => ast_node.hash.hash(state),
             AstNodeEquiv::Merged(tree) => match tree {
                 MergedTree::ExactTree { hash, .. } => hash.hash(state),
-                MergedTree::MixedTree {
-                    node: _,
-                    children: _,
-                    hash,
-                } => hash.hash(state),
+                MergedTree::MixedTree { hash, .. } => hash.hash(state),
                 MergedTree::Conflict { base, left, right } => {
                     base.hash(state);
                     left.hash(state);
                     right.hash(state);
                 }
-                MergedTree::LineBasedMerge {
-                    node,
-                    contents,
-                    conflict_mass: _,
-                } => {
+                MergedTree::LineBasedMerge { node, contents, .. } => {
                     node.hash(state);
                     contents.hash(state);
                 }

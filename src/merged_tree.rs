@@ -97,17 +97,9 @@ impl<'a> MergedTree<'a> {
             .iter()
             .map(|child| match child {
                 MergedTree::ExactTree { hash, .. } | MergedTree::MixedTree { hash, .. } => *hash,
-                MergedTree::Conflict {
-                    base: _,
-                    left: _,
-                    right: _,
-                } => 1,
-                MergedTree::LineBasedMerge {
-                    node: _,
-                    contents: _,
-                    conflict_mass: _,
-                } => 2,
-                MergedTree::CommutativeChildSeparator { separator: _ } => 3,
+                MergedTree::Conflict { .. } => 1,
+                MergedTree::LineBasedMerge { .. } => 2,
+                MergedTree::CommutativeChildSeparator { .. } => 3,
             })
             .collect_vec()
             .hash(&mut hasher);
