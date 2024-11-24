@@ -457,9 +457,10 @@ impl<'a> MergedTree<'a> {
                         .to_owned();
                     let new_indentation = format!("{indentation}{shift}");
                     output.push_merged(new_indentation.clone());
-                    return new_indentation;
+                    new_indentation
+                } else {
+                    indentation.to_string()
                 }
-                indentation.to_string()
             }
             None => {
                 let whitespace = representatives
