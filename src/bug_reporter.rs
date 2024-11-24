@@ -67,7 +67,7 @@ fn create_archive(
     path_right: &Path,
     path_result: &Path,
 ) -> Result<String, io::Error> {
-    let extension = filename.split(".").last().unwrap_or("no_ext");
+    let extension = filename.split('.').last().unwrap_or("no_ext");
     let archive_base_name = format!(
         "mergiraf_report_{}",
         Alphanumeric.sample_string(&mut rand::thread_rng(), 8)

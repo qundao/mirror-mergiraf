@@ -147,7 +147,7 @@ impl<'a> AstNode<'a> {
 
         // if this is a leaf that spans multiple lines, create one child per line,
         // to ease matching and diffing (typically, for multi-line comments)
-        if children.is_empty() && local_source.contains("\n") {
+        if children.is_empty() && local_source.contains('\n') {
             let lines = local_source.split("\n");
             let mut offset = range.start;
             for line in lines {

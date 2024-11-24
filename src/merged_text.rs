@@ -67,7 +67,7 @@ impl MergedText {
                         newline_found,
                         true,
                     ));
-                    newline_found = newline_found || contents.contains("\n");
+                    newline_found = newline_found || contents.contains('\n');
                     result
                 }
                 crate::parsed_merge::MergedChunk::Conflict { left, base, right } => {
@@ -77,9 +77,9 @@ impl MergedText {
                         right: Self::reindent_line_based_merge(&right, indentation, false, false),
                     };
                     newline_found = newline_found
-                        || left.contains("\n")
-                        || right.contains("\n")
-                        || base.contains("\n");
+                        || left.contains('\n')
+                        || right.contains('\n')
+                        || base.contains('\n');
                     result
                 }
             });
@@ -94,7 +94,7 @@ impl MergedText {
         reindent_last: bool,
     ) -> String {
         let reindented = content
-            .split("\n")
+            .split('\n')
             .enumerate()
             .map(|(idx, line)| {
                 if line.is_empty() || (idx == 0 && !reindent_first) {
@@ -131,7 +131,7 @@ impl MergedText {
             match section {
                 MergeSection::Merged(contents) => {
                     if gathering_conflict {
-                        match contents.find("\n") {
+                        match contents.find('\n') {
                             Some(newline_idx) => {
                                 let to_append = &contents[..(newline_idx + 1)];
                                 left_buffer.push_str(to_append);
@@ -159,10 +159,10 @@ impl MergedText {
                 }
                 MergeSection::Conflict { base, left, right } => {
                     if !gathering_conflict {
-                        if !output.ends_with("\n") && !output.is_empty() {
+                        if !output.ends_with('\n') && !output.is_empty() {
                             // we have an unfinished line in the output: let's remove it
                             // and add it to the conflict we are starting to gather
-                            let last_newline_index = output.rfind("\n");
+                            let last_newline_index = output.rfind('\n');
                             let last_line = output.split_off(match last_newline_index {
                                 Some(idx) => idx + 1,
                                 None => 0,
@@ -179,10 +179,10 @@ impl MergedText {
                     base_buffer.push_str(base);
                     left_buffer.push_str(left);
                     right_buffer.push_str(right);
-                    let all_end_with_newline = (base_buffer.ends_with("\n")
+                    let all_end_with_newline = (base_buffer.ends_with('\n')
                         || base_buffer.trim().is_empty())
-                        && (left_buffer.ends_with("\n") || left_buffer.trim().is_empty())
-                        && (right_buffer.ends_with("\n") || right_buffer.trim().is_empty());
+                        && (left_buffer.ends_with('\n') || left_buffer.trim().is_empty())
+                        && (right_buffer.ends_with('\n') || right_buffer.trim().is_empty());
                     if all_end_with_newline {
                         Self::render_conflict(
                             &base_buffer,

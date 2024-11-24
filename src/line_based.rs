@@ -24,7 +24,7 @@ pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
 /// Ensures a given string has a newline at the end.
 pub(crate) fn with_final_newline(s: &str) -> String {
-    if s.ends_with("\n") {
+    if s.ends_with('\n') {
         s.to_string()
     } else {
         s.to_string() + "\n"

@@ -147,13 +147,13 @@ impl AttemptsCache {
     }
 
     pub(crate) fn parse_attempt_id(&self, attempt_id: &str) -> Result<Attempt, String> {
-        let mut splits: Vec<&str> = attempt_id.split("_").collect();
+        let mut splits: Vec<&str> = attempt_id.split('_').collect();
         if splits.len() < 2 {
             return Err("Invalid attempt id, should contain a '_' character".to_owned());
         }
         let uid = splits.pop().expect("Unexpected empty vector after split");
         let file_name = splits.join("_");
-        let mut dot_splits: Vec<&str> = file_name.split(".").collect();
+        let mut dot_splits: Vec<&str> = file_name.split('.').collect();
         let extension = if dot_splits.len() > 1 {
             dot_splits
                 .pop()

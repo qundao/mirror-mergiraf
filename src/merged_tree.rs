@@ -457,7 +457,7 @@ impl<'a> MergedTree<'a> {
                 format!("{indentation}{indentation_shift}")
             }
             Some(PreviousSibling::CommutativeSeparator(separator)) => {
-                if separator.ends_with("\n") {
+                if separator.ends_with('\n') {
                     let shift = arbitrary_representative
                         .indentation_shift()
                         .unwrap_or("")

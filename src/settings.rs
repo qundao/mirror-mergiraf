@@ -84,9 +84,9 @@ enum LineFeedStyle {
 
 /// Guess if we should use CRLF or just LF from an example file
 fn infer_cr_lf_from_file(contents: &str) -> LineFeedStyle {
-    let lf_count = contents.split("\n").count();
+    let lf_count = contents.split('\n').count();
     let cr_lf_count = contents.split("\r\n").count();
-    let cr_count = contents.split("\r").count();
+    let cr_count = contents.split('\r').count();
     if cr_lf_count > lf_count / 2 {
         LineFeedStyle::CRLF
     } else if cr_count > lf_count {
@@ -100,14 +100,14 @@ fn infer_cr_lf_from_file(contents: &str) -> LineFeedStyle {
 pub fn imitate_cr_lf_from_input(input_contents: &str, output_contents: &str) -> String {
     let without_crlf = output_contents.replace("\r\n", "\n");
     match infer_cr_lf_from_file(input_contents) {
-        LineFeedStyle::LF => without_crlf.replace("\r", "\n"),
-        LineFeedStyle::CRLF => without_crlf.replace("\r", "\n").replace("\n", "\r\n"),
-        LineFeedStyle::CR => without_crlf.replace("\n", "\r"),
+        LineFeedStyle::LF => without_crlf.replace('\r', "\n"),
+        LineFeedStyle::CRLF => without_crlf.replace('\r', "\n").replace('\n', "\r\n"),
+        LineFeedStyle::CR => without_crlf.replace('\n', "\r"),
     }
 }
 
 pub fn normalize_to_lf(contents: &str) -> String {
-    contents.replace("\r\n", "\n").replace("\r", "\n")
+    contents.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 #[cfg(test)]

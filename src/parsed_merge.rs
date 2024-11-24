@@ -76,7 +76,7 @@ impl ParsedMerge {
             let resolved_end = match start_marker {
                 None => remaining_source.len(),
                 Some(occurrence) => {
-                    if occurrence.as_str().starts_with("\n") {
+                    if occurrence.as_str().starts_with('\n') {
                         occurrence.start() + 1
                     } else {
                         occurrence.start()
