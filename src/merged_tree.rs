@@ -553,7 +553,7 @@ impl<'a> MergedTree<'a> {
     fn pretty_print_astnode_list(_revision: Revision, list: &[&'a AstNode<'a>]) -> String {
         let mut output = String::new();
         let mut first = true;
-        list.iter().for_each(|n| {
+        for n in list {
             let whitespace = n.preceding_whitespace().unwrap_or("");
             if first {
                 first = false;
@@ -561,7 +561,7 @@ impl<'a> MergedTree<'a> {
                 output.push_str(whitespace);
             }
             output.push_str(n.source);
-        });
+        }
         output
     }
 
