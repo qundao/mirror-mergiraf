@@ -286,7 +286,7 @@ fn filter_by_revision<'a>(
     elements
         .iter()
         .copied()
-        .flat_map(|element| match element {
+        .filter_map(|element| match element {
             MergedTree::ExactTree { node, .. }
             | MergedTree::MixedTree { node, .. }
             | MergedTree::LineBasedMerge { node, .. } => class_mapping.node_at_rev(*node, revision),
@@ -332,7 +332,7 @@ fn find_separator<'a>(
 ) -> Option<RevNode<'a>> {
     let revs = [Revision::Base, Revision::Left, Revision::Right];
     revs.iter()
-        .flat_map(|rev| {
+        .filter_map(|rev| {
             class_mapping
                 .node_at_rev(parent, *rev)
                 .map(|node| (*rev, node))

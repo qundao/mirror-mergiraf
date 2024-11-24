@@ -101,7 +101,7 @@ impl LangProfile {
                 !node
                     .children
                     .iter()
-                    .flat_map(|child| self.extract_signature_from_original_node(child))
+                    .filter_map(|child| self.extract_signature_from_original_node(child))
                     .all_unique()
             } else {
                 false

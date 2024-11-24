@@ -209,7 +209,7 @@ impl AttemptsCache {
         let dir_listing = fs::read_dir(&self.base_dir).map_err(|err| err.to_string())?;
         let subdirs: Vec<_> = dir_listing
             .flatten()
-            .flat_map(|f| {
+            .filter_map(|f| {
                 if let Ok(metadata) = f.metadata() {
                     if metadata.is_dir() {
                         return Some((f, metadata));
