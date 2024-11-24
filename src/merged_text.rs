@@ -167,8 +167,8 @@ impl MergedText {
                                 Some(idx) => idx + 1,
                                 None => 0,
                             });
-                            base_buffer = last_line.clone();
-                            left_buffer = last_line.clone();
+                            base_buffer.clone_from(&last_line);
+                            left_buffer.clone_from(&last_line);
                             right_buffer = last_line;
                         } else {
                             base_buffer = String::new();
