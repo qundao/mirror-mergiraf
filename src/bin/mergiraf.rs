@@ -239,7 +239,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             );
             match postprocessed {
                 Ok(merged) => {
-                    if merged.method != "original" {
+                    if merged.method == "original" {
+                        1
+                    } else {
                         if keep {
                             print!(
                                 "{}",
@@ -256,8 +258,6 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                             write_string_to_file(&fname_conflicts, &merged.contents)?;
                         };
                         0
-                    } else {
-                        1
                     }
                 }
                 Err(e) => {
