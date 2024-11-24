@@ -149,7 +149,7 @@ impl<'tree> Matching<'tree> {
             .dfs()
             .flat_map(|left_descendant| self.get_from_left(left_descendant).into_iter())
             .filter(|mapped| right_descendants.contains(*mapped))
-            .map(|descendant| descendant.own_weight())
+            .map(AstNode::own_weight)
             .sum::<usize>();
         2.0_f32 * (mapped as f32) / ((size_left + size_right) as f32)
     }

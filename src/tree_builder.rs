@@ -646,7 +646,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .iter()
             .chain(left_leaders.iter())
             .chain(right_leaders.iter())
-            .map(|leader| leader.grammar_name())
+            .map(Leader::grammar_name)
             .collect();
         if !commutative_parent.children_can_commute(&child_types) {
             return Err("The children are not allowed to commute".to_string());

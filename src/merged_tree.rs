@@ -166,7 +166,9 @@ impl<'a> MergedTree<'a> {
                 class_mapping,
             ),
             (base, Some(left), Some(right)) => {
-                let base_src = base.map(|n| n.unindented_source()).unwrap_or(String::new());
+                let base_src = base
+                    .map(AstNode::unindented_source)
+                    .unwrap_or(String::new());
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
                 let line_based_merge = line_based_merge(
@@ -530,7 +532,7 @@ impl<'a> MergedTree<'a> {
         match self {
             MergedTree::ExactTree { .. } => 0,
             MergedTree::MixedTree { children, .. } => {
-                children.iter().map(|c| c.count_conflicts()).sum()
+                children.iter().map(MergedTree::count_conflicts).sum()
             }
             MergedTree::Conflict { .. } => 1,
             MergedTree::LineBasedMerge { contents, .. } => contents.matches(">>>>>>>").count(),
@@ -544,7 +546,7 @@ impl<'a> MergedTree<'a> {
         match self {
             MergedTree::ExactTree { .. } => 0,
             MergedTree::MixedTree { children, .. } => {
-                children.iter().map(|c| c.conflict_mass()).sum()
+                children.iter().map(MergedTree::conflict_mass).sum()
             }
             MergedTree::Conflict { base, left, right } => {
                 Self::pretty_print_astnode_list(Revision::Left, left).len()
