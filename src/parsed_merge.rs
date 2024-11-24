@@ -167,8 +167,8 @@ impl ParsedMerge {
         ParsedMerge {
             chunks,
             left,
-            base,
             right,
+            base,
         }
     }
 
