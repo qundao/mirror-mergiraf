@@ -160,7 +160,7 @@ impl<'a> MergedTree<'a> {
             (base, Some(left), Some(right)) => {
                 let base_src = base
                     .map(AstNode::unindented_source)
-                    .unwrap_or(String::new());
+                    .unwrap_or_else(String::new);
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
                 let line_based_merge = line_based_merge(
