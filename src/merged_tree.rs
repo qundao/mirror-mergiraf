@@ -96,8 +96,7 @@ impl<'a> MergedTree<'a> {
         children
             .iter()
             .map(|child| match child {
-                MergedTree::ExactTree { hash, .. } => *hash,
-                MergedTree::MixedTree { hash, .. } => *hash,
+                MergedTree::ExactTree { hash, .. } | MergedTree::MixedTree { hash, .. } => *hash,
                 MergedTree::Conflict {
                     base: _,
                     left: _,

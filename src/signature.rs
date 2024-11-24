@@ -215,8 +215,7 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                                     .isomorphic(&AstNodeEquiv::Merged(child_b), class_mapping)
                             })
                 }
-                (MergedTree::MixedTree { .. }, _) => false,
-                (_, MergedTree::MixedTree { .. }) => false,
+                (MergedTree::MixedTree { .. }, _) | (_, MergedTree::MixedTree { .. }) => false,
                 (MergedTree::Conflict { .. }, _) | (_, MergedTree::Conflict { .. }) => a == b,
                 (_, _) => a == b,
             },

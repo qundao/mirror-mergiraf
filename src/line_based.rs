@@ -40,8 +40,7 @@ pub(crate) fn line_based_merge(
 ) -> MergeResult {
     let merged = diffy::merge(contents_base, contents_left, contents_right);
     let merged_contents = match merged {
-        Ok(contents) => contents,
-        Err(contents) => contents,
+        Ok(contents) | Err(contents) => contents,
     };
     let parsed_merge = ParsedMerge::parse(&merged_contents)
         .expect("diffy returned a merge that we cannot parse the conflicts of");

@@ -46,10 +46,10 @@ pub(crate) fn post_process_merged_tree_for_duplicate_signatures<'a>(
                 MergedTree::new_mixed(node, recursively_processed)
             }
         }
-        MergedTree::ExactTree { .. } => tree,
-        MergedTree::Conflict { .. } => tree,
-        MergedTree::LineBasedMerge { .. } => tree,
-        MergedTree::CommutativeChildSeparator { .. } => tree,
+        MergedTree::ExactTree { .. }
+        | MergedTree::Conflict { .. }
+        | MergedTree::LineBasedMerge { .. }
+        | MergedTree::CommutativeChildSeparator { .. } => tree,
     }
 }
 
@@ -218,8 +218,7 @@ fn is_separator(element: &MergedTree, trimmed_separator: &'static str) -> bool {
         MergedTree::ExactTree { node, .. } => {
             node.as_representative().node.source.trim() == trimmed_separator
         }
-        MergedTree::MixedTree { .. } => false,
-        MergedTree::Conflict { .. } => false,
+        MergedTree::MixedTree { .. } | MergedTree::Conflict { .. } => false,
         MergedTree::LineBasedMerge { contents, .. } => contents.trim() == trimmed_separator,
         MergedTree::CommutativeChildSeparator { .. } => true,
     }
