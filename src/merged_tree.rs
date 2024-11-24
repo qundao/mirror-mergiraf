@@ -158,9 +158,7 @@ impl<'a> MergedTree<'a> {
                 class_mapping,
             ),
             (base, Some(left), Some(right)) => {
-                let base_src = base
-                    .map(AstNode::unindented_source)
-                    .unwrap_or_else(String::new);
+                let base_src = base.map_or_else(String::new, AstNode::unindented_source);
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
                 let line_based_merge = line_based_merge(
@@ -516,8 +514,9 @@ impl<'a> MergedTree<'a> {
         let line_with_ancestor_indentation = format!("\n{ancestor_indentation}");
         preceding_whitespace
             .rfind(&line_with_ancestor_indentation)
-            .map(|s| preceding_whitespace[(s + line_with_ancestor_indentation.len())..].to_owned())
-            .unwrap_or_else(String::new)
+            .map_or_else(String::new, |s| {
+                preceding_whitespace[(s + line_with_ancestor_indentation.len())..].to_owned()
+            })
     }
 
     /// The number of conflicts in this merge

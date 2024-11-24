@@ -380,8 +380,7 @@ impl TreeMatcher {
             matched_to_id: matched_node.map(|n| if left_side { node.id } else { n.id }),
             children,
             weight: matched_node
-                .map(|n| if left_side { node.size() } else { n.size() })
-                .unwrap_or(1) as u64,
+                .map_or(1, |n| if left_side { node.size() } else { n.size() } as u64),
             size,
         }
     }
