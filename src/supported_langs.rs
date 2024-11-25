@@ -1,4 +1,3 @@
-
 use crate::{
     lang_profile::{CommutativeParent, LangProfile},
     signature::{
@@ -303,6 +302,27 @@ pub fn supported_languages() -> Vec<LangProfile> {
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
+        },
+        LangProfile {
+            name: "Typescript",
+            extensions: vec![".ts"],
+            language: tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::new("object", "{", ", ", "}"),
+                CommutativeParent::new("class_body", " {\n", "\n\n", "\n}\n"),
+                CommutativeParent::new("interface_body", " {\n", ";\n", "\n}\n"),
+                CommutativeParent::new("object_type", " {\n", ";\n", "\n}\n"),
+                CommutativeParent::new("enum_body", " {\n", ",\n", "\n}\n"),
+            ],
+            signatures: vec![
+                signature("pair", vec![vec![Field("key")]]),
+                signature("identifier", vec![vec![]]),
+                signature("method_definition", vec![vec![Field("name")]]),
+                signature("public_field_definition", vec![vec![Field("name")]]),
+                signature("property_signature", vec![vec![Field("name")]]),
+                signature("property_identifier", vec![vec![]]),
+            ],
         },
     ]
 }
