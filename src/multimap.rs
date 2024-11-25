@@ -63,6 +63,14 @@ where
     pub fn iter_values(&self) -> impl Iterator<Item = &V> {
         self.map.iter().flat_map(|(_k, v_set)| v_set.iter())
     }
+
+    pub fn contains_key<Q>(&self, k: &Q) -> bool
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Hash + Eq,
+    {
+        self.map.get(k).is_some_and(|s| !s.is_empty())
+    }
 }
 
 impl<K, V> Default for MultiMap<K, V>

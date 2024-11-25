@@ -489,7 +489,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     "no candidate successor found for {cursor} at {revision}"
                 ))?;
 
-            if candidate == PCSNode::RightMarker || !other_successors.get(candidate).is_empty() {
+            if candidate == PCSNode::RightMarker || other_successors.contains_key(&candidate) {
                 // we found the merging point of the conflict branches
                 return Ok((all_successors, result));
             } else if let PCSNode::Node { node, .. } = candidate {
