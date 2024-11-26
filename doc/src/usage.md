@@ -84,9 +84,9 @@ If it turns out that Mergiraf's output is unsatisfactory and you would rather us
 
 ### Temporarily disabling Mergiraf
 
-You can disable Mergiraf by defining the `MERGIRAF_DISABLE` environment variable:
+You can disable Mergiraf by setting the `mergiraf` environment variable to 0:
 ```console
-$ MERGIRAF_DISABLE=1 git rebase origin/master
+$ mergiraf=0 git rebase origin/master
 ```
 
 This will fall back on Git's regular merge heuristics, without requiring changes to your configuration.

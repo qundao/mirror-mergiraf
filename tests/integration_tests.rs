@@ -124,7 +124,7 @@ fn test_solve_command(#[case] conflict_style: &str) {
         ]
         .iter(),
     );
-    command.env("MERGIRAF_DISABLE", "1"); // in case Git is configured to use Mergiraf
+    command.env("mergiraf", "0"); // in case Git is configured to use Mergiraf
     let output = command.output().expect("Failed to execute git command");
     assert!(!output.status.success(), "expected a rebase conflict");
 

@@ -169,8 +169,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     .unwrap_or(right.clone()),
             };
 
-            if let Ok(env_var_value) = env::var(DISABLING_ENV_VAR) {
-                if !env_var_value.is_empty() {
+            {
+                let mergiraf_disabled = env::var("mergiraf").is_ok_and(|v| v == "0")
+                    || env::var(DISABLING_ENV_VAR).is_ok_and(|v| !v.is_empty()); // TODO: deprecate
+
+                if mergiraf_disabled {
                     return fallback_to_git_merge_file(base, left, right, git, &settings);
                 }
             }
