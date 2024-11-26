@@ -41,6 +41,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.json merge=mergiraf
 *.yml merge=mergiraf
 *.yaml merge=mergiraf
+*.toml merge=mergiraf
 *.html merge=mergiraf
 *.htm merge=mergiraf
 *.xhtml merge=mergiraf

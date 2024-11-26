@@ -181,6 +181,21 @@ pub fn supported_languages() -> Vec<LangProfile> {
             signatures: vec![signature("block_mapping_pair", vec![vec![Field("key")]])],
         },
         LangProfile {
+            name: "TOML",
+            extensions: vec![".toml"],
+            language: tree_sitter_toml_ng::language(),
+            atomic_nodes: vec!["string"],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("document", "\n"),
+                CommutativeParent::without_delimiters("table", "\n"),
+                CommutativeParent::new("inline_table", "{", ", ", "}"),
+            ],
+            signatures: vec![
+                signature("pair", vec![vec![ChildType("bare_key")]]),
+                signature("_inline_pair", vec![vec![ChildType("bare_key")]]),
+            ],
+        },
+        LangProfile {
             name: "HTML",
             extensions: vec![".html", ".htm"],
             language: tree_sitter_html::LANGUAGE.into(),
