@@ -328,6 +328,10 @@ impl<'a> MergedTree<'a> {
                         }
                     };
                 }
+
+                if let Some(whitespace) = Self::trailing_whitespace(*leader, class_mapping) {
+                    output.push_merged(whitespace.to_owned());
+                }
             }
             MergedTree::Conflict { base, left, right } => {
                 if base.is_empty() && left.is_empty() && right.is_empty() {
@@ -508,6 +512,29 @@ impl<'a> MergedTree<'a> {
             }
         }
         None
+    }
+
+    fn trailing_whitespace(node: Leader<'a>, class_mapping: &ClassMapping<'a>) -> Option<&'a str> {
+        let node_base = class_mapping.node_at_rev(node, Revision::Base);
+        let node_left = class_mapping.node_at_rev(node, Revision::Left);
+        let node_right = class_mapping.node_at_rev(node, Revision::Right);
+
+        match (node_base, node_left, node_right) {
+            (Some(base), Some(left), Some(right)) => {
+                let base_trailing = base.trailing_whitespace();
+                let left_trailing = left.trailing_whitespace();
+                let right_trailing = right.trailing_whitespace();
+                if base_trailing == left_trailing {
+                    right_trailing
+                } else {
+                    left_trailing
+                }
+            }
+            (_, Some(node), _) | (_, _, Some(node)) | (Some(node), _, _) => {
+                node.trailing_whitespace()
+            }
+            (None, None, None) => None,
+        }
     }
 
     fn extract_indentation_shift(ancestor_indentation: &str, preceding_whitespace: &str) -> String {
