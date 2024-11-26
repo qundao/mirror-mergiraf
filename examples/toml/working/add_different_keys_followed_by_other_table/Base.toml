@@ -1,0 +1,5 @@
+[foo]
+hello = "world"
+
+[bar]
+test = 1
