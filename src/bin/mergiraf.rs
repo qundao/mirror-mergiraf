@@ -57,13 +57,16 @@ enum CliCommand {
         #[clap(short, long)]
         path_name: Option<String>,
         /// Name to use for the base revision in conflict markers
-        #[clap(short = 's', long)] // the choice of 's' is inherited from Git's merge driver interface
+        #[clap(short = 's', long)]
+        // the choice of 's' is inherited from Git's merge driver interface
         base_name: Option<String>,
         /// Name to use for the left revision in conflict markers
-        #[clap(short = 'x', long)] // the choice of 'x' is inherited from Git's merge driver interface
+        #[clap(short = 'x', long)]
+        // the choice of 'x' is inherited from Git's merge driver interface
         left_name: Option<String>,
         /// Name to use for the right revision in conflict markers
-        #[clap(short = 'y', long)] // the choice of 'y' is inherited from Git's merge driver interface
+        #[clap(short = 'y', long)]
+        // the choice of 'y' is inherited from Git's merge driver interface
         right_name: Option<String>,
     },
     /// Solve the conflicts in a merged file
