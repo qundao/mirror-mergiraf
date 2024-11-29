@@ -188,11 +188,17 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
 
             let attempts_cache = AttemptsCache::new(None, None).ok();
 
+            let fname_base = if let Some(ref pname) = path_name {
+                pname
+            } else {
+                fname_base
+            };
+
             let merge_result = line_merge_and_structured_resolution(
                 &contents_base,
                 &contents_left,
                 &contents_right,
-                &path_name.unwrap_or(fname_base.to_owned()),
+                fname_base,
                 &settings,
                 !fast,
                 attempts_cache.as_ref(),

@@ -43,11 +43,7 @@ pub(crate) mod tree_matcher;
 #[cfg(feature = "dotty")]
 pub(crate) mod visualizer;
 
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    time::Instant,
-};
+use std::{fs, path::Path, time::Instant};
 
 use attempts::AttemptsCache;
 use git::extract_revision_from_git;
@@ -213,7 +209,7 @@ pub fn line_merge_and_structured_resolution(
         // give the opportunity to the user to review Mergiraf's work
         let attempt = attempts_cache.and_then(|cache| {
             match cache.new_attempt(
-                &PathBuf::from(fname_base),
+                Path::new(fname_base),
                 contents_base,
                 contents_left,
                 contents_right,
@@ -509,7 +505,7 @@ pub fn resolve_merge_cascading(
 }
 
 fn extract_revision(working_dir: &Path, path: &str, revision: Revision) -> Result<String, String> {
-    let temp_file = extract_revision_from_git(working_dir, &PathBuf::from(path), revision)?;
+    let temp_file = extract_revision_from_git(working_dir, Path::new(path), revision)?;
     let contents = fs::read_to_string(temp_file.path()).map_err(|err| err.to_string())?;
     Ok(contents)
 }

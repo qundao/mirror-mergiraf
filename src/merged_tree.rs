@@ -158,15 +158,15 @@ impl<'a> MergedTree<'a> {
                 class_mapping,
             ),
             (base, Some(left), Some(right)) => {
-                let base_src = base.map_or_else(String::new, AstNode::unindented_source);
+                let base_src = if let Some(base) = base {
+                    &base.unindented_source()
+                } else {
+                    ""
+                };
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
-                let line_based_merge = line_based_merge(
-                    &base_src,
-                    &left_src,
-                    &right_src,
-                    &DisplaySettings::default(),
-                );
+                let line_based_merge =
+                    line_based_merge(base_src, &left_src, &right_src, &DisplaySettings::default());
                 MergedTree::LineBasedMerge {
                     node,
                     contents: line_based_merge.contents,
@@ -403,49 +403,47 @@ impl<'a> MergedTree<'a> {
                 let revisions = class_mapping.revision_set(previous_node);
                 let common_revisions =
                     revisions.intersection(class_mapping.revision_set(rev_node).set());
-                let whitespaces = [Revision::Left, Revision::Right, Revision::Base]
-                    .iter()
-                    .map(|rev| {
-                        if common_revisions.contains(*rev) {
-                            Self::whitespace_at_rev(
-                                *rev,
-                                previous_node,
-                                rev_node,
-                                indentation,
-                                class_mapping,
-                            )
-                        } else {
-                            None
-                        }
-                    })
-                    .collect_vec();
-                let (preceding_whitespace, indentation_shift) =
-                    if let [Some(ref whitespace_left), Some(ref whitespace_right), Some(ref whitespace_base)] = whitespaces[..] {
-                        if whitespace_base == whitespace_left {
-                            Some(whitespace_right.clone())
-                        } else {
-                            Some(whitespace_left.clone())
-                        }
+                let whitespaces = [Revision::Left, Revision::Right, Revision::Base].map(|rev| {
+                    if common_revisions.contains(rev) {
+                        Self::whitespace_at_rev(
+                            rev,
+                            previous_node,
+                            rev_node,
+                            indentation,
+                            class_mapping,
+                        )
                     } else {
-                        whitespaces
-                            .into_iter()
-                            .flatten()
-                            .next()
-                    }.unwrap_or_else(|| {
-                        representatives.iter()
-                            .find_map(|repr| {
-                                let indentation_shift = repr.node.indentation_shift().unwrap_or("").to_owned();
-                                let ancestor_newlines = format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
-                                let new_newlines = format!("\n{indentation}");
-                                if let Some(preceding_whitespace) = repr.node.preceding_whitespace() {
-                                    let new_whitespace = preceding_whitespace.replace(&ancestor_newlines, &new_newlines);
-                                    Some((new_whitespace, indentation_shift))
-                                } else {
-                                    None
-                                }
-                            })
-                            .unwrap_or_else(|| (String::new(), String::new()))
-                    });
+                        None
+                    }
+                });
+
+                let (preceding_whitespace, indentation_shift) = match whitespaces {
+                    [Some(whitespace_left), Some(whitespace_right), Some(whitespace_base)] => {
+                        if whitespace_base == whitespace_left {
+                            whitespace_right
+                        } else {
+                            whitespace_left
+                        }
+                    }
+                    [Some(w), _, _] | [_, Some(w), _] | [_, _, Some(w)] => w,
+                    _ => representatives
+                        .iter()
+                        .find_map(|repr| {
+                            let indentation_shift =
+                                repr.node.indentation_shift().unwrap_or("").to_owned();
+                            let ancestor_newlines =
+                                format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
+                            let new_newlines = format!("\n{indentation}");
+                            if let Some(preceding_whitespace) = repr.node.preceding_whitespace() {
+                                let new_whitespace =
+                                    preceding_whitespace.replace(&ancestor_newlines, &new_newlines);
+                                Some((new_whitespace, indentation_shift))
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or_default(),
+                };
 
                 output.push_merged(preceding_whitespace);
                 format!("{indentation}{indentation_shift}")

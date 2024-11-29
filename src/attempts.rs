@@ -243,7 +243,7 @@ impl AttemptsCache {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf};
+    use std::{fs, path::Path};
 
     use itertools::Itertools;
 
@@ -262,7 +262,7 @@ mod tests {
 
         let attempt = cache
             .new_attempt(
-                &PathBuf::from("foo/bar/MyFile.java"),
+                Path::new("foo/bar/MyFile.java"),
                 "hello base",
                 "hello left",
                 "bye right",
@@ -302,7 +302,7 @@ mod tests {
 
         let attempt = cache
             .new_attempt(
-                &PathBuf::from("foo/bar/MyFile"),
+                Path::new("foo/bar/MyFile"),
                 "hello base",
                 "hello left",
                 "bye right",
@@ -339,7 +339,7 @@ mod tests {
         for _ in 0..4 {
             cache
                 .new_attempt(
-                    &PathBuf::from("foo/bar/MyFile"),
+                    Path::new("foo/bar/MyFile"),
                     "hello base",
                     "hello left",
                     "bye right",
