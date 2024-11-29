@@ -20,7 +20,7 @@ impl DisplaySettings {
     pub fn left_marker(&self) -> String {
         format!(
             "{} {}",
-            "<".to_string().repeat(self.conflict_marker_size),
+            "<".repeat(self.conflict_marker_size),
             self.left_revision_name
         )
     }
@@ -30,7 +30,7 @@ impl DisplaySettings {
     pub fn base_marker(&self) -> String {
         format!(
             "{} {}",
-            "|".to_string().repeat(self.conflict_marker_size),
+            "|".repeat(self.conflict_marker_size),
             self.base_revision_name
         )
     }
@@ -40,7 +40,7 @@ impl DisplaySettings {
     pub fn right_marker(&self) -> String {
         format!(
             "{} {}",
-            ">".to_string().repeat(self.conflict_marker_size),
+            ">".repeat(self.conflict_marker_size),
             self.right_revision_name
         )
     }
@@ -48,7 +48,7 @@ impl DisplaySettings {
     /// The marker before the beginning of "right" (last) part of a conflict.
     /// It does not contain any newline character.
     pub fn middle_marker(&self) -> String {
-        "=".to_string().repeat(self.conflict_marker_size)
+        "=".repeat(self.conflict_marker_size)
     }
 
     pub fn default_compact() -> Self {
@@ -76,6 +76,7 @@ impl Default for DisplaySettings {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 enum LineFeedStyle {
     LF,
     CRLF,

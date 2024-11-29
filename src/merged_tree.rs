@@ -393,8 +393,11 @@ impl<'a> MergedTree<'a> {
         class_mapping: &ClassMapping<'a>,
     ) -> String {
         let arbitrary_representative = rev_node.as_representative().node;
-        let mut representatives = class_mapping.representatives(rev_node);
-        representatives.sort_by(|a, b| Ord::cmp(&a.rev, &b.rev));
+        let representatives = {
+            let mut representatives = class_mapping.representatives(rev_node);
+            representatives.sort_by(|a, b| Ord::cmp(&a.rev, &b.rev));
+            representatives
+        };
         match previous_sibling {
             Some(PreviousSibling::RealNode(previous_node)) => {
                 let revisions = class_mapping.revision_set(previous_node);
@@ -486,28 +489,30 @@ impl<'a> MergedTree<'a> {
         // which we can do if the previous tree was indeed just before this one in the original tree
         let previous_end = previous_node_at_rev.byte_range.end;
         let current_start = current_node_at_rev.byte_range.start;
-        if previous_end <= current_start {
-            let root = current_node_at_rev.root();
-            let root_start = root.byte_range.start;
-            let source = &root.source[(previous_end - root_start)..(current_start - root_start)];
-            if source.trim().is_empty() {
-                if let Some(ancestor_indentation) = current_node_at_rev.ancestor_indentation() {
-                    let indentation_shift =
-                        Self::extract_indentation_shift(ancestor_indentation, source);
-                    return Some((
-                        source.replace(
-                            &format!("\n{ancestor_indentation}"),
-                            &format!("\n{indentation}"),
-                        ),
-                        indentation_shift,
-                    ));
-                } else {
-                    let indentation = Self::extract_indentation_shift("", source);
-                    return Some((source.to_owned(), indentation));
-                }
-            }
+        if previous_end > current_start {
+            return None;
         }
-        None
+
+        let root = current_node_at_rev.root();
+        let root_start = root.byte_range.start;
+        let source = &root.source[(previous_end - root_start)..(current_start - root_start)];
+        if !source.trim().is_empty() {
+            return None;
+        }
+
+        if let Some(ancestor_indentation) = current_node_at_rev.ancestor_indentation() {
+            let indentation_shift = Self::extract_indentation_shift(ancestor_indentation, source);
+            Some((
+                source.replace(
+                    &format!("\n{ancestor_indentation}"),
+                    &format!("\n{indentation}"),
+                ),
+                indentation_shift,
+            ))
+        } else {
+            let indentation = Self::extract_indentation_shift("", source);
+            Some((source.to_owned(), indentation))
+        }
     }
 
     fn extract_indentation_shift(ancestor_indentation: &str, preceding_whitespace: &str) -> String {

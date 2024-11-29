@@ -38,6 +38,7 @@ pub enum PCSNode<'a> {
 /// predecessor, and similarly [`PCSNode::RightMarker`] is used as successor to encod the last child.
 /// The actual root of the tree is encoded by marking it as root of the [`PCSNode::VirtualRoot`].
 #[derive(Debug, Copy, Clone, PartialOrd, Ord)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct PCS<'a> {
     /// The common parent of both the predecessor and successor
     pub parent: PCSNode<'a>,

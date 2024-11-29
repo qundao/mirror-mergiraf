@@ -61,7 +61,7 @@ struct VisitingState<'a> {
 
 impl<'a> VisitingState<'a> {
     fn indentation(&self) -> String {
-        " ".to_string().repeat(self.visited_nodes.len())
+        " ".repeat(self.visited_nodes.len())
     }
 }
 

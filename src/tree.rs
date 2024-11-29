@@ -138,9 +138,7 @@ impl<'a> AstNode<'a> {
         let local_source = &global_source[range.start..range.end];
         if node.is_error() {
             return Err(format!(
-                "parse error at {}..{}, starting with: {}",
-                range.start,
-                range.end,
+                "parse error at {range:?}, starting with: {}",
                 &local_source[..min(32, local_source.len())]
             ));
         }
@@ -686,10 +684,7 @@ impl<'a> Iterator for DfsIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let node = self.current.pop()?;
-        // TODO can this be rewritten with self.current.append(…) ?
-        for child in node.children.iter().rev() {
-            self.current.push(child)
-        }
+        self.current.extend(node.children.iter().rev());
         Some(node)
     }
 }

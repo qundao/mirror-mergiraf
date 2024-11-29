@@ -466,7 +466,8 @@ impl<'a> tree_edit_distance::Node for TEDTree<'a> {
 }
 
 impl<'a> tree_edit_distance::Tree for TEDTree<'a> {
-    type Children<'c> = Box<dyn Iterator<Item = &'c TEDTree<'a>> + 'c>
+    type Children<'c>
+        = Box<dyn Iterator<Item = &'c TEDTree<'a>> + 'c>
     where
         Self: 'c;
 
