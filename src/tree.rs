@@ -469,6 +469,19 @@ impl<'a> AstNode<'a> {
         Some(&whitespace[(last_newline + 1)..])
     }
 
+    /// Any whitespace between the end of the last child of this node
+    /// and the end of this node itself
+    pub fn trailing_whitespace(&'a self) -> Option<&'a str> {
+        let last_child = self.children.last()?;
+        let additional_content =
+            &self.source[(last_child.byte_range.end - self.byte_range.start)..];
+        if !additional_content.is_empty() && additional_content.trim().is_empty() {
+            Some(&additional_content)
+        } else {
+            None
+        }
+    }
+
     /// The preceding indentation of the first ancestor that has some.
     pub fn ancestor_indentation(&'a self) -> Option<&'a str> {
         self.ancestors()
@@ -959,6 +972,18 @@ mod tests {
         assert_eq!(core.source, "\"core\"");
         assert_eq!(core.preceding_whitespace(), Some("\n    "));
         assert_eq!(core.ancestor_indentation(), None);
+    }
+
+    #[test]
+    fn trailing_whitespace_toml() {
+        let ctx = ctx();
+        let tree = ctx.parse_toml("[foo]\na = 1\n\n[bar]\nb = 2");
+        let first_table = tree.root().child(0).unwrap();
+        let second_table = tree.root().child(1).unwrap();
+        assert_eq!(first_table.source, "[foo]\na = 1\n\n");
+        assert_eq!(first_table.trailing_whitespace(), Some("\n\n"));
+        assert_eq!(second_table.source, "[bar]\nb = 2");
+        assert_eq!(second_table.trailing_whitespace(), None);
     }
 
     #[test]

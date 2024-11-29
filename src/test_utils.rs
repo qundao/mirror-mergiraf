@@ -54,6 +54,10 @@ impl<'a> TestContext<'a> {
     pub fn parse_yaml(&'a self, source: &'a str) -> Ast<'a> {
         self.parse_internal(".yaml", source)
     }
+
+    pub fn parse_toml(&'a self, source: &'a str) -> Ast<'a> {
+        self.parse_internal(".toml", source)
+    }
 }
 
 pub fn hash<T: Hash>(node: &T) -> u64 {
