@@ -38,7 +38,7 @@ fn write_file_from_rev(
 fn detect_extension(test_dir: &Path) -> String {
     read_dir(test_dir)
         .expect("Could not list files in test directory")
-        .filter_map(|filename| {
+        .find_map(|filename| {
             filename
                 .unwrap()
                 .file_name()
@@ -47,7 +47,6 @@ fn detect_extension(test_dir: &Path) -> String {
                 .strip_prefix("Base.")
                 .map(|s| s.to_owned())
         })
-        .next()
         .expect("Could not find a Base.* file in the test directory")
 }
 

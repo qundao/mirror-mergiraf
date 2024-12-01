@@ -48,7 +48,7 @@ pub enum MergedChunk {
     },
 }
 
-/// A correspondence between a secstion of a reconstructed revision and the merge output
+/// A correspondence between a section of a reconstructed revision and the merge output
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct OffsetMap {
     /// The start of the section in the reconstructed revision
