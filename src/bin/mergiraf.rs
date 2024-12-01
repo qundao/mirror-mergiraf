@@ -116,9 +116,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         .init()
         .unwrap();
 
-    let default_base_name = "base".to_owned();
-    let default_left_name = "left".to_owned();
-    let default_right_name = "right".to_owned();
+    let default_base_name = "base".into();
+    let default_left_name = "left".into();
+    let default_right_name = "right".into();
 
     let return_code = match args.command {
         CliCommand::Merge {
@@ -145,28 +145,28 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                         if name == "%S" {
                             default_base_name
                         } else {
-                            name
+                            name.into()
                         }
                     })
-                    .unwrap_or(base.clone()),
+                    .unwrap_or(base.clone().into()),
                 left_revision_name: left_name
                     .map(|name| {
                         if name == "%X" {
                             default_left_name
                         } else {
-                            name
+                            name.into()
                         }
                     })
-                    .unwrap_or(left.clone()),
+                    .unwrap_or(left.clone().into()),
                 right_revision_name: right_name
                     .map(|name| {
                         if name == "%Y" {
                             default_right_name
                         } else {
-                            name
+                            name.into()
                         }
                     })
-                    .unwrap_or(right.clone()),
+                    .unwrap_or(right.clone().into()),
             };
 
             {
@@ -333,11 +333,11 @@ fn fallback_to_git_merge_file(
     }
     command
         .arg("-L")
-        .arg(&settings.left_revision_name)
+        .arg(&*settings.left_revision_name)
         .arg("-L")
-        .arg(&settings.base_revision_name)
+        .arg(&*settings.base_revision_name)
         .arg("-L")
-        .arg(&settings.right_revision_name)
+        .arg(&*settings.right_revision_name)
         .arg(left)
         .arg(base)
         .arg(right)

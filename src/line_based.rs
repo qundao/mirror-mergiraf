@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use log::info;
 
 use crate::{attempts::Attempt, parsed_merge::ParsedMerge, settings::DisplaySettings};
@@ -23,11 +25,11 @@ pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
 pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
 /// Ensures a given string has a newline at the end.
-pub(crate) fn with_final_newline(s: &str) -> String {
+pub(crate) fn with_final_newline(s: &str) -> Cow<str> {
     if s.ends_with('\n') {
-        s.to_string()
+        Cow::from(s)
     } else {
-        s.to_string() + "\n"
+        Cow::from(s.to_string() + "\n")
     }
 }
 

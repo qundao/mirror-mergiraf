@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     cell::UnsafeCell,
     cmp::{max, min},
     collections::HashMap,
@@ -554,10 +555,13 @@ impl<'a> AstNode<'a> {
     }
 
     /// The source of this node, stripped from any indentation inherited by the node or its ancestors
-    pub fn unindented_source(&'a self) -> String {
+    pub fn unindented_source(&'a self) -> Cow<str> {
         match self.preceding_indentation().or(self.ancestor_indentation()) {
-            Some(indentation) => self.source.replace(&format!("\n{}", indentation), "\n"), // TODO FIXME this is invalid for multiline string literals!
-            None => self.source.to_string(),
+            Some(indentation) => {
+                // TODO FIXME this is invalid for multiline string literals!
+                Cow::from(self.source.replace(&format!("\n{}", indentation), "\n"))
+            }
+            None => Cow::from(self.source),
         }
     }
 

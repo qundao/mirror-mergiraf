@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use itertools::Itertools;
 use regex::Regex;
 
@@ -11,24 +13,24 @@ use crate::{parsed_merge::ParsedMerge, settings::DisplaySettings};
 /// layout of the resulting text is not known yet as it depends on
 /// the output settings.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct MergedText {
-    sections: Vec<MergeSection>,
+pub(crate) struct MergedText<'a> {
+    sections: Vec<MergeSection<'a>>,
 }
 
 /// A part of a merged file to be output
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MergeSection {
+enum MergeSection<'a> {
     /// Content that is successfully merged
-    Merged(String),
+    Merged(Cow<'a, str>),
     /// A conflict, with contents differing from the revisions
     Conflict {
-        base: String,
-        left: String,
-        right: String,
+        base: Cow<'a, str>,
+        left: Cow<'a, str>,
+        right: Cow<'a, str>,
     },
 }
 
-impl MergedText {
+impl<'a> MergedText<'a> {
     /// Creates an empty merged text
     pub(crate) fn new() -> Self {
         MergedText {
@@ -37,12 +39,17 @@ impl MergedText {
     }
 
     /// Appends merged text at the end
-    pub(crate) fn push_merged(&mut self, contents: String) {
+    pub(crate) fn push_merged(&mut self, contents: Cow<'a, str>) {
         self.sections.push(MergeSection::Merged(contents));
     }
 
     /// Appends a conflict at the end
-    pub(crate) fn push_conflict(&mut self, base: String, left: String, right: String) {
+    pub(crate) fn push_conflict(
+        &mut self,
+        base: Cow<'a, str>,
+        left: Cow<'a, str>,
+        right: Cow<'a, str>,
+    ) {
         if left == right {
             // well that's not really a conflict
             self.push_merged(left);
@@ -61,20 +68,26 @@ impl MergedText {
         for section in parsed.chunks {
             self.sections.push(match section {
                 crate::parsed_merge::MergedChunk::Resolved { contents, .. } => {
-                    let result = MergeSection::Merged(Self::reindent_line_based_merge(
-                        &contents,
-                        indentation,
-                        newline_found,
-                        true,
-                    ));
+                    let result = MergeSection::Merged(
+                        Self::reindent_line_based_merge(
+                            &contents,
+                            indentation,
+                            newline_found,
+                            true,
+                        )
+                        .into(),
+                    );
                     newline_found = newline_found || contents.contains('\n');
                     result
                 }
                 crate::parsed_merge::MergedChunk::Conflict { left, base, right } => {
                     let result = MergeSection::Conflict {
-                        left: Self::reindent_line_based_merge(&left, indentation, false, false),
-                        base: Self::reindent_line_based_merge(&base, indentation, false, false),
-                        right: Self::reindent_line_based_merge(&right, indentation, false, false),
+                        left: Self::reindent_line_based_merge(&left, indentation, false, false)
+                            .into(),
+                        base: Self::reindent_line_based_merge(&base, indentation, false, false)
+                            .into(),
+                        right: Self::reindent_line_based_merge(&right, indentation, false, false)
+                            .into(),
                     };
                     newline_found = newline_found
                         || left.contains('\n')
@@ -98,9 +111,9 @@ impl MergedText {
             .enumerate()
             .map(|(idx, line)| {
                 if line.is_empty() || (idx == 0 && !reindent_first) {
-                    line.to_owned()
+                    Cow::from(line)
                 } else {
-                    format!("{indentation}{line}")
+                    Cow::from(format!("{indentation}{line}"))
                 }
             })
             .join("\n");
@@ -261,27 +274,21 @@ impl MergedText {
                     if let Some(occurrence) = trailing_whitespace_pattern.find(&output) {
                         let whitespace_to_prepend = output.split_off(occurrence.start());
                         let new_base = if base.is_empty() {
-                            base.clone()
+                            base
                         } else {
-                            whitespace_to_prepend.clone() + base
+                            &(whitespace_to_prepend.clone() + base).into()
                         };
                         let new_left = if left.is_empty() {
-                            left.clone()
+                            left
                         } else {
-                            whitespace_to_prepend.clone() + left
+                            &(whitespace_to_prepend.clone() + left).into()
                         };
                         let new_right = if right.is_empty() {
-                            right.clone()
+                            right
                         } else {
-                            whitespace_to_prepend + right
+                            &(whitespace_to_prepend + right).into()
                         };
-                        Self::render_conflict(
-                            &new_base,
-                            &new_left,
-                            &new_right,
-                            settings,
-                            &mut output,
-                        );
+                        Self::render_conflict(new_base, new_left, new_right, settings, &mut output);
                     } else {
                         Self::render_conflict(base, left, right, settings, &mut output);
                     }
@@ -304,14 +311,14 @@ mod tests {
     use super::*;
 
     fn merged(contents: &str) -> MergeSection {
-        MergeSection::Merged(contents.to_owned())
+        MergeSection::Merged(contents.into())
     }
 
-    fn conflict(base: &str, left: &str, right: &str) -> MergeSection {
+    fn conflict<'a>(base: &'a str, left: &'a str, right: &'a str) -> MergeSection<'a> {
         MergeSection::Conflict {
-            base: base.to_owned(),
-            left: left.to_owned(),
-            right: right.to_owned(),
+            base: base.into(),
+            left: left.into(),
+            right: right.into(),
         }
     }
 
@@ -360,9 +367,9 @@ mod tests {
     #[test]
     fn test_spurious_conflict() {
         let mut merged_text = MergedText::new();
-        merged_text.push_merged("let's start ".to_owned());
-        merged_text.push_conflict("tomorrow".to_owned(), "now".to_owned(), "now".to_owned());
-        merged_text.push_merged(", as it seems we all agree".to_owned());
+        merged_text.push_merged("let's start ".into());
+        merged_text.push_conflict("tomorrow".into(), "now".into(), "now".into());
+        merged_text.push_merged(", as it seems we all agree".into());
         let expected_full_line = "let's start now, as it seems we all agree";
 
         assert_eq!(

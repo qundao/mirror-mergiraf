@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::Range};
+use std::{borrow::Cow, collections::HashMap, ops::Range};
 
 use itertools::Itertools;
 use regex::Regex;
@@ -16,9 +16,9 @@ pub(crate) const PARSED_MERGE_DIFF2_DETECTED: &str =
 
 /// A file which potentially contains merge conflicts, parsed as such.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ParsedMerge {
+pub struct ParsedMerge<'a> {
     /// The actual contents of the parsed merge
-    pub chunks: Vec<MergedChunk>,
+    pub chunks: Vec<MergedChunk<'a>>,
     /// List of correspondences between sections of the reconstructed left revision and the merge output
     left: Vec<OffsetMap>,
     /// List of correspondences between sections of the reconstructed right revision and the merge output
@@ -29,22 +29,22 @@ pub struct ParsedMerge {
 
 /// A chunk in a file with merge conflicts: either a readily merged chunk or a conflict.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub enum MergedChunk {
+pub enum MergedChunk<'a> {
     /// A readily-merged chunk
     Resolved {
         /// The byte offset at which this merged chunk can be found
         offset: usize,
         /// Its textual contents (including the last newline before any conflict)
-        contents: String,
+        contents: Cow<'a, str>,
     },
     /// A diff3-style conflict
     Conflict {
         /// The left part of the conflict, including the last newline before the next marker
-        left: String,
+        left: Cow<'a, str>,
         /// The base (or ancestor) part of the conflict, including the last newline before the next marker.
-        base: String,
+        base: Cow<'a, str>,
         /// The right part of the conflict, including the last newline before the next marker.
-        right: String,
+        right: Cow<'a, str>,
     },
 }
 
@@ -59,7 +59,7 @@ struct OffsetMap {
     length: usize,
 }
 
-impl ParsedMerge {
+impl<'b> ParsedMerge<'b> {
     /// Parse a file into a series of chunks.
     /// Fails if the conflict markers do not appear in a consistent order.
     pub(crate) fn parse(source: &str) -> Result<ParsedMerge, String> {
@@ -86,7 +86,7 @@ impl ParsedMerge {
             if resolved_end > 0 {
                 chunks.push(MergedChunk::Resolved {
                     offset,
-                    contents: remaining_source[..resolved_end].to_owned(),
+                    contents: remaining_source[..resolved_end].into(),
                 });
             }
             offset += resolved_end;
@@ -106,19 +106,19 @@ impl ParsedMerge {
                     }
                 }?;
                 let left =
-                    remaining_source[local_offset..(local_offset + base_match.start())].to_owned();
+                    remaining_source[local_offset..(local_offset + base_match.start())].into();
                 let local_offset = local_offset + base_match.end();
                 let right_match = right_marker
                     .find(&remaining_source[local_offset..])
                     .ok_or("unexpected end of file before right conflict marker")?;
                 let base =
-                    remaining_source[local_offset..(local_offset + right_match.start())].to_owned();
+                    remaining_source[local_offset..(local_offset + right_match.start())].into();
                 let local_offset = local_offset + right_match.end();
                 let end_match = end_marker
                     .find(&remaining_source[local_offset..])
                     .ok_or("unexpected end of file before end conflict marker")?;
                 let right =
-                    remaining_source[local_offset..(local_offset + end_match.start())].to_owned();
+                    remaining_source[local_offset..(local_offset + end_match.start())].into();
                 chunks.push(MergedChunk::Conflict { left, base, right });
                 offset += local_offset + end_match.end() - resolved_end;
             }
@@ -127,7 +127,7 @@ impl ParsedMerge {
     }
 
     /// Construct a parsed merge by indexing the provided chunks
-    fn new(chunks: Vec<MergedChunk>) -> Self {
+    fn new(chunks: Vec<MergedChunk<'b>>) -> Self {
         let mut left_offset = 0;
         let mut base_offset = 0;
         let mut right_offset = 0;
@@ -361,16 +361,16 @@ mod tests {
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
                 offset: 0,
-                contents: "\nwe reached a junction.\n".to_owned(),
+                contents: "\nwe reached a junction.\n".into(),
             },
             MergedChunk::Conflict {
-                left: "let's go to the left!\n".to_owned(),
-                base: "where should we go?\n".to_owned(),
-                right: "turn right please!\n".to_owned(),
+                left: "let's go to the left!\n".into(),
+                base: "where should we go?\n".into(),
+                right: "turn right please!\n".into(),
             },
             MergedChunk::Resolved {
                 offset: 127,
-                contents: "rest of file\n".to_owned(),
+                contents: "rest of file\n".into(),
             },
         ]);
 
@@ -484,13 +484,13 @@ mod tests {
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Conflict {
-                left: "let's go to the left!\n".to_owned(),
-                base: "where should we go?\n".to_owned(),
-                right: "turn right please!\n".to_owned(),
+                left: "let's go to the left!\n".into(),
+                base: "where should we go?\n".into(),
+                right: "turn right please!\n".into(),
             },
             MergedChunk::Resolved {
                 offset: 103,
-                contents: "rest of file\n".to_owned(),
+                contents: "rest of file\n".into(),
             },
         ]);
 
@@ -517,12 +517,12 @@ mod tests {
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
                 offset: 0,
-                contents: "\nwe reached a junction.\n".to_owned(),
+                contents: "\nwe reached a junction.\n".into(),
             },
             MergedChunk::Conflict {
-                left: "let's go to the left!\n".to_owned(),
-                base: "where should we go?\n".to_owned(),
-                right: "turn right please!\n".to_owned(),
+                left: "let's go to the left!\n".into(),
+                base: "where should we go?\n".into(),
+                right: "turn right please!\n".into(),
             },
         ]);
 
@@ -559,16 +559,16 @@ mod tests {
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
                 offset: 0,
-                contents: "my_struct_t instance = {\n".to_owned(),
+                contents: "my_struct_t instance = {\n".into(),
             },
             MergedChunk::Conflict {
-                left: "    .foo = 3,\n    .bar = 2,\n".to_owned(),
-                base: "    .foo = 3,\n".to_owned(),
-                right: "".to_owned(),
+                left: "    .foo = 3,\n    .bar = 2,\n".into(),
+                base: "    .foo = 3,\n".into(),
+                right: "".into(),
             },
             MergedChunk::Resolved {
                 offset: 115,
-                contents: "};\n".to_owned(),
+                contents: "};\n".into(),
             },
         ]);
 
@@ -581,9 +581,9 @@ mod tests {
             diff3: true,
             compact: false,
             conflict_marker_size: 7,
-            left_revision_name: "LEFT".to_owned(),
-            base_revision_name: "BASE".to_owned(),
-            right_revision_name: "RIGHT".to_owned(),
+            left_revision_name: "LEFT".into(),
+            base_revision_name: "BASE".into(),
+            right_revision_name: "RIGHT".into(),
         });
 
         assert_eq!(rendered, source);

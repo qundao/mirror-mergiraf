@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::HashSet,
     fmt::Display,
     hash::{Hash, Hasher},
@@ -261,8 +262,8 @@ impl<'a> MergedTree<'a> {
     }
 
     /// Pretty-prints the result tree into its final output. Exciting!
-    pub fn pretty_print(
-        &self,
+    pub fn pretty_print<'u: 'a>(
+        &'u self,
         class_mapping: &ClassMapping<'a>,
         settings: &DisplaySettings,
     ) -> String {
@@ -272,9 +273,9 @@ impl<'a> MergedTree<'a> {
     }
 
     /// Recursively pretty-prints a sub part of the result tree.
-    fn pretty_print_recursively<'u>(
+    fn pretty_print_recursively<'u: 'a>(
         &'u self,
-        output: &mut MergedText,
+        output: &mut MergedText<'a>,
         class_mapping: &ClassMapping<'a>,
         previous_sibling: Option<PreviousSibling<'a>>,
         indentation: &str,
@@ -294,7 +295,7 @@ impl<'a> MergedTree<'a> {
                     indentation,
                     class_mapping,
                 );
-                output.push_merged(tree_at_rev.reindented_source(&new_indentation));
+                output.push_merged(tree_at_rev.reindented_source(&new_indentation).into());
             }
             MergedTree::MixedTree {
                 node: leader,
@@ -330,7 +331,7 @@ impl<'a> MergedTree<'a> {
                 }
 
                 if let Some(whitespace) = Self::trailing_whitespace(*leader, class_mapping) {
-                    output.push_merged(whitespace.to_owned());
+                    output.push_merged(Cow::from(whitespace));
                 }
             }
             MergedTree::Conflict { base, left, right } => {
@@ -356,9 +357,9 @@ impl<'a> MergedTree<'a> {
                 );
                 // TODO reindent??
                 output.push_conflict(
-                    Self::pretty_print_astnode_list(Revision::Base, base),
-                    Self::pretty_print_astnode_list(Revision::Left, left),
-                    Self::pretty_print_astnode_list(Revision::Right, right),
+                    Self::pretty_print_astnode_list(Revision::Base, base).into(),
+                    Self::pretty_print_astnode_list(Revision::Left, left).into(),
+                    Self::pretty_print_astnode_list(Revision::Right, right).into(),
                 );
             }
             MergedTree::LineBasedMerge { contents, node, .. } => {
@@ -383,19 +384,19 @@ impl<'a> MergedTree<'a> {
                 output.push_line_based_merge(contents, &full_indentation);
             }
             MergedTree::CommutativeChildSeparator { separator, .. } => {
-                output.push_merged(separator.clone());
+                output.push_merged(separator.into());
             }
         }
     }
 
     /// Adds any preceding whitespace before pretty-printing a node.
-    fn add_preceding_whitespace(
-        output: &mut MergedText,
+    fn add_preceding_whitespace<'b>(
+        output: &mut MergedText<'a>,
         rev_node: Leader<'a>,
         previous_sibling: Option<PreviousSibling<'a>>,
-        indentation: &str,
+        indentation: &'b str,
         class_mapping: &ClassMapping<'a>,
-    ) -> String {
+    ) -> Cow<'b, str> {
         let arbitrary_representative = rev_node.as_representative().node;
         let representatives = {
             let mut representatives = class_mapping.representatives(rev_node);
@@ -433,36 +434,32 @@ impl<'a> MergedTree<'a> {
                     _ => representatives
                         .iter()
                         .find_map(|repr| {
-                            let indentation_shift =
-                                repr.node.indentation_shift().unwrap_or("").to_owned();
+                            let indentation_shift = repr.node.indentation_shift().unwrap_or("");
                             let ancestor_newlines =
                                 format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
                             let new_newlines = format!("\n{indentation}");
                             if let Some(preceding_whitespace) = repr.node.preceding_whitespace() {
                                 let new_whitespace =
                                     preceding_whitespace.replace(&ancestor_newlines, &new_newlines);
-                                Some((new_whitespace, indentation_shift))
+                                Some((Cow::from(new_whitespace), Cow::from(indentation_shift)))
                             } else {
                                 None
                             }
                         })
-                        .unwrap_or_default(),
+                        .unwrap_or((Cow::from(""), Cow::from(""))),
                 };
 
                 output.push_merged(preceding_whitespace);
-                format!("{indentation}{indentation_shift}")
+                Cow::from(format!("{indentation}{indentation_shift}"))
             }
             Some(PreviousSibling::CommutativeSeparator(separator)) => {
                 if separator.ends_with('\n') {
-                    let shift = arbitrary_representative
-                        .indentation_shift()
-                        .unwrap_or("")
-                        .to_owned();
+                    let shift = arbitrary_representative.indentation_shift().unwrap_or("");
                     let new_indentation = format!("{indentation}{shift}");
-                    output.push_merged(new_indentation.clone());
-                    new_indentation
+                    output.push_merged(Cow::from(new_indentation.clone()));
+                    Cow::from(new_indentation)
                 } else {
-                    indentation.to_string()
+                    Cow::from(indentation)
                 }
             }
             None => {
@@ -470,8 +467,8 @@ impl<'a> MergedTree<'a> {
                     .iter()
                     .find_map(|repr| repr.node.preceding_whitespace())
                     .unwrap_or("");
-                output.push_merged(whitespace.to_owned());
-                indentation.to_string()
+                output.push_merged(Cow::from(whitespace));
+                Cow::from(indentation)
             }
         }
     }
@@ -483,7 +480,7 @@ impl<'a> MergedTree<'a> {
         current_node: Leader<'a>,
         indentation: &str,
         class_mapping: &ClassMapping<'a>,
-    ) -> Option<(String, String)> {
+    ) -> Option<(Cow<'a, str>, Cow<'a, str>)> {
         let previous_node_at_rev = class_mapping.node_at_rev(previous_node, rev)?;
         let current_node_at_rev = class_mapping.node_at_rev(current_node, rev)?;
 
@@ -505,15 +502,15 @@ impl<'a> MergedTree<'a> {
         if let Some(ancestor_indentation) = current_node_at_rev.ancestor_indentation() {
             let indentation_shift = Self::extract_indentation_shift(ancestor_indentation, source);
             Some((
-                source.replace(
+                Cow::from(source.replace(
                     &format!("\n{ancestor_indentation}"),
                     &format!("\n{indentation}"),
-                ),
-                indentation_shift,
+                )),
+                Cow::from(indentation_shift),
             ))
         } else {
             let indentation = Self::extract_indentation_shift("", source);
-            Some((source.to_owned(), indentation))
+            Some((Cow::from(source), Cow::from(indentation)))
         }
     }
 
@@ -540,12 +537,15 @@ impl<'a> MergedTree<'a> {
         }
     }
 
-    fn extract_indentation_shift(ancestor_indentation: &str, preceding_whitespace: &str) -> String {
+    fn extract_indentation_shift<'b>(
+        ancestor_indentation: &str,
+        preceding_whitespace: &'b str,
+    ) -> &'b str {
         let line_with_ancestor_indentation = format!("\n{ancestor_indentation}");
         preceding_whitespace
             .rfind(&line_with_ancestor_indentation)
-            .map_or_else(String::new, |s| {
-                preceding_whitespace[(s + line_with_ancestor_indentation.len())..].to_owned()
+            .map_or("", |s| {
+                &preceding_whitespace[(s + line_with_ancestor_indentation.len())..]
             })
     }
 

@@ -98,9 +98,9 @@ fn add_node(
     let nodeid = format!("{}{}", prefix, node.id);
     let mut attrs = Vec::new();
     let label = if node.children.is_empty() {
-        node.source.to_string()
+        node.source
     } else {
-        node.grammar_name.to_string()
+        node.grammar_name
     };
     let label_with_range = format!(
         "{}:{}_{}",
