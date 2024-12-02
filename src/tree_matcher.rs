@@ -270,8 +270,8 @@ impl TreeMatcher {
     ) {
         if self.use_rted {
             let max_size = self.max_recovery_size;
-            let left_stripped = self.strip_matched_subtrees(left, matching, true);
-            let right_stripped = self.strip_matched_subtrees(right, matching, false);
+            let left_stripped = Self::strip_matched_subtrees(left, matching, true);
+            let right_stripped = Self::strip_matched_subtrees(right, matching, false);
             if left_stripped.size > max_size || right_stripped.size > max_size {
                 debug!(
                     "falling back on linear recovery from {} because size is {}, {}",
@@ -283,7 +283,7 @@ impl TreeMatcher {
                 let (edits, _cost) = diff(&left_stripped, &right_stripped);
                 let left_nodes = [&left_stripped];
                 let right_nodes = [&right_stripped];
-                self.convert_tree_edits_to_matches(
+                Self::convert_tree_edits_to_matches(
                     &left_nodes,
                     &right_nodes,
                     &edits,
@@ -300,6 +300,10 @@ impl TreeMatcher {
 
     /// Poor man's approximation of the RTED matching above, which has linear complexity in the size of
     /// both trees matched. It will return less matches however.
+    #[allow(
+        clippy::only_used_in_recursion,
+        reason = "used in the commented-out code"
+    )]
     fn match_subtrees_linearly<'a>(
         &self,
         left: &'a AstNode<'a>,
@@ -356,7 +360,6 @@ impl TreeMatcher {
 
     /// Strips trees of already matched components
     fn strip_matched_subtrees<'a>(
-        &self,
         node: &'a AstNode<'a>,
         matching: &Matching<'a>,
         left_side: bool,
@@ -371,7 +374,7 @@ impl TreeMatcher {
         };
         if matched_node.is_none() {
             for child in &node.children {
-                children.push(self.strip_matched_subtrees(child, matching, left_side));
+                children.push(Self::strip_matched_subtrees(child, matching, left_side));
             }
         }
         let size = children.iter().map(|c| c.size).sum::<i32>() + 1;
@@ -387,7 +390,6 @@ impl TreeMatcher {
 
     /// Recursively extract matches from edit script between two trees
     fn convert_tree_edits_to_matches<'a>(
-        &self,
         left_nodes: &[&TEDTree<'a>],
         right_nodes: &[&TEDTree<'a>],
         edits: &[Edit],
@@ -406,7 +408,7 @@ impl TreeMatcher {
                         if matching.can_be_matched(left_node.node, right_node.node) {
                             matching.add(left_node.node, right_node.node);
                             recovery_matching.add(left_node.node, right_node.node);
-                            self.convert_tree_edits_to_matches(
+                            Self::convert_tree_edits_to_matches(
                                 left_node.children.iter().collect_vec().as_slice(),
                                 right_node
                                     .children
