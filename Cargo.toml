@@ -47,7 +47,7 @@ either = "1.13.0"
 rustc-hash = "2.0.0"
 
 [dev-dependencies]
-rstest = "0.21.0"
+rstest = "0.23.0"
 tempfile = "3"
 
 [features]
