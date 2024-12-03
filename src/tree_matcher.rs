@@ -114,9 +114,12 @@ impl TreeMatcher {
         let mut l2 = PriorityList::new();
         l1.push(left.root());
         l2.push(right.root());
-        while min(l1.peek_max().unwrap_or(-1), l2.peek_max().unwrap_or(-1)) >= self.min_height {
+        loop {
             let pm_1 = l1.peek_max().unwrap_or(-1);
             let pm_2 = l2.peek_max().unwrap_or(-1);
+            if min(pm_1, pm_2) < self.min_height {
+                break;
+            }
             match pm_1.cmp(&pm_2) {
                 Ordering::Greater => {
                     for t in l1.pop() {
@@ -131,18 +134,10 @@ impl TreeMatcher {
                 Ordering::Equal => {
                     let h1 = l1.pop();
                     let h2 = l2.pop();
-                    let dups_left = h1
-                        .iter()
-                        .map(|n| n.hash)
-                        .duplicates()
-                        .collect::<HashSet<u64>>();
-                    let dups_right = h2
-                        .iter()
-                        .map(|n| n.hash)
-                        .duplicates()
-                        .collect::<HashSet<u64>>();
-                    let mut matched_1: HashSet<&AstNode<'a>> = HashSet::new();
-                    let mut matched_2: HashSet<&AstNode<'a>> = HashSet::new();
+                    let dups_left: HashSet<_> = h1.iter().map(|n| n.hash).duplicates().collect();
+                    let dups_right: HashSet<_> = h2.iter().map(|n| n.hash).duplicates().collect();
+                    let mut matched_1 = HashSet::new();
+                    let mut matched_2 = HashSet::new();
                     for t1 in &h1 {
                         for t2 in &h2 {
                             if exact_matching.are_matched(t1, t2) {
@@ -281,8 +276,8 @@ impl TreeMatcher {
             } else {
                 // add candidates via tree edit distance matching
                 let (edits, _cost) = diff(&left_stripped, &right_stripped);
-                let left_nodes = [&left_stripped];
-                let right_nodes = [&right_stripped];
+                let left_nodes = [left_stripped];
+                let right_nodes = [right_stripped];
                 Self::convert_tree_edits_to_matches(
                     &left_nodes,
                     &right_nodes,
@@ -323,37 +318,39 @@ impl TreeMatcher {
                 )
             })
             .collect();
-        let right_children: MultiMap<(&'static str, Option<Signature>), &'a AstNode<'a>> = right
+        let right_children: MultiMap<(&'static str, &Option<Signature>), &'a AstNode<'a>> = right
             .children
             .iter()
             .map(|node| {
                 (
-                    (node.grammar_name, None), // self.lang_profile.extract_signature(node)),
+                    (node.grammar_name, &None), // self.lang_profile.extract_signature(node)),
                     *node,
                 )
             })
             .collect();
 
         for ((node_type, signature), children_l) in left_children.iter() {
-            if children_l.len() == 1 {
-                let children_r = right_children.get((node_type, signature.clone())); // TODO avoid this clone and check for length == 1 in a better way
-                if children_r.len() == 1 {
-                    let child_l = children_l.iter().next().unwrap();
-                    let child_r = children_r.iter().next().unwrap();
-                    if matching.can_be_matched(child_l, child_r) {
-                        if signature.is_some() || recursive {
-                            self.match_subtrees_linearly(
-                                child_l,
-                                child_r,
-                                recursive,
-                                matching,
-                                recovery_matching,
-                            );
-                        }
-                        matching.add(child_l, child_r);
-                        recovery_matching.add(child_l, child_r);
-                    }
+            if children_l.len() != 1 {
+                continue;
+            }
+            let children_r = right_children.get((node_type, signature));
+            if children_r.len() != 1 {
+                continue;
+            }
+            let child_l = children_l.iter().next().unwrap();
+            let child_r = children_r.iter().next().unwrap();
+            if matching.can_be_matched(child_l, child_r) {
+                if signature.is_some() || recursive {
+                    self.match_subtrees_linearly(
+                        child_l,
+                        child_r,
+                        recursive,
+                        matching,
+                        recovery_matching,
+                    );
                 }
+                matching.add(child_l, child_r);
+                recovery_matching.add(child_l, child_r);
             }
         }
     }
@@ -390,8 +387,8 @@ impl TreeMatcher {
 
     /// Recursively extract matches from edit script between two trees
     fn convert_tree_edits_to_matches<'a>(
-        left_nodes: &[&TEDTree<'a>],
-        right_nodes: &[&TEDTree<'a>],
+        left_nodes: &[TEDTree<'a>],
+        right_nodes: &[TEDTree<'a>],
         edits: &[Edit],
         recovery_matching: &mut Matching<'a>,
         matching: &mut Matching<'a>,
@@ -403,29 +400,26 @@ impl TreeMatcher {
         for edit in edits {
             match edit {
                 Edit::Replace(child_edits) => {
-                    if let (Some(left_node), Some(right_node)) = (left_cursor, right_cursor) {
-                        assert_eq!(left_node.node.grammar_name, right_node.node.grammar_name, "Inconsistent grammar names between nodes matched by tree edit distance");
-                        if matching.can_be_matched(left_node.node, right_node.node) {
-                            matching.add(left_node.node, right_node.node);
-                            recovery_matching.add(left_node.node, right_node.node);
-                            Self::convert_tree_edits_to_matches(
-                                left_node.children.iter().collect_vec().as_slice(),
-                                right_node
-                                    .children
-                                    .as_slice()
-                                    .iter()
-                                    .collect_vec()
-                                    .as_slice(),
-                                child_edits,
-                                recovery_matching,
-                                matching,
-                            );
-                        }
-                        left_cursor = left_iterator.next();
-                        right_cursor = right_iterator.next();
-                    } else {
+                    let (Some(left_node), Some(right_node)) = (left_cursor, right_cursor) else {
                         panic!("Trees to match and produced edit script are inconsistent");
+                    };
+                    assert_eq!(
+                        left_node.node.grammar_name, right_node.node.grammar_name,
+                        "Inconsistent grammar names between nodes matched by tree edit distance"
+                    );
+                    if matching.can_be_matched(left_node.node, right_node.node) {
+                        matching.add(left_node.node, right_node.node);
+                        recovery_matching.add(left_node.node, right_node.node);
+                        Self::convert_tree_edits_to_matches(
+                            left_node.children.as_slice(),
+                            right_node.children.as_slice(),
+                            child_edits,
+                            recovery_matching,
+                            matching,
+                        );
                     }
+                    left_cursor = left_iterator.next();
+                    right_cursor = right_iterator.next();
                 }
                 Edit::Insert => right_cursor = right_iterator.next(),
                 Edit::Remove => left_cursor = left_iterator.next(),
@@ -480,7 +474,7 @@ impl<'a> tree_edit_distance::Tree for TEDTree<'a> {
 
 impl<'a> TEDTree<'a> {
     fn display(&self, f: &mut std::fmt::Formatter<'_>, indentation: usize) -> std::fmt::Result {
-        let pad = " ".to_string().repeat(indentation);
+        let pad = " ".repeat(indentation);
         write!(
             f,
             "{}TEDTree({}, {}{}",

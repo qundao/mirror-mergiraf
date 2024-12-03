@@ -222,9 +222,7 @@ impl<'a> AstNode<'a> {
 
         let mut worklist = vec![self];
         while let Some(node) = worklist.pop() {
-            for child in node.children.iter().rev() {
-                worklist.push(child);
-            }
+            worklist.extend(node.children.iter().rev());
             result.push(node);
         }
 
@@ -308,7 +306,7 @@ impl<'a> AstNode<'a> {
     /// Postfix iterator
     pub fn postfix(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
         PostfixIterator {
-            queue: Vec::from([(self, 0)]),
+            queue: vec![(self, 0)],
         }
     }
 
@@ -419,28 +417,16 @@ impl<'a> AstNode<'a> {
                 children.iter().map(|child| (child.id, *child)).collect();
             self.field_to_children
                 .iter()
-                .map(|(k, v)| {
-                    (
-                        *k,
-                        v.iter()
-                            .map(|child| *child_id_map.get(&child.id).unwrap())
-                            .collect(),
-                    )
-                })
+                .map(|(k, v)| (*k, v.iter().map(|child| child_id_map[&child.id]).collect()))
                 .collect()
         };
         let result = arena.alloc(AstNode {
-            hash: self.hash,
             children,
             field_to_children,
-            source: self.source,
-            grammar_name: self.grammar_name,
-            field_name: self.field_name,
             byte_range: self.byte_range.clone(),
-            id: self.id,
-            descendant_count: self.descendant_count,
             parent: UnsafeCell::new(None),
             dfs: UnsafeCell::new(None),
+            ..*self
         });
         result.internal_set_parent_on_children();
         result
@@ -513,9 +499,8 @@ impl<'a> AstNode<'a> {
                                 4,
                             ),
                         ]
-                        .iter()
+                        .into_iter()
                         .flatten()
-                        .copied()
                         .sorted_by_key(|indentation| indentation.len()) // try to find the minimal shift
                         .next()
                     })
