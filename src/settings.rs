@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 /// Parameters controlling how the merged tree should be output.
 pub struct DisplaySettings<'a> {
     /// Whether to show the base revision in the conflicts (true by default)
@@ -9,11 +7,11 @@ pub struct DisplaySettings<'a> {
     /// The number of characters for conflict markers (7 by default)
     pub conflict_marker_size: usize,
     /// The string that identifies the left revision in conflict markers
-    pub left_revision_name: Cow<'a, str>,
+    pub left_revision_name: &'a str,
     /// The string that identifies the base revision in conflict markers
-    pub base_revision_name: Cow<'a, str>,
+    pub base_revision_name: &'a str,
     /// The string that identifies the right revision in conflict markers
-    pub right_revision_name: Cow<'a, str>,
+    pub right_revision_name: &'a str,
 }
 
 impl<'a> DisplaySettings<'a> {
@@ -58,9 +56,9 @@ impl<'a> DisplaySettings<'a> {
             diff3: true,
             compact: true,
             conflict_marker_size: 7,
-            left_revision_name: "LEFT".into(),
-            base_revision_name: "BASE".into(),
-            right_revision_name: "RIGHT".into(),
+            left_revision_name: "LEFT",
+            base_revision_name: "BASE",
+            right_revision_name: "RIGHT",
         }
     }
 }
@@ -71,9 +69,9 @@ impl Default for DisplaySettings<'_> {
             diff3: true,
             compact: false,
             conflict_marker_size: 7,
-            left_revision_name: "LEFT".into(),
-            base_revision_name: "BASE".into(),
-            right_revision_name: "RIGHT".into(),
+            left_revision_name: "LEFT",
+            base_revision_name: "BASE",
+            right_revision_name: "RIGHT",
         }
     }
 }

@@ -116,9 +116,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         .init()
         .unwrap();
 
-    let default_base_name = "base".into();
-    let default_left_name = "left".into();
-    let default_right_name = "right".into();
+    let default_base_name = "base";
+    let default_left_name = "left";
+    let default_right_name = "right";
 
     let return_code = match args.command {
         CliCommand::Merge {
@@ -140,33 +140,21 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 diff3: true,
                 compact,
                 conflict_marker_size: 7,
-                base_revision_name: base_name
-                    .map(|name| {
-                        if name == "%S" {
-                            default_base_name
-                        } else {
-                            name.into()
-                        }
-                    })
-                    .unwrap_or(base.clone().into()),
-                left_revision_name: left_name
-                    .map(|name| {
-                        if name == "%X" {
-                            default_left_name
-                        } else {
-                            name.into()
-                        }
-                    })
-                    .unwrap_or(left.clone().into()),
-                right_revision_name: right_name
-                    .map(|name| {
-                        if name == "%Y" {
-                            default_right_name
-                        } else {
-                            name.into()
-                        }
-                    })
-                    .unwrap_or(right.clone().into()),
+                base_revision_name: match base_name.as_deref() {
+                    Some("%S") => default_base_name,
+                    Some(name) => name,
+                    None => &base,
+                },
+                left_revision_name: match left_name.as_deref() {
+                    Some("%X") => default_left_name,
+                    Some(name) => name,
+                    None => &left,
+                },
+                right_revision_name: match right_name.as_deref() {
+                    Some("%Y") => default_right_name,
+                    Some(name) => name,
+                    None => &right,
+                },
             };
 
             {
@@ -174,7 +162,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     || env::var(DISABLING_ENV_VAR).is_ok_and(|v| !v.is_empty()); // TODO: deprecate
 
                 if mergiraf_disabled {
-                    return fallback_to_git_merge_file(base, left, right, git, &settings);
+                    return fallback_to_git_merge_file(&base, &left, &right, git, &settings);
                 }
             }
 
@@ -320,9 +308,9 @@ fn write_string_to_file(path: &str, contents: &str) -> Result<(), String> {
 }
 
 fn fallback_to_git_merge_file(
-    base: String,
-    left: String,
-    right: String,
+    base: &str,
+    left: &str,
+    right: &str,
     git: bool,
     settings: &DisplaySettings,
 ) -> Result<i32, String> {
@@ -333,11 +321,11 @@ fn fallback_to_git_merge_file(
     }
     command
         .arg("-L")
-        .arg(&*settings.left_revision_name)
+        .arg(settings.left_revision_name)
         .arg("-L")
-        .arg(&*settings.base_revision_name)
+        .arg(settings.base_revision_name)
         .arg("-L")
-        .arg(&*settings.right_revision_name)
+        .arg(settings.right_revision_name)
         .arg(left)
         .arg(base)
         .arg(right)
