@@ -40,15 +40,12 @@ pub(crate) mod test_utils;
 pub mod tree;
 pub(crate) mod tree_builder;
 pub(crate) mod tree_matcher;
-#[cfg(feature = "dotty")]
 pub(crate) mod visualizer;
 
 use std::{fs, path::Path, time::Instant};
 
 use attempts::AttemptsCache;
 use git::extract_revision_from_git;
-#[cfg(feature = "dotty")]
-use graphviz_rust::printer::{DotPrinter, PrinterContext};
 
 use itertools::Itertools;
 use lang_profile::LangProfile;
@@ -63,12 +60,9 @@ use parsed_merge::{ParsedMerge, PARSED_MERGE_DIFF2_DETECTED};
 use pcs::Revision;
 use settings::DisplaySettings;
 use tree::{Ast, AstNode};
-use tree_matcher::{DetailedMatching, TreeMatcher};
+use tree_matcher::TreeMatcher;
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
-
-#[cfg(feature = "dotty")]
-use crate::visualizer::matching_to_graph;
 
 /// Helper to parse a source text with a given tree-sitter parser.
 pub(crate) fn parse<'a>(
@@ -508,21 +502,6 @@ fn extract_revision(working_dir: &Path, path: &str, revision: Revision) -> Resul
     let temp_file = extract_revision_from_git(working_dir, Path::new(path), revision)?;
     let contents = fs::read_to_string(temp_file.path()).map_err(|err| err.to_string())?;
     Ok(contents)
-}
-
-#[cfg(feature = "dotty")]
-fn save_matching<'a>(
-    left: &'a Ast<'a>,
-    right: &'a Ast<'a>,
-    matching: &DetailedMatching<'a>,
-    fname: &str,
-) {
-    let graph = matching_to_graph(left, right, matching);
-
-    let mut ctx = PrinterContext::default();
-
-    let dotty = graph.print(&mut ctx);
-    fs::write(fname, dotty).expect("Unable to write debug graph file");
 }
 
 fn fxhasher() -> rustc_hash::FxHasher {

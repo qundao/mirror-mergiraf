@@ -1,14 +1,12 @@
-use std::{thread, time::Instant};
+use std::{path::Path, thread, time::Instant};
 
 use log::debug;
 
-#[cfg(feature = "dotty")]
-use crate::save_matching;
 use crate::{
     changeset::ChangeSet, class_mapping::ClassMapping, matching::Matching,
     merge_postprocessor::post_process_merged_tree_for_duplicate_signatures,
     merged_tree::MergedTree, pcs::Revision, tree::Ast, tree_builder::TreeBuilder,
-    tree_matcher::TreeMatcher,
+    tree_matcher::TreeMatcher, visualizer::write_matching_to_dotty_file,
 };
 
 /// Backbone of the 3DM merge algorithm.
@@ -69,36 +67,33 @@ pub fn three_way_merge<'a>(
     debug!("matching all three pairs took {:?}", start.elapsed());
 
     // save the matchings for debugging purposes
-    #[cfg(feature = "dotty")]
-    {
-        if let Some(debug_dir) = debug_dir {
-            thread::scope(|s| {
-                s.spawn(|| {
-                    save_matching(
-                        base,
-                        left,
-                        &base_left_matching,
-                        &format!("{debug_dir}/base_left.dot"),
-                    );
-                });
-                s.spawn(|| {
-                    save_matching(
-                        base,
-                        right,
-                        &base_right_matching,
-                        &format!("{debug_dir}/base_right.dot"),
-                    );
-                });
-                s.spawn(|| {
-                    save_matching(
-                        left,
-                        right,
-                        &left_right_matching,
-                        &format!("{debug_dir}/left_right.dot"),
-                    );
-                });
+    if let Some(debug_dir) = debug_dir {
+        thread::scope(|s| {
+            s.spawn(|| {
+                write_matching_to_dotty_file(
+                    Path::new(&format!("{debug_dir}/base_left.dot")),
+                    base,
+                    left,
+                    &base_left_matching,
+                );
             });
-        }
+            s.spawn(|| {
+                write_matching_to_dotty_file(
+                    Path::new(&format!("{debug_dir}/base_right.dot")),
+                    base,
+                    right,
+                    &base_right_matching,
+                );
+            });
+            s.spawn(|| {
+                write_matching_to_dotty_file(
+                    Path::new(&format!("{debug_dir}/left_right.dot")),
+                    left,
+                    right,
+                    &left_right_matching,
+                );
+            });
+        });
     }
 
     // create a classmapping

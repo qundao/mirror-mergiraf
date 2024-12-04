@@ -1,7 +1,11 @@
-use std::collections::HashSet;
+use std::fs::OpenOptions;
+use std::io;
+use std::io::Write;
+use std::path::Path;
+use std::{collections::HashSet, fs::File};
 
-use dot_generator::*;
-use graphviz_rust::{dot_generator, dot_structures::*};
+use itertools::Itertools;
+use log::error;
 
 use crate::{
     tree::{Ast, AstNode},
@@ -9,94 +13,104 @@ use crate::{
 };
 
 /// Renders a mapping between two trees as a dotty graph
-pub fn matching_to_graph<'a>(
+pub fn write_matching_to_dotty_file<'a>(
+    path: &Path,
     left: &Ast<'a>,
     right: &Ast<'a>,
     mapping: &DetailedMatching<'a>,
-) -> Graph {
+) {
+    if let Err(err) = matching_to_graph(path, left, right, mapping) {
+        error!(
+            "Mergiraf: Could not write matching to {}: {err}",
+            path.display()
+        );
+    }
+}
+
+pub fn matching_to_graph<'a>(
+    path: &Path,
+    left: &Ast<'a>,
+    right: &Ast<'a>,
+    mapping: &DetailedMatching<'a>,
+) -> io::Result<()> {
+    let mut writer = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .open(path)?;
+
+    writeln!(writer, "graph matching {{")?;
     let left_prefix = "l";
     let right_prefix = "r";
-    let (left_graph, visited_left) = tree_to_graph(
+    let visited_left = tree_to_graph(
+        &mut writer,
         left,
         left_prefix,
         &mapping.full.left_matched(),
         &mapping.exact.left_matched(),
-    );
-    let (right_graph, visited_right) = tree_to_graph(
+    )?;
+    let visited_right = tree_to_graph(
+        &mut writer,
         right,
         right_prefix,
         &mapping.full.right_matched(),
         &mapping.exact.right_matched(),
-    );
-
-    let mut g = graph!(id!("matching"));
-    g.add_stmt(Stmt::Subgraph(left_graph));
-    g.add_stmt(Stmt::Subgraph(right_graph));
+    )?;
 
     for (source_id, target_id) in mapping.exact.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            let matching_edge = edge!(node_id!(format!("{}{}", left_prefix, source_id)) => node_id!(format!("{}{}", right_prefix, target_id)),
-            vec![attr!("color", "red"), attr!("constraint", "false")]);
-            g.add_stmt(Stmt::Edge(matching_edge));
+            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color=red,constraint=false]")?;
         }
     }
 
     for (source_id, target_id) in mapping.container.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            let matching_edge = edge!(node_id!(format!("{}{}", left_prefix, source_id)) => node_id!(format!("{}{}", right_prefix, target_id)),
-            vec![attr!("color", "blue"), attr!("constraint", "false")]);
-            g.add_stmt(Stmt::Edge(matching_edge));
+            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color=blue,constraint=false]")?;
         }
     }
 
     for (source_id, target_id) in mapping.recovery.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            let matching_edge = edge!(node_id!(format!("{}{}", left_prefix, source_id)) => node_id!(format!("{}{}", right_prefix, target_id)),
-            vec![attr!("color", "green"), attr!("constraint", "false")]);
-            g.add_stmt(Stmt::Edge(matching_edge));
+            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color=green,constraint=false]")?;
         }
     }
-    g
+    writeln!(writer, "}}")?;
+    Ok(())
 }
 
 /// Renders a tree as a dotty graph
 pub fn tree_to_graph(
+    writer: &mut File,
     node: &Ast<'_>,
     prefix: &str,
     matched: &HashSet<usize>,
     exactly_matched: &HashSet<usize>,
-) -> (Subgraph, HashSet<usize>) {
-    use dot_generator::*;
-    let mut statements = Vec::new();
+) -> io::Result<HashSet<usize>> {
     let mut visited = HashSet::new();
+    writeln!(writer, "  subgraph {prefix} {{")?;
     add_node(
         node.root(),
-        &mut statements,
+        writer,
         prefix,
         matched,
         exactly_matched,
         &mut visited,
-    );
-    (
-        Subgraph {
-            id: id!(prefix),
-            stmts: statements,
-        },
-        visited,
-    )
+    )?;
+    writeln!(writer, "  }}")?;
+    Ok(visited)
 }
 
 fn add_node(
     node: &AstNode<'_>,
-    graph: &mut Vec<Stmt>,
+    writer: &mut File,
     prefix: &str,
     matched: &HashSet<usize>,
     exactly_matched: &HashSet<usize>,
     visited: &mut HashSet<usize>,
-) -> String {
+) -> io::Result<String> {
     visited.insert(node.id);
     let nodeid = format!("{}{}", prefix, node.id);
-    let mut attrs = Vec::new();
+    let mut attrs: Vec<(&str, &str)> = Vec::new();
     let label = if node.children.is_empty() {
         node.source
     } else {
@@ -111,45 +125,58 @@ fn add_node(
     } else {
         "oval"
     };
-    attrs.push(attr!("label", esc label_with_range.replace('\\', "\\\\").replace('"', "\\\"")));
-    attrs.push(attr!("shape", esc shape));
+    let final_label = label_with_range.replace('\\', "\\\\").replace('"', "\\\"");
+    attrs.push(("label", &final_label));
+    attrs.push(("shape", shape));
     let is_exact_match = exactly_matched.contains(&node.id);
     if is_exact_match {
-        attrs.push(attr!("style", "filled"));
-        attrs.push(attr!("fillcolor", esc "#ff2222"));
+        attrs.push(("style", "filled"));
+        attrs.push(("fillcolor", "#ff2222"));
     } else if !matched.contains(&node.id) {
-        attrs.push(attr!("style", "filled"));
-        attrs.push(attr!("fillcolor", esc "#40e0d0"));
+        attrs.push(("style", "filled"));
+        attrs.push(("fillcolor", "#40e0d0"));
     }
-    let n = Node::new(NodeId(Id::Plain(nodeid.clone()), None), attrs);
-    graph.push(Stmt::Node(n));
+    writeln!(
+        writer,
+        "    {nodeid}[{}]",
+        attrs.iter().map(|(k, v)| format!("{k}=\"{v}\"")).join(",")
+    )?;
     if !is_exact_match {
         for child in node.children.iter() {
-            let child_id = add_node(child, graph, prefix, matched, exactly_matched, visited);
-            let edge = edge!(node_id!(nodeid) => node_id!(child_id));
-            graph.push(Stmt::Edge(edge))
+            let child_id = add_node(child, writer, prefix, matched, exactly_matched, visited)?;
+            writeln!(writer, "    {nodeid} -- {child_id}")?;
         }
     }
-    nodeid
+    Ok(nodeid)
 }
 
 #[cfg(test)]
 mod tests {
-    use graphviz_rust::printer::{DotPrinter, PrinterContext};
+    use std::fs;
 
-    use crate::test_utils::ctx;
+    use crate::{matching::Matching, test_utils::ctx};
 
     use super::*;
 
     #[test]
     fn print_to_graphviz() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let target_path = repo_dir.path().join("graph.dot");
+
         let ctx = ctx();
-        let parsed = ctx.parse_json("{\"foo\": 3}");
+        let parsed_left = ctx.parse_json("{\"foo\": 3}");
+        let parsed_right = ctx.parse_json("{\"foo\": 4}");
+        let matching = DetailedMatching {
+            full: Matching::default(),
+            exact: Matching::default(),
+            container: Matching::default(),
+            recovery: Matching::default(),
+        };
 
-        let (graph, _) = tree_to_graph(&parsed, "n", &HashSet::new(), &HashSet::new());
-        let mut ctx = PrinterContext::default();
+        matching_to_graph(&target_path, &parsed_left, &parsed_right, &matching).unwrap();
 
-        let printed = graph.print(&mut ctx);
-        assert!(printed.contains("subgraph ")) // yes, not a very great assertion… but node ids are all unstable!
+        let contents =
+            fs::read_to_string(&target_path).expect("Could not read the generated graph.dot file");
+        assert!(contents.contains("subgraph ")) // yes, not a very great assertion… but node ids are all unstable!
     }
 }
