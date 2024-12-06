@@ -21,7 +21,7 @@ pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
         let best_merge_id = attempt.best_merge_id()?;
         let path_result = attempt.path(&best_merge_id);
         create_archive(
-            &attempt.file_name,
+            attempt.file_name,
             &path_base,
             &path_left,
             &path_right,

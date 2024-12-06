@@ -1,5 +1,6 @@
 use core::str;
 use std::{
+    borrow::Cow,
     fmt::Display,
     fs,
     path::{Path, PathBuf},
@@ -15,10 +16,10 @@ use crate::line_based::LINE_BASED_METHOD;
 
 /// An identifier of an attempt to merge a file
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct Attempt {
-    pub(crate) file_name: String,
-    pub(crate) uid: String,
-    extension: String,
+pub(crate) struct Attempt<'a> {
+    pub(crate) file_name: &'a str,
+    pub(crate) uid: Cow<'a, str>,
+    extension: &'a str,
     dir: PathBuf,
 }
 
@@ -27,13 +28,13 @@ const BEST_MERGE_FILENAME: &str = "best_merge.txt";
 const ATTEMPTS_DIRECTORY: &str = "merges";
 const DEFAULT_CACHE_SIZE: usize = 128;
 
-impl Display for Attempt {
+impl Display for Attempt<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Attempt[{}_{}]", self.file_name, self.uid)
     }
 }
 
-impl Attempt {
+impl Attempt<'_> {
     pub(crate) fn write(&self, file_name: &str, contents: &str) -> Result<(), String> {
         let path = self.path(file_name);
         fs::write(&path, contents)
@@ -106,9 +107,9 @@ impl AttemptsCache {
     }
 
     /// Registers a new attempt and stores the contents of the revisions in it
-    pub(crate) fn new_attempt(
-        &self,
-        final_path: &Path,
+    pub(crate) fn new_attempt<'a>(
+        &'a self,
+        final_path: &'a Path,
         contents_base: &str,
         contents_left: &str,
         contents_right: &str,
@@ -116,8 +117,7 @@ impl AttemptsCache {
         let file_name = final_path
             .file_name()
             .and_then(|file_name| file_name.to_str())
-            .unwrap_or("file")
-            .to_owned();
+            .unwrap_or("file");
         let extension = final_path
             .extension()
             .and_then(|ext| ext.to_str())
@@ -135,9 +135,9 @@ impl AttemptsCache {
 
         let attempt = Attempt {
             file_name,
-            uid,
+            uid: Cow::from(uid),
             dir,
-            extension: extension.to_owned(),
+            extension,
         };
         attempt.write("Base", contents_base)?;
         attempt.write("Left", contents_left)?;
@@ -146,7 +146,7 @@ impl AttemptsCache {
         Ok(attempt)
     }
 
-    pub(crate) fn parse_attempt_id(&self, attempt_id: &str) -> Result<Attempt, String> {
+    pub(crate) fn parse_attempt_id<'a>(&'a self, attempt_id: &'a str) -> Result<Attempt, String> {
         let Some((file_name, uid)) = attempt_id.rsplit_once('_') else {
             return Err("Invalid attempt id, should contain a '_' character".to_owned());
         };
@@ -161,9 +161,9 @@ impl AttemptsCache {
             return Err(format!("Could not find merge attempt with id {attempt_id}"));
         }
         Ok(Attempt {
-            file_name: file_name.to_owned(),
-            uid: uid.to_owned(),
-            extension: extension.to_owned(),
+            file_name,
+            uid: Cow::from(uid),
+            extension,
             dir,
         })
     }
