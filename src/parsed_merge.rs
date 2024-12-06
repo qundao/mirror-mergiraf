@@ -581,9 +581,9 @@ mod tests {
             diff3: true,
             compact: false,
             conflict_marker_size: 7,
-            left_revision_name: "LEFT".into(),
-            base_revision_name: "BASE".into(),
-            right_revision_name: "RIGHT".into(),
+            left_revision_name: "LEFT",
+            base_revision_name: "BASE",
+            right_revision_name: "RIGHT",
         });
 
         assert_eq!(rendered, source);
