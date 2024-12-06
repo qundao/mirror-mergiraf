@@ -233,7 +233,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let postprocessed = resolve_merge_cascading(
                 &conflict_contents,
                 &fname_conflicts.clone(),
-                &settings,
+                settings,
                 args.debug_dir.as_deref(),
                 &working_dir,
             );

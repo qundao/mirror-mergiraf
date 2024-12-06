@@ -134,7 +134,7 @@ fn test_solve_command(#[case] conflict_style: &str) {
     let merge_result = resolve_merge_cascading(
         &conflicts_contents,
         &file_name,
-        &DisplaySettings::default(),
+        DisplaySettings::default(),
         None,
         repo_dir,
     )

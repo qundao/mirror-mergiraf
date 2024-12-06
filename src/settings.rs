@@ -1,3 +1,6 @@
+use crate::parsed_merge::{MergedChunk, ParsedMerge};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 /// Parameters controlling how the merged tree should be output.
 pub struct DisplaySettings<'a> {
     /// Whether to show the base revision in the conflicts (true by default)
@@ -59,6 +62,28 @@ impl<'a> DisplaySettings<'a> {
             left_revision_name: "LEFT",
             base_revision_name: "BASE",
             right_revision_name: "RIGHT",
+        }
+    }
+
+    /// Update display settings by taking revision names from merge (if there are any conflicts)
+    pub fn add_revision_names(&mut self, parsed_merge: &ParsedMerge<'a>) {
+        match parsed_merge.chunks.iter().find_map(|chunk| match chunk {
+            MergedChunk::Resolved { .. } => None,
+            MergedChunk::Conflict {
+                left_name,
+                base_name,
+                right_name,
+                ..
+            } => Some((*left_name, *base_name, *right_name)),
+        }) {
+            Some((left_name, base_name, right_name))
+                if !left_name.is_empty() && !base_name.is_empty() && !right_name.is_empty() =>
+            {
+                self.left_revision_name = left_name;
+                self.base_revision_name = base_name;
+                self.right_revision_name = right_name;
+            }
+            _ => {}
         }
     }
 }

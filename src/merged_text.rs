@@ -80,7 +80,9 @@ impl<'a> MergedText<'a> {
                     newline_found = newline_found || contents.contains('\n');
                     result
                 }
-                crate::parsed_merge::MergedChunk::Conflict { left, base, right } => {
+                crate::parsed_merge::MergedChunk::Conflict {
+                    left, base, right, ..
+                } => {
                     let result = MergeSection::Conflict {
                         left: Self::reindent_line_based_merge(&left, indentation, false, false)
                             .into(),

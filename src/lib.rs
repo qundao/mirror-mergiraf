@@ -382,11 +382,13 @@ pub fn cascading_merge(
 /// Returns either a merge (potentially with conflicts) or an error.
 fn resolve_merge<'a>(
     merge_contents: &'a str,
-    settings: &DisplaySettings,
+    settings: &mut DisplaySettings<'a>,
     lang_profile: &LangProfile,
     debug_dir: Option<&str>,
 ) -> Result<(ParsedMerge<'a>, MergeResult), String> {
     let parsed_merge = ParsedMerge::parse(merge_contents)?;
+
+    settings.add_revision_names(&parsed_merge);
 
     let base_rev = parsed_merge.reconstruct_revision(Revision::Base);
     let left_rev = parsed_merge.reconstruct_revision(Revision::Left);
@@ -405,10 +407,10 @@ fn resolve_merge<'a>(
 }
 
 /// Cascading merge resolution starting from a user-supplied file with merge conflicts
-pub fn resolve_merge_cascading(
-    merge_contents: &str,
+pub fn resolve_merge_cascading<'a>(
+    merge_contents: &'a str,
     fname_base: &str,
-    settings: &DisplaySettings,
+    mut settings: DisplaySettings<'a>,
     debug_dir: Option<&str>,
     working_dir: &Path,
 ) -> Result<MergeResult, String> {
@@ -419,7 +421,7 @@ pub fn resolve_merge_cascading(
     let mut resolved_merge = None;
     let mut parsed_merge = None;
 
-    match resolve_merge(merge_contents, settings, &lang_profile, debug_dir) {
+    match resolve_merge(merge_contents, &mut settings, &lang_profile, debug_dir) {
         Ok((original_merge, merge_result)) => {
             parsed_merge = Some(original_merge);
             resolved_merge = Some(merge_result);
@@ -447,7 +449,7 @@ pub fn resolve_merge_cascading(
                 merges.push(merge);
             }
             if let Some(parsed_merge) = parsed_merge {
-                merges.push(parsed_merge.to_merge_result(settings));
+                merges.push(parsed_merge.to_merge_result(&settings));
             }
 
             let revision_base = extract_revision(working_dir, fname_base, Revision::Base);
@@ -463,7 +465,7 @@ pub fn resolve_merge_cascading(
                     contents_left,
                     contents_right,
                     None,
-                    settings,
+                    &settings,
                     &lang_profile,
                     debug_dir,
                 );
