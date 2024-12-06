@@ -79,8 +79,7 @@ impl MergeResult {
                     );
                 } else {
                     info!(
-                        "Mergiraf: Solved {} conflicts. Review with: mergiraf review {}",
-                        line_based_conflicts,
+                        "Mergiraf: Solved {line_based_conflicts} conflicts. Review with: mergiraf review {}",
                         attempt.id()
                     );
                 }

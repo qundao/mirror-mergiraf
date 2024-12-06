@@ -135,7 +135,7 @@ fn test_solve_command(#[case] conflict_style: &str) {
         &conflicts_contents,
         &file_name,
         &DisplaySettings::default(),
-        &None,
+        None,
         repo_dir,
     )
     .expect("solving the conflicts returned an error");
@@ -166,7 +166,7 @@ fn run_test_from_dir(test_dir: &Path) {
         &DisplaySettings::default(),
         true,
         None,
-        &None,
+        None,
     );
 
     let expected = contents_expected.trim();

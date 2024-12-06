@@ -28,7 +28,7 @@ pub fn three_way_merge<'a>(
     initial_matchings: &'a Option<(Matching<'a>, Matching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
-    debug_dir: &Option<String>,
+    debug_dir: Option<&str>,
 ) -> (MergedTree<'a>, ClassMapping<'a>) {
     // match all pairs of revisions
     let start = Instant::now();
@@ -147,7 +147,7 @@ pub fn three_way_merge<'a>(
     changeset.add_tree(right, Revision::Right, &class_mapping);
 
     if let Some(debug_dir) = debug_dir {
-        changeset.save(&format!("{debug_dir}/changeset.txt"));
+        changeset.save(format!("{debug_dir}/changeset.txt"));
     }
 
     // also generate a base changeset
@@ -155,7 +155,7 @@ pub fn three_way_merge<'a>(
     base_changeset.add_tree(base, Revision::Base, &class_mapping);
 
     if let Some(debug_dir) = debug_dir {
-        base_changeset.save(&format!("{debug_dir}/base_changeset.txt"));
+        base_changeset.save(format!("{debug_dir}/base_changeset.txt"));
     }
     debug!("generating PCS triples took {:?}", start.elapsed());
 
@@ -169,12 +169,12 @@ pub fn three_way_merge<'a>(
             let mut conflicting_triples = changeset.inconsistent_triples(*pcs);
             let count = changeset.inconsistent_triples(*pcs).count();
             if count > 0 {
-                debug!("number of conflicting triples: {}", count);
+                debug!("number of conflicting triples: {count}");
             }
             if let Some(triple) =
                 conflicting_triples.find(|triple| triple.revision != Revision::Base)
             {
-                debug!("eliminating {} by {}", pcs, triple);
+                debug!("eliminating {pcs} by {triple}");
                 conflict_found = true;
             }
         }
@@ -185,7 +185,7 @@ pub fn three_way_merge<'a>(
     debug!("cleaning up PCS triples took {:?}", start.elapsed());
 
     if let Some(debug_dir) = debug_dir {
-        cleaned_changeset.save(&format!("{debug_dir}/cleaned.txt"));
+        cleaned_changeset.save(format!("{debug_dir}/cleaned.txt"));
     }
 
     // construct the merged tree!
@@ -256,10 +256,10 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
-        debug!("{}", merged_tree);
+        debug!("{merged_tree}");
         let pretty_printed = merged_tree.pretty_print(&classmapping, &DisplaySettings::default());
         assert_eq!(pretty_printed, "[0, 1, {\"a\":2}, 3]");
     }
@@ -281,7 +281,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed =
@@ -309,7 +309,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed =
@@ -337,7 +337,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed =
@@ -365,7 +365,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
@@ -389,7 +389,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
@@ -413,7 +413,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
@@ -437,7 +437,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
@@ -461,7 +461,7 @@ mod tests {
             &None,
             &primary_matcher,
             &auxiliary_matcher,
-            &None,
+            None,
         );
 
         let _pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());

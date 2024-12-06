@@ -231,7 +231,8 @@ impl AttemptsCache {
                         "Could not delete cached attempt {}: {}",
                         f.file_name()
                             .into_string()
-                            .unwrap_or("<invalid_directory_name>".to_owned()),
+                            .as_deref()
+                            .unwrap_or("<invalid_directory_name>"),
                         err.to_string()
                     );
                 }

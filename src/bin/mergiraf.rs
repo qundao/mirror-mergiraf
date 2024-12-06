@@ -190,7 +190,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 &settings,
                 !fast,
                 attempts_cache.as_ref(),
-                &args.debug_dir,
+                args.debug_dir.as_deref(),
             );
             if let Some(fname_out) = output {
                 write_string_to_file(&fname_out, &merge_result.contents)?
@@ -234,7 +234,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 &conflict_contents,
                 &fname_conflicts.clone(),
                 &settings,
-                &args.debug_dir,
+                args.debug_dir.as_deref(),
                 &working_dir,
             );
             match postprocessed {

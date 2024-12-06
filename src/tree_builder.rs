@@ -300,10 +300,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .copied()
             .filter(|pcsnode| !seen_nodes.contains(pcsnode))
         {
-            debug!(
-                "{pad}{node} Checking unvisited base node {}",
-                unvisited_base_node
-            );
+            debug!("{pad}{node} Checking unvisited base node {unvisited_base_node}");
             let PCSNode::Node {
                 node: unvisited,
                 revisions,

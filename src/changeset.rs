@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 
 use itertools::Itertools;
 
@@ -158,9 +158,9 @@ impl<'a> ChangeSet<'a> {
     }
 
     /// Save to file, for debugging purposes
-    pub fn save(&self, fname: &str) {
+    pub fn save(&self, fname: impl AsRef<Path>) {
         let mut result = String::new();
-        for pcs in self.iter().sorted().map(|pcs| format!("{}\n", pcs)) {
+        for pcs in self.iter().sorted().map(|pcs| format!("{pcs}\n")) {
             result.push_str(&pcs)
         }
         fs::write(fname, result).expect("Unable to write changeset file")
@@ -242,7 +242,7 @@ mod tests {
         for pcs in changeset.iter() {
             let conflicts = changeset.other_successors(*pcs).collect_vec();
             for conflicting_pcs in &conflicts {
-                debug!("conflict between {} and {}", pcs, conflicting_pcs);
+                debug!("conflict between {pcs} and {conflicting_pcs}");
             }
             assert_eq!(conflicts, empty_conflicts);
         }
