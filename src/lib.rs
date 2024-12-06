@@ -170,6 +170,7 @@ pub fn structured_merge(
 /// in a structured way (see [`structured_merge`]).
 /// If there are still conflicts and a full merge is requested, a fully structured
 /// merge (independently of the textual merge) is attempted
+#[allow(clippy::too_many_arguments)]
 pub fn line_merge_and_structured_resolution(
     contents_base: &str,
     contents_left: &str,

@@ -399,6 +399,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Construct a conflict by following successors on all three revisions
     /// from the given predecessor.
+    #[allow(clippy::type_complexity)]
     fn build_conflict(
         &self,
         predecessor: PCSNode<'a>,
@@ -462,6 +463,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Extract one side of a conflict by iteratively following the successor
     /// from the given starting node.
+    #[allow(clippy::type_complexity)]
     fn extract_conflict_side(
         &self,
         starting_node: PCSNode<'a>,
