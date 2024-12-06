@@ -147,27 +147,21 @@ impl AttemptsCache {
     }
 
     pub(crate) fn parse_attempt_id(&self, attempt_id: &str) -> Result<Attempt, String> {
-        let mut splits: Vec<&str> = attempt_id.split('_').collect();
-        if splits.len() < 2 {
+        let Some((file_name, uid)) = attempt_id.rsplit_once('_') else {
             return Err("Invalid attempt id, should contain a '_' character".to_owned());
-        }
-        let uid = splits.pop().expect("Unexpected empty vector after split");
-        let file_name = splits.join("_");
-        let mut dot_splits: Vec<&str> = file_name.split('.').collect();
-        let extension = if dot_splits.len() > 1 {
-            dot_splits
-                .pop()
-                .expect("Unexpected empty vector after split")
-        } else {
-            DEFAULT_FILE_EXTENSION
         };
-        let dir_name = format!("{file_name}_{uid}");
+
+        let extension = file_name
+            .rsplit_once('.')
+            .map_or(DEFAULT_FILE_EXTENSION, |(_, extension)| extension);
+
+        let dir_name = attempt_id;
         let dir = self.base_dir.join(dir_name);
         if !dir.exists() {
             return Err(format!("Could not find merge attempt with id {attempt_id}"));
         }
         Ok(Attempt {
-            file_name: file_name.clone(),
+            file_name: file_name.to_owned(),
             uid: uid.to_owned(),
             extension: extension.to_owned(),
             dir,
