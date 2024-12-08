@@ -42,7 +42,7 @@ pub(crate) mod tree_builder;
 pub(crate) mod tree_matcher;
 pub(crate) mod visualizer;
 
-use std::{fs, path::Path, time::Instant};
+use std::{borrow::Cow, fs, path::Path, time::Instant};
 
 use attempts::AttemptsCache;
 use git::extract_revision_from_git;
@@ -153,8 +153,10 @@ pub fn structured_merge(
     );
     debug!("{result_tree}");
 
+    let result = Cow::from(result_tree.pretty_print(&class_mapping, settings));
+
     Ok(MergeResult {
-        contents: with_final_newline(&result_tree.pretty_print(&class_mapping, settings)).into(),
+        contents: with_final_newline(result).into_owned(),
         conflict_count: result_tree.count_conflicts(),
         conflict_mass: result_tree.conflict_mass(),
         method: if parsed_merge.is_none() {
@@ -251,9 +253,9 @@ fn line_based_merge_with_duplicate_signature_detection(
     lang_profile: Option<&LangProfile>,
 ) -> MergeResult {
     let mut line_based_merge = line_based_merge(
-        &with_final_newline(contents_base),
-        &with_final_newline(contents_left),
-        &with_final_newline(contents_right),
+        &with_final_newline(Cow::from(contents_base)),
+        &with_final_newline(Cow::from(contents_left)),
+        &with_final_newline(Cow::from(contents_right)),
         settings,
     );
 

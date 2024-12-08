@@ -25,11 +25,11 @@ pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
 pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
 /// Ensures a given string has a newline at the end.
-pub(crate) fn with_final_newline(s: &str) -> Cow<str> {
+pub(crate) fn with_final_newline(s: Cow<str>) -> Cow<str> {
     if s.ends_with('\n') {
-        Cow::from(s)
+        s
     } else {
-        Cow::from(s.to_string() + "\n")
+        s + "\n"
     }
 }
 
