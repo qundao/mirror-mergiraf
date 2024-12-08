@@ -56,6 +56,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.scala merge=mergiraf
 *.sbt merge=mergiraf
 *.ts merge=mergiraf
+*.py merge=mergiraf
 ```
 
 Or run:
