@@ -146,7 +146,7 @@ pub fn structured_merge(
         &tree_base,
         &tree_left,
         &tree_right,
-        &initial_matchings,
+        initial_matchings,
         &primary_matcher,
         &auxiliary_matcher,
         debug_dir,
@@ -416,9 +416,8 @@ pub fn resolve_merge_cascading<'a>(
     debug_dir: Option<&str>,
     working_dir: &Path,
 ) -> Result<MergeResult, String> {
-    let lang_profile = LangProfile::detect_from_filename(fname_base).ok_or(format!(
-        "Could not find a supported language for {fname_base}"
-    ))?;
+    let lang_profile = LangProfile::detect_from_filename(fname_base)
+        .ok_or_else(|| format!("Could not find a supported language for {fname_base}"))?;
 
     let mut resolved_merge = None;
     let mut parsed_merge = None;

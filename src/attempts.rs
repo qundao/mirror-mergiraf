@@ -49,13 +49,8 @@ impl Attempt<'_> {
 
     pub(crate) fn best_merge_id(&self) -> Result<String, String> {
         let path = self.dir.join(BEST_MERGE_FILENAME);
-        fs::read(&path)
+        fs::read_to_string(&path)
             .map_err(|err| format!("Could not read best merge id at {}: {err}", &path.display()))
-            .and_then(|contents| {
-                str::from_utf8(&contents)
-                    .map_err(|err| err.to_string())
-                    .map(|s| s.to_owned())
-            })
     }
 
     pub(crate) fn path(&self, file_name: &str) -> PathBuf {
@@ -90,10 +85,10 @@ impl AttemptsCache {
                 .ok();
                 strategy.map(|project_dir| project_dir.data_dir().clone().join(ATTEMPTS_DIRECTORY))
             })
-            .ok_or(
+            .ok_or_else(|| {
                 "Could not determine a suitable application data directory to store merge attempts"
-                    .to_string(),
-            )?;
+                    .to_string()
+            })?;
         fs::create_dir_all(&cache_dir).map_err(|err| {
             format!(
                 "Error while creating merge attempts directory {}: {err}",
@@ -147,9 +142,9 @@ impl AttemptsCache {
     }
 
     pub(crate) fn parse_attempt_id<'a>(&'a self, attempt_id: &'a str) -> Result<Attempt, String> {
-        let Some((file_name, uid)) = attempt_id.rsplit_once('_') else {
-            return Err("Invalid attempt id, should contain a '_' character".to_owned());
-        };
+        let (file_name, uid) = attempt_id
+            .rsplit_once('_')
+            .ok_or_else(|| "Invalid attempt id, should contain a '_' character".to_owned())?;
 
         let extension = file_name
             .rsplit_once('.')
@@ -222,11 +217,8 @@ impl AttemptsCache {
             for (f, _) in &subdirs[self.max_size..] {
                 if let Err(err) = fs::remove_dir_all(f.path()) {
                     warn!(
-                        "Could not delete cached attempt {}: {}",
-                        f.file_name()
-                            .into_string()
-                            .as_deref()
-                            .unwrap_or("<invalid_directory_name>"),
+                        "Could not delete cached attempt {:?}: {}",
+                        f.file_name(),
                         err.to_string()
                     );
                 }

@@ -322,7 +322,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             self.build_subtree(unvisited_base_node, visiting_state)
                 .and_then(|base_tree| {
                     self.cover_modified_nodes(&base_tree, target_revision, modified_revision)
-                        .ok_or("no cover found".to_owned())
+                        .ok_or_else(|| "no cover found".to_owned())
                 })
                 .map(|cover| {
                     visiting_state.deleted_and_modified.extend(cover.iter());
@@ -335,10 +335,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         }
 
         match node {
-            PCSNode::VirtualRoot => children
-                .into_iter()
-                .next()
-                .ok_or("the virtual root must have exactly one child, none found".to_string()),
+            PCSNode::VirtualRoot => children.into_iter().next().ok_or_else(|| {
+                "the virtual root must have exactly one child, none found".to_string()
+            }),
             PCSNode::LeftMarker => {
                 panic!("impossible to build a subtree for a virtual left marker")
             }
@@ -484,9 +483,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 .filter(|(rev, _)| *rev == revision)
                 .map(|(_, node)| node)
                 .next()
-                .ok_or(format!(
-                    "no candidate successor found for {cursor} at {revision}"
-                ))?;
+                .ok_or_else(|| {
+                    format!("no candidate successor found for {cursor} at {revision}")
+                })?;
 
             if candidate == PCSNode::RightMarker || other_successors.contains_key(&candidate) {
                 // we found the merging point of the conflict branches

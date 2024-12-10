@@ -159,15 +159,17 @@ impl<'a> MergedTree<'a> {
                 class_mapping,
             ),
             (base, Some(left), Some(right)) => {
-                let base_src = if let Some(base) = base {
-                    &base.unindented_source()
-                } else {
-                    ""
-                };
+                let base_src = base
+                    .map(|base| base.unindented_source())
+                    .unwrap_or(Cow::from(""));
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
-                let line_based_merge =
-                    line_based_merge(base_src, &left_src, &right_src, &DisplaySettings::default());
+                let line_based_merge = line_based_merge(
+                    &base_src,
+                    &left_src,
+                    &right_src,
+                    &DisplaySettings::default(),
+                );
                 MergedTree::LineBasedMerge {
                     node,
                     contents: line_based_merge.contents,

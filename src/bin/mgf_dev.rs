@@ -42,7 +42,7 @@ fn real_main() -> Result<i32, String> {
             let arena = Arena::new();
             let ref_arena = Arena::new();
             let lang_profile: LangProfile = LangProfile::detect_from_filename(&path)
-                .ok_or(format!("Could not detect a supported language for {path}"))?;
+                .ok_or_else(|| format!("Could not detect a supported language for {path}"))?;
 
             let mut parser = TSParser::new();
             parser

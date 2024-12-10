@@ -72,16 +72,19 @@ impl MergeResult {
         if let Some(attempt) = attempt {
             attempt.write_best_merge_id(self.method).ok();
             if self.conflict_count == 0 && line_based_conflicts > 0 {
-                if line_based_conflicts == 1 {
-                    info!(
-                        "Mergiraf: Solved 1 conflict. Review with: mergiraf review {}",
-                        attempt.id()
-                    );
-                } else {
-                    info!(
-                        "Mergiraf: Solved {line_based_conflicts} conflicts. Review with: mergiraf review {}",
-                        attempt.id()
-                    );
+                match line_based_conflicts {
+                    1 => {
+                        info!(
+                            "Mergiraf: Solved 1 conflict. Review with: mergiraf review {}",
+                            attempt.id()
+                        );
+                    }
+                    n => {
+                        info!(
+                            "Mergiraf: Solved {n} conflicts. Review with: mergiraf review {}",
+                            attempt.id()
+                        );
+                    }
                 }
             }
         }

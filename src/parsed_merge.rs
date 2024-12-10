@@ -359,11 +359,8 @@ impl<'a> ParsedMerge<'a> {
     pub fn conflict_count(&self) -> usize {
         self.chunks
             .iter()
-            .map(|chunk| match chunk {
-                MergedChunk::Resolved { .. } => 0,
-                MergedChunk::Conflict { .. } => 1,
-            })
-            .sum()
+            .filter(|chunk| matches!(chunk, MergedChunk::Conflict { .. }))
+            .count()
     }
 
     // Number of bytes of conflicting content, which is an attempt
