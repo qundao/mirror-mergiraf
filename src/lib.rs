@@ -110,14 +110,14 @@ pub fn structured_merge(
         sim_threshold: 0.4,
         max_recovery_size: 100,
         use_rted: true,
-        lang_profile: lang_profile.clone(),
+        lang_profile: Cow::Borrowed(lang_profile),
     };
     let auxiliary_matcher = TreeMatcher {
         min_height: 2,
         sim_threshold: 0.6,
         max_recovery_size: 100,
         use_rted: false,
-        lang_profile: lang_profile.clone(),
+        lang_profile: Cow::Borrowed(lang_profile),
     };
 
     let start = Instant::now();

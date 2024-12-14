@@ -216,25 +216,27 @@ pub fn three_way_merge<'a>(
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use crate::{lang_profile::LangProfile, settings::DisplaySettings, test_utils::ctx};
 
     use super::*;
 
-    fn json_matchers() -> (TreeMatcher, TreeMatcher) {
+    fn json_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
         let lang_profile = LangProfile::detect_from_filename("test.json").unwrap();
         let primary_matcher = TreeMatcher {
             min_height: 0,
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile: lang_profile.clone(),
+            lang_profile: Cow::Owned(lang_profile.clone()),
         };
         let auxiliary_matcher = TreeMatcher {
             min_height: 1,
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile,
+            lang_profile: Cow::Owned(lang_profile),
         };
         (primary_matcher, auxiliary_matcher)
     }

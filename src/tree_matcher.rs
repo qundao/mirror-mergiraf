@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use log::debug;
 use std::{
+    borrow::Cow,
     cmp::{min, Ordering},
     collections::HashSet,
     fmt::Display,
@@ -19,7 +20,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct TreeMatcher {
+pub struct TreeMatcher<'a> {
     /// The minimum height of subtrees to match in the top-down phase
     pub min_height: i32,
     /// The minimum dice similarity to match subtrees in the bottom-up phase
@@ -29,7 +30,7 @@ pub struct TreeMatcher {
     /// The maximum size of trees to match with tree edit distance
     pub max_recovery_size: i32,
     /// The language-specific information, which could be used to inform the matching algorithm
-    pub lang_profile: LangProfile,
+    pub lang_profile: Cow<'a, LangProfile>,
 }
 
 /// A matching which keeps track of how each link was inferred, for visualization purposes
@@ -44,7 +45,7 @@ pub struct DetailedMatching<'src> {
     pub recovery: Matching<'src>,
 }
 
-impl TreeMatcher {
+impl TreeMatcher<'_> {
     /// The `GumTree` classic matching algorithm.
     /// It can be supplied with an initial matching of nodes which are known
     pub fn match_trees<'a>(
@@ -526,7 +527,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
+            lang_profile: Cow::Owned(lang_profile),
         };
 
         let detailed_matching = matcher.match_trees(&t1, &t2, None);
@@ -552,7 +553,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
+            lang_profile: Cow::Owned(lang_profile),
         };
 
         let matching = matcher.match_trees(&t1, &t2, None);
@@ -578,7 +579,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile,
+            lang_profile: Cow::Owned(lang_profile),
         };
 
         let matching = matcher.match_trees(&t1, &t2, None);
@@ -602,7 +603,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
+            lang_profile: Cow::Owned(lang_profile),
         };
 
         let matching = matcher.match_trees(&left, &right, None);
@@ -626,7 +627,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
+            lang_profile: Cow::Owned(lang_profile),
         };
         let matching = matcher.match_trees(&left, &right, None);
 
