@@ -355,10 +355,9 @@ pub fn cascading_merge(
         settings,
         lang_profile.as_ref(),
     );
-    merges.push(line_based_merge.clone());
     debug!("line-based merge took {:?}", start.elapsed());
     if line_based_merge.conflict_count == 0 && !line_based_merge.has_additional_issues {
-        return merges;
+        return vec![line_based_merge];
     }
 
     if let Some(lang_profile) = lang_profile {
@@ -388,12 +387,11 @@ pub fn cascading_merge(
 
             match solved_merge {
                 Ok(recovered_merge) => {
-                    let conflicts = recovered_merge.conflict_count;
-                    let additional_issues = recovered_merge.has_additional_issues;
-                    merges.push(recovered_merge);
-                    if conflicts == 0 && !additional_issues {
-                        return merges;
+                    if recovered_merge.conflict_count == 0 && !recovered_merge.has_additional_issues
+                    {
+                        return vec![line_based_merge, recovered_merge];
                     }
+                    merges.push(recovered_merge);
                 }
                 Err(err) => {
                     debug!("error while attempting conflict resolution of line-based merge: {err}");
@@ -420,6 +418,7 @@ pub fn cascading_merge(
             };
         }
     }
+    merges.push(line_based_merge);
     merges
 }
 
