@@ -102,7 +102,10 @@
       # `nix develop`
       devShells.default = craneLib.devShell {
         inputsFrom = builtins.attrValues self.checks;
-        packages = nativeBuildInputs ++ nativeCheckInputs;
+        packages =
+          nativeBuildInputs
+          ++ nativeCheckInputs
+          ++ (with pkgs; [graphviz]);
       };
     });
 }
