@@ -69,13 +69,8 @@ impl<'a> MergedText<'a> {
             self.sections.push(match section {
                 crate::parsed_merge::MergedChunk::Resolved { contents, .. } => {
                     let result = MergeSection::Merged(
-                        Self::reindent_line_based_merge(
-                            &contents,
-                            indentation,
-                            newline_found,
-                            true,
-                        )
-                        .into(),
+                        Self::reindent_line_based_merge(contents, indentation, newline_found, true)
+                            .into(),
                     );
                     newline_found = newline_found || contents.contains('\n');
                     result
@@ -84,11 +79,11 @@ impl<'a> MergedText<'a> {
                     left, base, right, ..
                 } => {
                     let result = MergeSection::Conflict {
-                        left: Self::reindent_line_based_merge(&left, indentation, false, false)
+                        left: Self::reindent_line_based_merge(left, indentation, false, false)
                             .into(),
-                        base: Self::reindent_line_based_merge(&base, indentation, false, false)
+                        base: Self::reindent_line_based_merge(base, indentation, false, false)
                             .into(),
-                        right: Self::reindent_line_based_merge(&right, indentation, false, false)
+                        right: Self::reindent_line_based_merge(right, indentation, false, false)
                             .into(),
                     };
                     newline_found = newline_found

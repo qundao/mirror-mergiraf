@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap, ops::Range};
+use std::{collections::HashMap, ops::Range};
 
 use itertools::Itertools;
 use regex::Regex;
@@ -35,16 +35,16 @@ pub enum MergedChunk<'a> {
         /// The byte offset at which this merged chunk can be found
         offset: usize,
         /// Its textual contents (including the last newline before any conflict)
-        contents: Cow<'a, str>,
+        contents: &'a str,
     },
     /// A diff3-style conflict
     Conflict {
         /// The left part of the conflict, including the last newline before the next marker
-        left: Cow<'a, str>,
+        left: &'a str,
         /// The base (or ancestor) part of the conflict, including the last newline before the next marker.
-        base: Cow<'a, str>,
+        base: &'a str,
         /// The right part of the conflict, including the last newline before the next marker.
-        right: Cow<'a, str>,
+        right: &'a str,
         /// The name of the left revision (potentially empty)
         left_name: &'a str,
         /// The name of the base revision (potentially empty)
@@ -118,8 +118,7 @@ impl<'a> ParsedMerge<'a> {
                     }
                 }?;
                 let base_match = base_captures.get(0).unwrap();
-                let left =
-                    remaining_source[local_offset..(local_offset + base_match.start())].into();
+                let left = &remaining_source[local_offset..(local_offset + base_match.start())];
                 let local_offset = local_offset + base_match.end();
                 let base_name = base_captures
                     .get(1)
@@ -129,8 +128,7 @@ impl<'a> ParsedMerge<'a> {
                 let right_match = right_marker
                     .find(&remaining_source[local_offset..])
                     .ok_or("unexpected end of file before right conflict marker")?;
-                let base =
-                    remaining_source[local_offset..(local_offset + right_match.start())].into();
+                let base = &remaining_source[local_offset..(local_offset + right_match.start())];
                 let local_offset = local_offset + right_match.end();
 
                 let end_captures = end_marker
@@ -138,8 +136,7 @@ impl<'a> ParsedMerge<'a> {
                     .ok_or("unexpected end of file before end conflict marker")?;
                 let end_match = end_captures.get(0).unwrap();
                 let right_name = end_captures.get(1).map(|m| m.as_str().trim()).unwrap_or("");
-                let right =
-                    remaining_source[local_offset..(local_offset + end_match.start())].into();
+                let right = &remaining_source[local_offset..(local_offset + end_match.start())];
                 chunks.push(MergedChunk::Conflict {
                     left,
                     base,
@@ -392,19 +389,19 @@ mod tests {
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
                 offset: 0,
-                contents: "\nwe reached a junction.\n".into(),
+                contents: "\nwe reached a junction.\n",
             },
             MergedChunk::Conflict {
-                left: "let's go to the left!\n".into(),
-                base: "where should we go?\n".into(),
-                right: "turn right please!\n".into(),
+                left: "let's go to the left!\n",
+                base: "where should we go?\n",
+                right: "turn right please!\n",
                 left_name: "left",
                 base_name: "base",
                 right_name: "",
             },
             MergedChunk::Resolved {
                 offset: 127,
-                contents: "rest of file\n".into(),
+                contents: "rest of file\n",
             },
         ]);
 
@@ -518,16 +515,16 @@ mod tests {
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Conflict {
-                left: "let's go to the left!\n".into(),
-                base: "where should we go?\n".into(),
-                right: "turn right please!\n".into(),
+                left: "let's go to the left!\n",
+                base: "where should we go?\n",
+                right: "turn right please!\n",
                 left_name: "left",
                 base_name: "base",
                 right_name: "",
             },
             MergedChunk::Resolved {
                 offset: 103,
-                contents: "rest of file\n".into(),
+                contents: "rest of file\n",
             },
         ]);
 
@@ -554,12 +551,12 @@ mod tests {
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
                 offset: 0,
-                contents: "\nwe reached a junction.\n".into(),
+                contents: "\nwe reached a junction.\n",
             },
             MergedChunk::Conflict {
-                left: "let's go to the left!\n".into(),
-                base: "where should we go?\n".into(),
-                right: "turn right please!\n".into(),
+                left: "let's go to the left!\n",
+                base: "where should we go?\n",
+                right: "turn right please!\n",
                 left_name: "left",
                 base_name: "base",
                 right_name: "",
@@ -599,19 +596,19 @@ mod tests {
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
                 offset: 0,
-                contents: "my_struct_t instance = {\n".into(),
+                contents: "my_struct_t instance = {\n",
             },
             MergedChunk::Conflict {
-                left: "    .foo = 3,\n    .bar = 2,\n".into(),
-                base: "    .foo = 3,\n".into(),
-                right: "".into(),
+                left: "    .foo = 3,\n    .bar = 2,\n",
+                base: "    .foo = 3,\n",
+                right: "",
                 left_name: "LEFT",
                 base_name: "BASE",
                 right_name: "RIGHT",
             },
             MergedChunk::Resolved {
                 offset: 115,
-                contents: "};\n".into(),
+                contents: "};\n",
             },
         ]);
 
