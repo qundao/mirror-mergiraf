@@ -366,7 +366,7 @@ pub fn cascading_merge(
         if !line_based_merge.has_additional_issues {
             let start = Instant::now();
             let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents)
-                .expect("the diffy rust library produced inconsistent conflict markers");
+                .expect("the imara-mergy rust library produced inconsistent conflict markers");
 
             let base_recovered_rev = parsed_conflicts.reconstruct_revision(Revision::Base);
             let left_recovered_rev = parsed_conflicts.reconstruct_revision(Revision::Left);
