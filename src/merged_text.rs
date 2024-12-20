@@ -181,9 +181,9 @@ impl<'a> MergedText<'a> {
                             left_buffer.clone_from(&last_line);
                             right_buffer = last_line;
                         } else {
-                            base_buffer = String::new();
-                            left_buffer = String::new();
-                            right_buffer = String::new();
+                            base_buffer.clear();
+                            left_buffer.clear();
+                            right_buffer.clear();
                         }
                     }
                     base_buffer.push_str(base);

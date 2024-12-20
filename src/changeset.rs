@@ -11,7 +11,7 @@ use crate::{
 
 /// A set of [PCS] triples, with indices on all three components
 /// for easier retrieval.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ChangeSet<'a> {
     successors: MultiMap<PCSNode<'a>, PCS<'a>>,
     predecessors: MultiMap<PCSNode<'a>, PCS<'a>>,
@@ -21,11 +21,7 @@ pub struct ChangeSet<'a> {
 impl<'a> ChangeSet<'a> {
     /// Constructs an empty instance
     pub fn new() -> ChangeSet<'a> {
-        ChangeSet {
-            successors: MultiMap::new(),
-            predecessors: MultiMap::new(),
-            parents: MultiMap::new(),
-        }
+        Self::default()
     }
 
     /// Adds PCS triples that encodes a tree
@@ -110,20 +106,18 @@ impl<'a> ChangeSet<'a> {
     pub fn other_roots(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
         let mut results = Vec::new();
         if let PCSNode::Node { .. } = pcs.predecessor {
-            self.predecessors
-                .get(pcs.predecessor)
-                .iter()
-                .chain(self.successors.get(pcs.predecessor).iter())
-                .filter(move |other| other.parent != pcs.parent)
-                .for_each(|other| results.push(other));
+            results.extend(
+                (self.predecessors.get(pcs.predecessor).iter())
+                    .chain(self.successors.get(pcs.predecessor).iter())
+                    .filter(|other| other.parent != pcs.parent),
+            );
         }
         if let PCSNode::Node { .. } = pcs.successor {
-            self.predecessors
-                .get(pcs.successor)
-                .iter()
-                .chain(self.successors.get(pcs.successor).iter())
-                .filter(move |other| other.parent != pcs.parent)
-                .for_each(|other| results.push(other));
+            results.extend(
+                (self.predecessors.get(pcs.successor).iter())
+                    .chain(self.successors.get(pcs.successor).iter())
+                    .filter(|other| other.parent != pcs.parent),
+            );
         }
         results.into_iter()
     }
@@ -164,12 +158,6 @@ impl<'a> ChangeSet<'a> {
             result.push_str(&pcs)
         }
         fs::write(fname, result).expect("Unable to write changeset file")
-    }
-}
-
-impl<'a> Default for ChangeSet<'a> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

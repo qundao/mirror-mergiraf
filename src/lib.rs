@@ -200,7 +200,7 @@ pub fn line_merge_and_structured_resolution(
             if best.conflict_count == 0 {
                 // for successful merges that aren't line-based,
                 // give the opportunity to the user to review Mergiraf's work
-                let attempt = attempts_cache.and_then(|cache| {
+                if let Some(attempt) = attempts_cache.and_then(|cache| {
                     match cache.new_attempt(
                         Path::new(fname_base),
                         contents_base,
@@ -213,10 +213,11 @@ pub fn line_merge_and_structured_resolution(
                             None
                         }
                     }
-                });
-                best.store_in_attempt(&attempt);
-                line_based.store_in_attempt(&attempt);
-                best.mark_as_best_merge_in_attempt(&attempt, line_based.conflict_count);
+                }) {
+                    best.store_in_attempt(&attempt);
+                    line_based.store_in_attempt(&attempt);
+                    best.mark_as_best_merge_in_attempt(&attempt, line_based.conflict_count);
+                }
             }
             best
         }

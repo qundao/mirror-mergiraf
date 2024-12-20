@@ -20,10 +20,10 @@ const DISABLING_ENV_VAR: &str = "MERGIRAF_DISABLE";
 struct CliArgs {
     /// Write debug files to a particular directory to analyze
     /// the internal aspects of the merge
-    #[clap(short = 'd', long = "debug", global = true)]
+    #[clap(short, long = "debug", global = true)]
     debug_dir: Option<String>,
     /// Verbosity
-    #[clap(short = 'v', long = "verbose", global = true)]
+    #[clap(short, long, global = true)]
     verbose: bool,
     #[command(subcommand)]
     command: CliCommand,
@@ -74,10 +74,10 @@ enum CliCommand {
         /// Path to a file containing merge conflicts
         conflicts: String,
         /// Display compact conflicts, breaking down lines
-        #[clap(short = 'c', long = "compact", default_value_t = false)]
+        #[clap(short, long, default_value_t = false)]
         compact: bool,
         /// Keep file untouched and show the results of resolution on standard output instead
-        #[clap(short = 'k', long = "keep")]
+        #[clap(short, long)]
         keep: bool,
     },
     /// Review the resolution of a merge by showing the differences with a line-based merge
@@ -242,11 +242,8 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                             imitate_cr_lf_from_input(&original_conflict_contents, &merged.contents)
                         );
                     } else {
-                        write_string_to_file(
-                            &(fname_conflicts.clone() + ".orig"),
-                            &conflict_contents,
-                        )?;
                         write_string_to_file(&fname_conflicts, &merged.contents)?;
+                        write_string_to_file(&(fname_conflicts + ".orig"), &conflict_contents)?;
                     };
                     0
                 }

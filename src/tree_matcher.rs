@@ -232,7 +232,7 @@ impl TreeMatcher<'_> {
     ) -> Vec<&'src AstNode<'src>> {
         let seeds = left_node
             .dfs()
-            .flat_map(|descendant| matching.get_from_left(descendant).into_iter());
+            .flat_map(|descendant| matching.get_from_left(descendant));
         let mut seen_ancestors = HashSet::new();
         let mut candidates = Vec::new();
         for seed in seeds {

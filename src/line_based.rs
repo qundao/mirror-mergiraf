@@ -57,34 +57,30 @@ pub(crate) fn line_based_merge(
 
 impl MergeResult {
     /// Helper to store a merge result in an attempt
-    pub(crate) fn store_in_attempt(&self, attempt: &Option<Attempt>) {
-        if let Some(attempt) = attempt {
-            attempt.write(self.method, &self.contents).ok();
-        }
+    pub(crate) fn store_in_attempt(&self, attempt: &Attempt) {
+        attempt.write(self.method, &self.contents).ok();
     }
 
     /// Helper to store a merge result in an attempt
     pub(crate) fn mark_as_best_merge_in_attempt(
         &self,
-        attempt: &Option<Attempt>,
+        attempt: &Attempt,
         line_based_conflicts: usize,
     ) {
-        if let Some(attempt) = attempt {
-            attempt.write_best_merge_id(self.method).ok();
-            if self.conflict_count == 0 && line_based_conflicts > 0 {
-                match line_based_conflicts {
-                    1 => {
-                        info!(
-                            "Mergiraf: Solved 1 conflict. Review with: mergiraf review {}",
-                            attempt.id()
-                        );
-                    }
-                    n => {
-                        info!(
-                            "Mergiraf: Solved {n} conflicts. Review with: mergiraf review {}",
-                            attempt.id()
-                        );
-                    }
+        attempt.write_best_merge_id(self.method).ok();
+        if self.conflict_count == 0 && line_based_conflicts > 0 {
+            match line_based_conflicts {
+                1 => {
+                    info!(
+                        "Mergiraf: Solved 1 conflict. Review with: mergiraf review {}",
+                        attempt.id()
+                    );
+                }
+                n => {
+                    info!(
+                        "Mergiraf: Solved {n} conflicts. Review with: mergiraf review {}",
+                        attempt.id()
+                    );
                 }
             }
         }
