@@ -47,9 +47,11 @@ impl<'tree> PriorityList<'tree> {
 
     /// Adds all of the direct children of a node into the queue
     pub fn open(&mut self, node: &'tree AstNode<'tree>) {
-        for child in node.children.as_slice() {
-            self.push(child);
-        }
+        let entries = node.children.iter().map(|c| Entry {
+            height: c.height(),
+            node: c,
+        });
+        self.heap.extend(entries);
     }
 }
 
