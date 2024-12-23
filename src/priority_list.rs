@@ -27,10 +27,8 @@ impl<'tree> From<&'tree AstNode<'tree>> for Entry<'tree> {
 
 impl<'tree> PriorityList<'tree> {
     /// Creates an empty priority list
-    pub fn new() -> PriorityList<'tree> {
-        PriorityList {
-            heap: BinaryHeap::new(),
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Adds a new node to the priority list
