@@ -16,6 +16,15 @@ struct Entry<'tree> {
     node: &'tree AstNode<'tree>,
 }
 
+impl<'tree> From<&'tree AstNode<'tree>> for Entry<'tree> {
+    fn from(node: &'tree AstNode<'tree>) -> Self {
+        Self {
+            height: node.height(),
+            node,
+        }
+    }
+}
+
 impl<'tree> PriorityList<'tree> {
     /// Creates an empty priority list
     pub fn new() -> PriorityList<'tree> {
@@ -26,8 +35,7 @@ impl<'tree> PriorityList<'tree> {
 
     /// Adds a new node to the priority list
     pub fn push(&mut self, node: &'tree AstNode<'tree>) {
-        let height = node.height();
-        self.heap.push(Entry { height, node });
+        self.heap.push(Entry::from(node));
     }
 
     /// Returns the maximum height of the tree in the list
@@ -47,10 +55,7 @@ impl<'tree> PriorityList<'tree> {
 
     /// Adds all of the direct children of a node into the queue
     pub fn open(&mut self, node: &'tree AstNode<'tree>) {
-        let entries = node.children.iter().map(|c| Entry {
-            height: c.height(),
-            node: c,
-        });
+        let entries = node.children.iter().copied().map(Entry::from);
         self.heap.extend(entries);
     }
 }
