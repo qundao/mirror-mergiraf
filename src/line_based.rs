@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use imara_mergy::{merge_options::MergeOptions, Algorithm, ConflictStyle};
+use diffy_imara::{Algorithm, ConflictStyle, MergeOptions};
 use log::info;
 
 use crate::{attempts::Attempt, parsed_merge::ParsedMerge, settings::DisplaySettings};
@@ -41,21 +41,21 @@ pub(crate) fn line_based_merge(
     contents_right: &str,
     settings: &DisplaySettings,
 ) -> MergeResult {
-    let merge_options = MergeOptions::new(
-        Algorithm::Histogram,
-        settings.conflict_marker_size,
-        if settings.diff3 {
+    let merge_options = MergeOptions {
+        conflict_marker_length: settings.conflict_marker_size,
+        style: if settings.diff3 {
             ConflictStyle::Diff3
         } else {
             ConflictStyle::Merge
         },
-    );
-    let merged = imara_mergy::merge(contents_base, contents_left, contents_right, merge_options);
+        algorithm: Algorithm::Histogram,
+    };
+    let merged = merge_options.merge(contents_base, contents_left, contents_right);
     let merged_contents = match merged {
         Ok(contents) | Err(contents) => contents,
     };
     let parsed_merge = ParsedMerge::parse(&merged_contents)
-        .expect("imara-mergy returned a merge that we cannot parse the conflicts of");
+        .expect("diffy-imara returned a merge that we cannot parse the conflicts of");
     MergeResult {
         contents: parsed_merge.render(settings),
         conflict_count: parsed_merge.conflict_count(),

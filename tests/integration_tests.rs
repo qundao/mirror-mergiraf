@@ -3,7 +3,7 @@ use std::fs::{self, read_dir};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use diffy::{create_patch, PatchFormatter};
+use diffy_imara::{create_patch, PatchFormatter};
 use mergiraf::settings::{normalize_to_lf, DisplaySettings};
 use mergiraf::{line_merge_and_structured_resolution, resolve_merge_cascading};
 use rstest::rstest;

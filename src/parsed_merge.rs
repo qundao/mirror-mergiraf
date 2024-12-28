@@ -576,7 +576,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_imara_mergy() {
+    fn test_parse_diffy_imara() {
         let source = r#"my_struct_t instance = {
 <<<<<<< LEFT
     .foo = 3,
