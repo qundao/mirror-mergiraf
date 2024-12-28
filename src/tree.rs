@@ -1171,7 +1171,7 @@ mod tests {
         let lang_profile = LangProfile::detect_from_filename("file.json")
             .expect("Could not find JSON language profile");
 
-        let ascii_tree = tree.root().ascii_tree(&lang_profile);
+        let ascii_tree = tree.root().ascii_tree(lang_profile);
 
         let re = Regex::new("\x1b\\[0(;[0-9]*)?m").unwrap();
         let without_colors = re.replace_all(&ascii_tree, "");

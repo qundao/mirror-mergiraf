@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use crate::{
     lang_profile::{CommutativeParent, LangProfile},
     signature::{
@@ -6,9 +8,9 @@ use crate::{
     },
 };
 
-/// Returns the list of supported language profiles,
+/// The list of supported language profiles,
 /// which contain all the language-specific information required to merge files in that language.
-pub fn supported_languages() -> Vec<LangProfile> {
+pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
     vec![
         LangProfile {
             name: "Java",
@@ -370,4 +372,4 @@ pub fn supported_languages() -> Vec<LangProfile> {
             ],
         },
     ]
-}
+});

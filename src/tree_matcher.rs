@@ -1,7 +1,6 @@
 use itertools::Itertools;
 use log::debug;
 use std::{
-    borrow::Cow,
     cmp::{min, Ordering},
     collections::HashSet,
     fmt::Display,
@@ -30,7 +29,7 @@ pub struct TreeMatcher<'a> {
     /// The maximum size of trees to match with tree edit distance
     pub max_recovery_size: i32,
     /// The language-specific information, which could be used to inform the matching algorithm
-    pub lang_profile: Cow<'a, LangProfile>,
+    pub lang_profile: &'a LangProfile,
 }
 
 /// A matching which keeps track of how each link was inferred, for visualization purposes
@@ -527,7 +526,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile: Cow::Owned(lang_profile),
+            lang_profile,
         };
 
         let detailed_matching = matcher.match_trees(&t1, &t2, None);
@@ -553,7 +552,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile: Cow::Owned(lang_profile),
+            lang_profile,
         };
 
         let matching = matcher.match_trees(&t1, &t2, None);
@@ -579,7 +578,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile: Cow::Owned(lang_profile),
+            lang_profile,
         };
 
         let matching = matcher.match_trees(&t1, &t2, None);
@@ -603,7 +602,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile: Cow::Owned(lang_profile),
+            lang_profile,
         };
 
         let matching = matcher.match_trees(&left, &right, None);
@@ -627,7 +626,7 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile: Cow::Owned(lang_profile),
+            lang_profile,
         };
         let matching = matcher.match_trees(&left, &right, None);
 

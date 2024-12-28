@@ -7,7 +7,7 @@ use crate::{
     class_mapping::ClassMapping,
     merged_tree::MergedTree,
     signature::{Signature, SignatureDefinition},
-    supported_langs::supported_languages,
+    supported_langs::SUPPORTED_LANGUAGES,
     tree::AstNode,
 };
 
@@ -32,11 +32,10 @@ pub struct LangProfile {
 
 impl LangProfile {
     /// Detects the language of a file based on its filename
-    pub fn detect_from_filename(filename: &str) -> Option<LangProfile> {
+    pub fn detect_from_filename(filename: &str) -> Option<&LangProfile> {
         // TODO make something more advanced like in difftastic
         // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
-        let supported = supported_languages();
-        supported.into_iter().find(|lang_profile| {
+        SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
             lang_profile
                 .extensions
                 .iter()

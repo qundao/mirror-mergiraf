@@ -8,7 +8,7 @@ use mergiraf::{
     bug_reporter::report_bug,
     line_merge_and_structured_resolution, resolve_merge_cascading,
     settings::{imitate_cr_lf_from_input, normalize_to_lf, DisplaySettings},
-    supported_langs::supported_languages,
+    supported_langs::SUPPORTED_LANGUAGES,
 };
 
 const DISABLING_ENV_VAR: &str = "MERGIRAF_DISABLE";
@@ -259,9 +259,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             0
         }
         CliCommand::Languages { gitattributes } => {
-            for lang_profile in supported_languages() {
+            for lang_profile in &*SUPPORTED_LANGUAGES {
                 if gitattributes {
-                    for extension in lang_profile.extensions {
+                    for extension in &lang_profile.extensions {
                         println!("*{extension} merge=mergiraf");
                     }
                 } else {

@@ -194,7 +194,7 @@ pub fn three_way_merge<'a>(
         &cleaned_changeset,
         &base_changeset,
         &class_mapping,
-        &primary_matcher.lang_profile,
+        primary_matcher.lang_profile,
     );
     let merged_tree = tree_builder.build_tree();
     debug!("constructing the merged tree took {:?}", start.elapsed());
@@ -203,7 +203,7 @@ pub fn three_way_merge<'a>(
     let start: Instant = Instant::now();
     let postprocessed_tree = post_process_merged_tree_for_duplicate_signatures(
         merged_tree,
-        &primary_matcher.lang_profile,
+        primary_matcher.lang_profile,
         &class_mapping,
     );
     debug!(
@@ -216,8 +216,6 @@ pub fn three_way_merge<'a>(
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
-
     use crate::{lang_profile::LangProfile, settings::DisplaySettings, test_utils::ctx};
 
     use super::*;
@@ -229,14 +227,14 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile: Cow::Owned(lang_profile.clone()),
+            lang_profile,
         };
         let auxiliary_matcher = TreeMatcher {
             min_height: 1,
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile: Cow::Owned(lang_profile),
+            lang_profile,
         };
         (primary_matcher, auxiliary_matcher)
     }

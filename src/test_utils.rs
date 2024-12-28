@@ -31,7 +31,7 @@ impl<'a> TestContext<'a> {
         let tree = parser
             .parse(source, None)
             .expect("Parsing example source code failed");
-        Ast::new(tree, source, &lang_profile, &self.arena, &self.ref_arena)
+        Ast::new(tree, source, lang_profile, &self.arena, &self.ref_arena)
             .expect("syntax error in source")
     }
 

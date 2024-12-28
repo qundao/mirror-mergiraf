@@ -41,7 +41,7 @@ fn real_main() -> Result<i32, String> {
         Command::Parse { path } => {
             let arena = Arena::new();
             let ref_arena = Arena::new();
-            let lang_profile: LangProfile = LangProfile::detect_from_filename(&path)
+            let lang_profile = LangProfile::detect_from_filename(&path)
                 .ok_or_else(|| format!("Could not detect a supported language for {path}"))?;
 
             let mut parser = TSParser::new();
@@ -55,10 +55,10 @@ fn real_main() -> Result<i32, String> {
             );
 
             let ts_tree = parser.parse(&contents, None).ok_or("Parsing failed")?;
-            let tree = Ast::new(ts_tree, &contents, &lang_profile, &arena, &ref_arena)
+            let tree = Ast::new(ts_tree, &contents, lang_profile, &arena, &ref_arena)
                 .map_err(|err| format!("File has parse errors: {err}"))?;
 
-            print!("{}", tree.root().ascii_tree(&lang_profile));
+            print!("{}", tree.root().ascii_tree(lang_profile));
             Ok(0)
         }
     }
