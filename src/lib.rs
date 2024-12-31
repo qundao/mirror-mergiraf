@@ -503,28 +503,29 @@ pub fn resolve_merge_cascading<'a>(
             let revision_right = extract_revision(working_dir, fname_base, Revision::Right);
 
             // we only attempt a full structured merge if we could extract revisions from Git
-            if let (Ok(contents_base), Ok(contents_left), Ok(contents_right)) =
-                (&revision_base, &revision_left, &revision_right)
-            {
-                let structured_merge = structured_merge(
-                    contents_base,
-                    contents_left,
-                    contents_right,
-                    None,
-                    &settings,
-                    lang_profile,
-                    debug_dir,
-                );
+            match (revision_base, revision_left, revision_right) {
+                (Ok(contents_base), Ok(contents_left), Ok(contents_right)) => {
+                    let structured_merge = structured_merge(
+                        &contents_base,
+                        &contents_left,
+                        &contents_right,
+                        None,
+                        &settings,
+                        lang_profile,
+                        debug_dir,
+                    );
 
-                match structured_merge {
-                    Ok(merge) => merges.push(merge),
-                    Err(err) => warn!("Full structured merge failed: {err}"),
-                };
-            } else {
-                if let Err(b) = revision_base {
-                    println!("{b}");
+                    match structured_merge {
+                        Ok(merge) => merges.push(merge),
+                        Err(err) => warn!("Full structured merge failed: {err}"),
+                    };
                 }
-                warn!("Could not retrieve conflict sides from Git.");
+                (rev_base, _, _) => {
+                    if let Err(b) = rev_base {
+                        println!("{b}");
+                    }
+                    warn!("Could not retrieve conflict sides from Git.");
+                }
             }
 
             if merges.is_empty() {
