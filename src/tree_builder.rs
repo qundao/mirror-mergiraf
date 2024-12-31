@@ -573,23 +573,25 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Collects examples of separators with the surrounding whitespace
     /// among a list of children of a commutative parent.
-    fn find_separators_with_whitespace(
-        slice: &[&'a AstNode<'a>],
-        trimmed_sep: &str,
-    ) -> Vec<&'a str> {
+    fn find_separators_with_whitespace<'s>(
+        slice: &'s [&'a AstNode<'a>],
+        trimmed_sep: &'s str,
+    ) -> Box<dyn Iterator<Item = &'a str> + 's> {
         if trimmed_sep.is_empty() {
-            slice
-                .iter()
-                .skip(1)
-                .filter_map(|node| node.preceding_whitespace())
-                .filter(|s| !s.is_empty())
-                .collect_vec()
+            Box::new(
+                slice
+                    .iter()
+                    .skip(1)
+                    .filter_map(|node| node.preceding_whitespace())
+                    .filter(|s| !s.is_empty()),
+            )
         } else {
-            slice
-                .iter()
-                .filter(|n| n.source.trim() == trimmed_sep)
-                .map(|n| n.source_with_surrounding_whitespace())
-                .collect_vec()
+            Box::new(
+                slice
+                    .iter()
+                    .filter(move |n| n.source.trim() == trimmed_sep)
+                    .map(|n| n.source_with_surrounding_whitespace()),
+            )
         }
     }
 
@@ -764,7 +766,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         });
 
         let separator = MergedTree::CommutativeChildSeparator {
-            separator: (Self::find_separators_with_whitespace(left, trimmed_sep).into_iter())
+            separator: Self::find_separators_with_whitespace(left, trimmed_sep)
                 .chain(Self::find_separators_with_whitespace(right, trimmed_sep))
                 .chain(Self::find_separators_with_whitespace(base, trimmed_sep))
                 // remove the indentation at the end of separators
