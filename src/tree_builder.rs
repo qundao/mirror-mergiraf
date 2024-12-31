@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    iter::FromIterator,
-};
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use log::debug;
@@ -555,24 +552,23 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// From a list of children of a commutative node, filter out separators
     /// and delimiters to return the content nodes only.
-    fn keep_content_only<T: FromIterator<Leader<'a>>>(
-        &self,
-        slice: &[&'a AstNode<'a>],
+    fn keep_content_only<'c>(
+        &'c self,
+        slice: &'c [&'a AstNode<'a>],
         revision: Revision,
-        trimmed_sep: &str,
-        trimmed_left_delim: &str,
-        trimmed_right_delim: &str,
-    ) -> T {
+        trimmed_sep: &'c str,
+        trimmed_left_delim: &'c str,
+        trimmed_right_delim: &'c str,
+    ) -> impl Iterator<Item = Leader<'a>> + use<'a, 'c> {
         slice
             .iter()
-            .filter(|n| {
+            .filter(move |n| {
                 let trimmed = n.source.trim();
                 trimmed != trimmed_sep
                     && trimmed != trimmed_left_delim
                     && trimmed != trimmed_right_delim
             })
-            .map(|n| self.class_mapping.map_to_leader(RevNode::new(revision, n)))
-            .collect::<T>()
+            .map(move |n| self.class_mapping.map_to_leader(RevNode::new(revision, n)))
     }
 
     /// Collects examples of separators with the surrounding whitespace
@@ -615,27 +611,33 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         // TODO improve handling of comments? comments added by the right side should ideally be placed sensibly
 
         // first, map each list via class mapping to make each element comparable
-        let base_leaders = self.keep_content_only::<HashSet<Leader>>(
-            &base,
-            Revision::Base,
-            trimmed_sep,
-            trimmed_left_delim,
-            trimmed_right_delim,
-        );
-        let left_leaders = self.keep_content_only::<Vec<Leader>>(
-            &left,
-            Revision::Left,
-            trimmed_sep,
-            trimmed_left_delim,
-            trimmed_right_delim,
-        );
-        let right_leaders = self.keep_content_only::<Vec<Leader>>(
-            &right,
-            Revision::Right,
-            trimmed_sep,
-            trimmed_left_delim,
-            trimmed_right_delim,
-        );
+        let base_leaders: HashSet<_> = self
+            .keep_content_only(
+                &base,
+                Revision::Base,
+                trimmed_sep,
+                trimmed_left_delim,
+                trimmed_right_delim,
+            )
+            .collect();
+        let left_leaders: Vec<_> = self
+            .keep_content_only(
+                &left,
+                Revision::Left,
+                trimmed_sep,
+                trimmed_left_delim,
+                trimmed_right_delim,
+            )
+            .collect();
+        let right_leaders: Vec<_> = self
+            .keep_content_only(
+                &right,
+                Revision::Right,
+                trimmed_sep,
+                trimmed_left_delim,
+                trimmed_right_delim,
+            )
+            .collect();
 
         // check that all the nodes involved are allowed to commute in this context
         let child_types: HashSet<&str> = base_leaders
