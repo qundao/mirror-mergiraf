@@ -26,6 +26,14 @@ jobs:
         id: rust-toolchain
         with:
           components: clippy
+      - name: Cache build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            target            
+          key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}}"
       - run: cargo clippy --all-targets
 
   test:
