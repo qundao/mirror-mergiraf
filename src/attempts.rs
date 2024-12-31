@@ -235,7 +235,7 @@ mod tests {
     use super::AttemptsCache;
 
     #[test]
-    fn test_lifecycle() {
+    fn lifecycle() {
         let tmpdir = tempfile::tempdir().expect("Could not create a temporary directory");
 
         let cache = AttemptsCache::new(Some(tmpdir.path()), Some(2))
@@ -275,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn test_no_extension() {
+    fn no_extension() {
         let tmpdir = tempfile::tempdir().expect("Could not create a temporary directory");
 
         let cache = AttemptsCache::new(Some(tmpdir.path()), Some(2))
@@ -310,7 +310,7 @@ mod tests {
     }
 
     #[test]
-    fn test_prune() {
+    fn prune() {
         let tmpdir = tempfile::tempdir().expect("Could not create a temporary directory");
 
         let cache = AttemptsCache::new(Some(tmpdir.path()), Some(2))

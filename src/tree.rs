@@ -501,8 +501,7 @@ impl<'a> AstNode<'a> {
                         ]
                         .into_iter()
                         .flatten()
-                        .sorted_by_key(|indentation| indentation.len()) // try to find the minimal shift
-                        .next()
+                        .min_by_key(|indentation| indentation.len()) // try to find the minimal shift
                     })
             }
             None => Some(own_indentation),
@@ -554,8 +553,7 @@ impl<'a> AstNode<'a> {
     /// and shifted back to the desired indentation.
     pub fn reindented_source(&'a self, new_indentation: &str) -> String {
         let new_newlines = format!("\n{}", new_indentation);
-        let indentation = self
-            .preceding_indentation()
+        let indentation = (self.preceding_indentation())
             .or(self.ancestor_indentation())
             .unwrap_or("");
         self.source

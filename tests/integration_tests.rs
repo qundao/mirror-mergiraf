@@ -54,7 +54,7 @@ fn detect_extension(test_dir: &Path) -> String {
 #[rstest]
 #[case("merge")]
 #[case("diff3")]
-fn test_solve_command(#[case] conflict_style: &str) {
+fn solve_command(#[case] conflict_style: &str) {
     let test_dir = PathBuf::from("examples/java/working/demo");
     let extension = detect_extension(&test_dir);
 
@@ -192,5 +192,5 @@ fn integration(#[files("examples/*/working/*")] path: PathBuf) {
 // use this test to debug a specific test case by changing the path in it.
 #[rstest]
 fn debug_test() {
-    run_test_from_dir(&PathBuf::from("examples/go/working/remove_and_add_imports"));
+    run_test_from_dir(Path::new("examples/go/working/remove_and_add_imports"));
 }

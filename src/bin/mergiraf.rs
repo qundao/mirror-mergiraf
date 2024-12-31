@@ -137,9 +137,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let old_git_detected = base_name.as_deref().is_some_and(|n| n == "%S");
 
             let settings = DisplaySettings {
-                diff3: true,
                 compact,
-                conflict_marker_size: 7,
                 base_revision_name: match base_name.as_deref() {
                     Some("%S") => default_base_name,
                     Some(name) => name,
@@ -155,6 +153,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     Some(name) => name,
                     None => &right,
                 },
+                ..Default::default()
             };
 
             {
@@ -214,12 +213,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             keep,
         } => {
             let settings = DisplaySettings {
-                diff3: true,
                 compact,
-                conflict_marker_size: 7,
                 base_revision_name: default_base_name, // TODO detect from file
                 left_revision_name: default_left_name,
                 right_revision_name: default_right_name,
+                ..Default::default()
             };
 
             let original_conflict_contents = read_file_to_string(&fname_conflicts)?;

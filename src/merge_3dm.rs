@@ -240,7 +240,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_tree_has_no_conflicts() {
+    fn single_tree_has_no_conflicts() {
         let ctx = ctx();
 
         let base = ctx.parse_json("[1, {\"a\":2}]");
@@ -265,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn test_merge_conflict() {
+    fn merge_conflict() {
         let ctx = ctx();
 
         let base = ctx.parse_json("[1, 2]");
@@ -293,7 +293,7 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_delete() {
+    fn delete_delete() {
         let ctx = ctx();
 
         let base = ctx.parse_json("[1, 2]");
@@ -321,7 +321,7 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_insert() {
+    fn delete_insert() {
         let ctx = ctx();
 
         let base = ctx.parse_json("[1, 2]");
@@ -349,7 +349,7 @@ mod tests {
     }
 
     #[test]
-    fn test_delete_modify() {
+    fn delete_modify() {
         let ctx = ctx();
 
         let base = ctx.parse_json("[1, {\"a\": 3}, 2]");
@@ -373,7 +373,7 @@ mod tests {
     }
 
     #[test]
-    fn test_commutative_conflict_end_separator() {
+    fn commutative_conflict_end_separator() {
         let ctx = ctx();
 
         let base = ctx.parse_json("{\"x\": 0}");
@@ -397,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn test_commutative_conflict_no_end_separator() {
+    fn commutative_conflict_no_end_separator() {
         let ctx = ctx();
 
         let base = ctx.parse_json("{}");
@@ -421,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn test_commutative_conflict_double_delete() {
+    fn commutative_conflict_double_delete() {
         let ctx = ctx();
 
         let base = ctx.parse_json("{\"a\": 1, \"b\": 2}");
@@ -445,7 +445,7 @@ mod tests {
     }
 
     #[test]
-    fn test_commutative_conflict_delete_modified() {
+    fn commutative_conflict_delete_modified() {
         let ctx = ctx();
 
         let base = ctx.parse_json("{\"a\": {\"x\": 1}, \"b\": 2}");

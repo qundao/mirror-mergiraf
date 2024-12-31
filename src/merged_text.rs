@@ -320,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compact_mode() {
+    fn compact_mode() {
         let merged_text = MergedText {
             sections: vec![
                 merged("hello"),
@@ -344,7 +344,7 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_conflicts_on_same_line() {
+    fn multiple_conflicts_on_same_line() {
         let merged_text = MergedText {
             sections: vec![
                 merged("let's start "),
@@ -362,7 +362,7 @@ mod tests {
     }
 
     #[test]
-    fn test_spurious_conflict() {
+    fn spurious_conflict() {
         let mut merged_text = MergedText::new();
         merged_text.push_merged("let's start ".into());
         merged_text.push_conflict("tomorrow".into(), "now".into(), "now".into());

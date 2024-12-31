@@ -4,25 +4,16 @@ use std::collections::HashSet;
 use crate::tree::AstNode;
 
 /// A one-to-one relation between nodes of two trees.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Matching<'tree> {
     left_to_right: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
     right_to_left: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
 }
 
-impl<'tree> Default for Matching<'tree> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl<'tree> Matching<'tree> {
     /// Creates an empty matching.
     pub fn new() -> Matching<'tree> {
-        Matching {
-            left_to_right: FxHashMap::default(),
-            right_to_left: FxHashMap::default(),
-        }
+        Self::default()
     }
 
     /// Gets the matches associated with a node from the left hand tree
@@ -192,7 +183,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_retrieve_match() {
+    fn retrieve_match() {
         let ctx = ctx();
 
         let tree = ctx.parse_rust("fn t() { 3 }");
@@ -207,7 +198,7 @@ mod tests {
     }
 
     #[test]
-    fn test_remove_previously_matched() {
+    fn remove_previously_matched() {
         let ctx = ctx();
 
         let tree1 = ctx.parse_json("[1, 2, 3]");
@@ -237,7 +228,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dice() {
+    fn dice() {
         let ctx = ctx();
 
         let root = ctx.parse_rust("fn t() { 3 }").root();

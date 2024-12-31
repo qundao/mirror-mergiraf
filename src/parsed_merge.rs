@@ -95,7 +95,7 @@ impl<'a> ParsedMerge<'a> {
             if resolved_end > 0 {
                 chunks.push(MergedChunk::Resolved {
                     offset,
-                    contents: remaining_source[..resolved_end].into(),
+                    contents: &remaining_source[..resolved_end],
                 });
             }
             offset += resolved_end;
@@ -107,10 +107,7 @@ impl<'a> ParsedMerge<'a> {
                 let base_captures = base_marker
                     .captures(&remaining_source[local_offset..])
                     .ok_or_else(|| {
-                        if right_marker
-                            .find(&remaining_source[local_offset..])
-                            .is_some()
-                        {
+                        if right_marker.is_match(&remaining_source[local_offset..]) {
                             PARSED_MERGE_DIFF2_DETECTED
                         } else {
                             "unexpected end of file before base conflict marker"
@@ -379,7 +376,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_parse() {
+    fn parse() {
         let source = "\nwe reached a junction.\n<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
         let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
@@ -506,7 +503,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_start_with_conflict() {
+    fn parse_start_with_conflict() {
         let source = "<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
         let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
@@ -541,7 +538,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_end_with_conflict() {
+    fn parse_end_with_conflict() {
         let source = "\nwe reached a junction.\n<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\n";
         let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
@@ -614,20 +611,13 @@ mod tests {
         assert_eq!(parsed.conflict_mass(), 42);
 
         // render the parsed conflict and check it's equal to the source
-        let rendered = parsed.render(&DisplaySettings {
-            diff3: true,
-            compact: false,
-            conflict_marker_size: 7,
-            left_revision_name: "LEFT",
-            base_revision_name: "BASE",
-            right_revision_name: "RIGHT",
-        });
+        let rendered = parsed.render(&DisplaySettings::default());
 
         assert_eq!(rendered, source);
     }
 
     #[test]
-    fn test_parse_diff2() {
+    fn parse_diff2() {
         let source = r#"my_struct_t instance = {
 <<<<<<< LEFT
     .foo = 3,
@@ -644,7 +634,7 @@ mod tests {
     }
 
     #[test]
-    fn test_matching() {
+    fn matching() {
         let ctx = ctx();
         let source = r#"struct MyType {
     field: bool,
@@ -694,7 +684,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_revision_names_to_settings() {
+    fn add_revision_names_to_settings() {
         let source = "<<<<<<< my_left\nlet's go to the left!\n||||||| my_base\nwhere should we go?\n=======\nturn right please!\n>>>>>>> my_right\nrest of file\n";
         let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
@@ -715,7 +705,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_revision_names_to_settings_no_names() {
+    fn add_revision_names_to_settings_no_names() {
         let source = "<<<<<<<\nlet's go to the left!\n|||||||\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
         let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 
@@ -728,7 +718,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_revision_names_to_settings_no_conflict() {
+    fn add_revision_names_to_settings_no_conflict() {
         let source = "start of file\nrest of file\n";
         let parsed = ParsedMerge::parse(source).expect("unexpected parse error");
 

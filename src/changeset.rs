@@ -170,7 +170,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_from_tree() {
+    fn from_tree() {
         let ctx = ctx();
 
         let tree = ctx.parse_json("[1, [2, 3]]");
@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_tree_has_no_conflicts() {
+    fn single_tree_has_no_conflicts() {
         let ctx = ctx();
 
         let tree = ctx.parse_json("[1, [2, 3]]");

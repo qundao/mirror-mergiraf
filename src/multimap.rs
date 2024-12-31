@@ -109,7 +109,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_simple_lifecycle() {
+    fn simple_lifecycle() {
         let mut multimap = MultiMap::new();
 
         assert!(multimap.get(23).is_empty());

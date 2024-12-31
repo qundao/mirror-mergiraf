@@ -76,7 +76,7 @@ mod tests {
     use crate::test_utils::ctx;
 
     #[test]
-    fn test_empty() {
+    fn empty() {
         let mut priority_list = PriorityList::new();
 
         assert_eq!(priority_list.peek_max(), None);
@@ -84,7 +84,7 @@ mod tests {
     }
 
     #[test]
-    fn test_one_element() {
+    fn one_element() {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
@@ -96,7 +96,7 @@ mod tests {
     }
 
     #[test]
-    fn test_two_elements_same_height() {
+    fn two_elements_same_height() {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
@@ -110,7 +110,7 @@ mod tests {
     }
 
     #[test]
-    fn test_two_elements_increasing_height() {
+    fn two_elements_increasing_height() {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
@@ -124,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn test_two_elements_decreasing_height() {
+    fn two_elements_decreasing_height() {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
@@ -138,7 +138,7 @@ mod tests {
     }
 
     #[test]
-    fn test_open() {
+    fn open() {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 

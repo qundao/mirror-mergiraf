@@ -540,9 +540,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     ) -> Result<Vec<MergedTree<'a>>, String> {
         match conflict {
             MergedTree::Conflict { base, left, right } => self.commutatively_merge_lists(
-                base,
-                left,
-                right,
+                &base,
+                &left,
+                &right,
                 commutative_parent,
                 visiting_state,
             ),
@@ -596,9 +596,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     /// Merge three lists of nodes, knowing that their order does not matter
     fn commutatively_merge_lists(
         &self,
-        base: Vec<&'a AstNode<'a>>,
-        left: Vec<&'a AstNode<'a>>,
-        right: Vec<&'a AstNode<'a>>,
+        base: &[&'a AstNode<'a>],
+        left: &[&'a AstNode<'a>],
+        right: &[&'a AstNode<'a>],
         commutative_parent: &CommutativeParent,
         visiting_state: &mut VisitingState<'a>,
     ) -> Result<Vec<MergedTree<'a>>, String> {
@@ -613,7 +613,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         // first, map each list via class mapping to make each element comparable
         let base_leaders: HashSet<_> = self
             .keep_content_only(
-                &base,
+                base,
                 Revision::Base,
                 trimmed_sep,
                 trimmed_left_delim,
@@ -622,7 +622,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .collect();
         let left_leaders: Vec<_> = self
             .keep_content_only(
-                &left,
+                left,
                 Revision::Left,
                 trimmed_sep,
                 trimmed_left_delim,
@@ -631,7 +631,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .collect();
         let right_leaders: Vec<_> = self
             .keep_content_only(
-                &right,
+                right,
                 Revision::Right,
                 trimmed_sep,
                 trimmed_left_delim,
@@ -640,8 +640,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .collect();
 
         // check that all the nodes involved are allowed to commute in this context
-        let child_types: HashSet<&str> = base_leaders
-            .iter()
+        let child_types: HashSet<&str> = (base_leaders.iter())
             .chain(left_leaders.iter())
             .chain(right_leaders.iter())
             .map(Leader::grammar_name)
@@ -719,13 +718,13 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             (&left, Revision::Left),
             (&right, Revision::Right),
         ]
-        .iter()
+        .into_iter()
         .find_map(|(nodes, revision)| {
             nodes.iter().next().and_then(|first| {
                 if first.source.trim() == trimmed_left_delim {
                     Some(
                         self.class_mapping
-                            .map_to_leader(RevNode::new(*revision, first)),
+                            .map_to_leader(RevNode::new(revision, first)),
                     )
                 } else {
                     None
@@ -737,26 +736,26 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             (&left, Revision::Left),
             (&right, Revision::Right),
         ]
-        .iter()
+        .into_iter()
         .find_map(|(nodes, revision)| {
             nodes.iter().last().and_then(|last| {
                 if last.source.trim() == trimmed_right_delim {
                     Some(
                         self.class_mapping
-                            .map_to_leader(RevNode::new(*revision, last)),
+                            .map_to_leader(RevNode::new(revision, last)),
                     )
                 } else {
                     None
                 }
             })
         });
-        let starts_with_separator = [&base, &left, &right].iter().any(|rev| {
+        let starts_with_separator = [&base, &left, &right].into_iter().any(|rev| {
             rev.iter()
                 .map(|n| n.source.trim())
                 .find(|s| *s != trimmed_left_delim)
                 .is_some_and(|s| s == trimmed_sep)
         });
-        let ends_with_separator = [&base, &left, &right].iter().any(|rev| {
+        let ends_with_separator = [&base, &left, &right].into_iter().any(|rev| {
             rev.iter()
                 .map(|n| n.source.trim())
                 .filter(|s| *s != trimmed_right_delim)
@@ -765,11 +764,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         });
 
         let separator = MergedTree::CommutativeChildSeparator {
-            separator: Self::find_separators_with_whitespace(&left, trimmed_sep)
-                .iter()
-                .chain(Self::find_separators_with_whitespace(&right, trimmed_sep).iter())
-                .chain(Self::find_separators_with_whitespace(&base, trimmed_sep).iter())
-                .copied()
+            separator: (Self::find_separators_with_whitespace(left, trimmed_sep).into_iter())
+                .chain(Self::find_separators_with_whitespace(right, trimmed_sep))
+                .chain(Self::find_separators_with_whitespace(base, trimmed_sep))
                 // remove the indentation at the end of separators
                 // (it will be added back when pretty-printing, possibly at a different level)
                 .map(|separator| {
@@ -885,8 +882,13 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             })
             .collect_vec();
 
-        let mut merge_result =
-            self.commutatively_merge_lists(base, left, right, commutative_parent, visiting_state)?;
+        let mut merge_result = self.commutatively_merge_lists(
+            &base,
+            &left,
+            &right,
+            commutative_parent,
+            visiting_state,
+        )?;
         let mut prefix_trees = common_prefix
             .iter()
             .map(|revnode| {
@@ -1030,7 +1032,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_recover_exact_tree() {
+    fn recover_exact_tree() {
         let ctx = ctx();
         let lang_profile = LangProfile::detect_from_filename("test.json").unwrap();
 
@@ -1066,7 +1068,7 @@ mod tests {
     }
 
     #[test]
-    fn test_contains() {
+    fn contains() {
         let ctx = ctx();
         let lang_profile = LangProfile::detect_from_filename("test.json").unwrap();
 
