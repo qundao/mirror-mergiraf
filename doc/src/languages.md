@@ -11,6 +11,7 @@ Mergiraf currently supports the following programming languages:
 * Dart (*.dart)
 * Scala (*.scala, *.sbt)
 * Python (*.py)
+* PHP (*.php)
 
 and the following declarative file formats:
 * JSON (*.json)

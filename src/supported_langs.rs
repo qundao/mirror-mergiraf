@@ -371,5 +371,40 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("keyword_argument", vec![vec![Field("name")]]),
             ],
         },
+        LangProfile {
+            name: "PHP",
+            extensions: vec![".php", ".phtml"],
+            language: tree_sitter_php::LANGUAGE_PHP.into(),
+            // optional settings, explained below
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                // TODO: allow commutation between "use" and "require" statements, which is
+                // currently not possible as "require" statements appear as "expression_statement",
+                // which encompasses non-declarative statements too.
+                CommutativeParent::without_delimiters("program", "\n")
+                    .restricted_to_groups(&[&["namespace_use_declaration"]]),
+                CommutativeParent::new("declaration_list", "{", "\n\n", "}"),
+                CommutativeParent::new("enum_declaration_list", "{", "\n\n", "}"),
+            ],
+            signatures: vec![
+                signature("namespace_use_declaration", vec![vec![]]),
+                signature(
+                    "const_declaration",
+                    vec![vec![ChildType("const_element"), ChildType("name")]],
+                ),
+                signature("function_definition", vec![vec![Field("name")]]),
+                signature("interface_declaration", vec![vec![Field("name")]]),
+                signature("class_declaration", vec![vec![Field("name")]]),
+                signature(
+                    "property_declaration",
+                    vec![vec![ChildType("property_element"), Field("name")]],
+                ),
+                signature("property_promotion_parameter", vec![vec![Field("name")]]),
+                signature("method_declaration", vec![vec![Field("name")]]),
+                signature("enum_declaration", vec![vec![Field("name")]]),
+                signature("enum_case", vec![vec![Field("name")]]),
+                signature("attribute_list", vec![vec![]]),
+            ],
+        },
     ]
 });
