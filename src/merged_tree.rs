@@ -63,13 +63,13 @@ pub enum MergedTree<'a> {
     },
     /// A synthetic part of the merged output, not taken from any revision, added
     /// to separate merged children of a commutative parent.
-    CommutativeChildSeparator { separator: String },
+    CommutativeChildSeparator { separator: &'a str },
 }
 
 #[derive(Debug, Clone)]
 enum PreviousSibling<'a> {
     RealNode(Leader<'a>),
-    CommutativeSeparator(String),
+    CommutativeSeparator(&'a str),
 }
 
 impl<'a> MergedTree<'a> {
@@ -325,7 +325,7 @@ impl<'a> MergedTree<'a> {
                         }
                         MergedTree::Conflict { .. } => None,
                         MergedTree::CommutativeChildSeparator { separator } => {
-                            Some(PreviousSibling::CommutativeSeparator(separator.clone()))
+                            Some(PreviousSibling::CommutativeSeparator(separator))
                         }
                     };
                 }
@@ -384,7 +384,7 @@ impl<'a> MergedTree<'a> {
                 output.push_line_based_merge(contents, &full_indentation);
             }
             MergedTree::CommutativeChildSeparator { separator, .. } => {
-                output.push_merged(separator.into());
+                output.push_merged(Cow::from(*separator));
             }
         }
     }

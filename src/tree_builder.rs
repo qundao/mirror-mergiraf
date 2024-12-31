@@ -777,8 +777,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     }
                 })
                 .next()
-                .unwrap_or(commutative_parent.separator)
-                .to_string(),
+                .unwrap_or(commutative_parent.separator),
         };
 
         // add delimiters and separators in the merged list
