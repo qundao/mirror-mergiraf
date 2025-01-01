@@ -8,11 +8,11 @@ use mergiraf::settings::{normalize_to_lf, DisplaySettings};
 use mergiraf::{line_merge_and_structured_resolution, resolve_merge_cascading};
 use rstest::rstest;
 
-fn run_git(args: Vec<&str>, repo_dir: &Path) {
+fn run_git(args: &[&str], repo_dir: &Path) {
     let command_str = format!("git {}", args.join(" "));
     let mut command = Command::new("git");
     command.current_dir(repo_dir);
-    command.args(args.iter());
+    command.args(args);
     command.env_remove("HOME"); // disable ~/.gitconfig to isolate the test better
     let output = command.output().expect("Failed to execute git command");
     if !output.status.success() {
@@ -62,12 +62,12 @@ fn solve_command(#[case] conflict_style: &str) {
     let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
     let repo_dir = repo_dir.path();
     // init git repository
-    run_git(vec!["init", "."], repo_dir);
-    run_git(vec!["checkout", "-b", "first_branch"], repo_dir);
+    run_git(&["init", "."], repo_dir);
+    run_git(&["checkout", "-b", "first_branch"], repo_dir);
     let file_name = write_file_from_rev(repo_dir, &test_dir, "Base", &extension);
-    run_git(vec!["add", &file_name], repo_dir);
+    run_git(&["add", &file_name], repo_dir);
     run_git(
-        vec![
+        &[
             "-c",
             "user.email=author@example.com",
             "-c",
@@ -81,7 +81,7 @@ fn solve_command(#[case] conflict_style: &str) {
     );
     write_file_from_rev(repo_dir, &test_dir, "Left", &extension);
     run_git(
-        vec![
+        &[
             "-c",
             "user.email=author@example.com",
             "-c",
@@ -93,11 +93,11 @@ fn solve_command(#[case] conflict_style: &str) {
         ],
         repo_dir,
     );
-    run_git(vec!["checkout", "HEAD~"], repo_dir);
-    run_git(vec!["checkout", "-b", "second_branch"], repo_dir);
+    run_git(&["checkout", "HEAD~"], repo_dir);
+    run_git(&["checkout", "-b", "second_branch"], repo_dir);
     write_file_from_rev(repo_dir, &test_dir, "Right", &extension);
     run_git(
-        vec![
+        &[
             "-c",
             "user.email=author@example.com",
             "-c",

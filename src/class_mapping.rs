@@ -16,15 +16,15 @@ pub struct RevNode<'a> {
 #[derive(Debug, Copy, Clone, PartialEq, Hash)]
 pub struct Leader<'a>(RevNode<'a>);
 
-impl<'a> PartialEq for RevNode<'a> {
+impl PartialEq for RevNode<'_> {
     fn eq(&self, other: &Self) -> bool {
         // because we know the nodes are from the same revision, it's safe to compare them just by their ids
         self.rev == other.rev && self.node.id == other.node.id
     }
 }
 
-impl<'a> Eq for RevNode<'a> {}
-impl<'a> Eq for Leader<'a> {}
+impl Eq for RevNode<'_> {}
+impl Eq for Leader<'_> {}
 
 impl<'a> RevNode<'a> {
     pub fn new(rev: Revision, node: &'a AstNode<'a>) -> Self {
@@ -55,7 +55,7 @@ impl<'a> Leader<'a> {
     }
 }
 
-impl<'a> Display for RevNode<'a> {
+impl Display for RevNode<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -65,13 +65,13 @@ impl<'a> Display for RevNode<'a> {
     }
 }
 
-impl<'a> Display for Leader<'a> {
+impl Display for Leader<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl<'a> Hash for RevNode<'a> {
+impl Hash for RevNode<'_> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.rev.hash(state);
         self.node.id.hash(state);

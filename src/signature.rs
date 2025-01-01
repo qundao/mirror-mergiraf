@@ -12,7 +12,7 @@ use crate::tree::AstNode;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Signature<'a, 'b>(Vec<Vec<AstNodeEquiv<'a, 'b>>>);
 
-impl<'a, 'b> Display for Signature<'a, 'b> {
+impl Display for Signature<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "Signature [{}]",
@@ -219,13 +219,13 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
     }
 }
 
-impl<'a, 'b> PartialEq for AstNodeEquiv<'a, 'b> {
+impl PartialEq for AstNodeEquiv<'_, '_> {
     fn eq(&self, other: &Self) -> bool {
         self.isomorphic(other, None)
     }
 }
 
-impl<'a, 'b> Hash for AstNodeEquiv<'a, 'b> {
+impl Hash for AstNodeEquiv<'_, '_> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
             AstNodeEquiv::Original(ast_node) => ast_node.hash.hash(state),
@@ -250,7 +250,7 @@ impl<'a, 'b> Hash for AstNodeEquiv<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Display for AstNodeEquiv<'a, 'b> {
+impl Display for AstNodeEquiv<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             AstNodeEquiv::Original(ast_node) => write!(f, "Original({ast_node})"),

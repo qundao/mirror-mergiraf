@@ -56,7 +56,7 @@ struct VisitingState<'a> {
     visited_nodes: HashSet<Leader<'a>>,
 }
 
-impl<'a> VisitingState<'a> {
+impl VisitingState<'_> {
     fn indentation(&self) -> String {
         " ".repeat(self.visited_nodes.len())
     }

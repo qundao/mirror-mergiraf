@@ -539,7 +539,7 @@ impl<'a> AstNode<'a> {
     }
 
     /// The source of this node, stripped from any indentation inherited by the node or its ancestors
-    pub fn unindented_source(&'a self) -> Cow<str> {
+    pub fn unindented_source(&'a self) -> Cow<'a, str> {
         match self.preceding_indentation().or(self.ancestor_indentation()) {
             Some(indentation) => {
                 // TODO FIXME this is invalid for multiline string literals!
@@ -637,7 +637,7 @@ impl<'a> AstNode<'a> {
 /// We pre-compute hash values for all nodes,
 /// so we make sure those are used instead of recursively walking the tree
 /// each time a hash is computed.
-impl<'a> Hash for AstNode<'a> {
+impl Hash for AstNode<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
         self.id.hash(state);
@@ -646,7 +646,7 @@ impl<'a> Hash for AstNode<'a> {
     }
 }
 
-impl<'a> PartialEq for AstNode<'a> {
+impl PartialEq for AstNode<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.hash == other.hash
             && self.id == other.id
@@ -655,16 +655,16 @@ impl<'a> PartialEq for AstNode<'a> {
     }
 }
 
-impl<'a> Eq for AstNode<'a> {}
+impl Eq for AstNode<'_> {}
 
 // AstNode fails to be Sync by default because it contains
 // an UnsafeCell. But this cell is only mutated during initialization and only
 // ever refers to something that lives as long as the node itself (thanks to the
 // use of arenas) so it's fine to share it across threads.
-unsafe impl<'a> Sync for AstNode<'a> {}
-unsafe impl<'a> Send for AstNode<'a> {}
+unsafe impl Sync for AstNode<'_> {}
+unsafe impl Send for AstNode<'_> {}
 
-impl<'a> Display for AstNode<'a> {
+impl Display for AstNode<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

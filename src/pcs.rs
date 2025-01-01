@@ -47,7 +47,7 @@ pub struct PCS<'a> {
     pub revision: Revision,
 }
 
-impl<'a> PartialEq for PCS<'a> {
+impl PartialEq for PCS<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.parent == other.parent
             && self.predecessor == other.predecessor
@@ -55,9 +55,9 @@ impl<'a> PartialEq for PCS<'a> {
     }
 }
 
-impl<'a> Eq for PCS<'a> {}
+impl Eq for PCS<'_> {}
 
-impl<'a> Hash for PCS<'a> {
+impl Hash for PCS<'_> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.parent.hash(state);
         self.predecessor.hash(state);
@@ -65,7 +65,7 @@ impl<'a> Hash for PCS<'a> {
     }
 }
 
-impl<'a> Display for PCSNode<'a> {
+impl Display for PCSNode<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PCSNode::VirtualRoot => write!(f, "⊥"),
@@ -77,7 +77,7 @@ impl<'a> Display for PCSNode<'a> {
 }
 
 // only useful to list a changeset in a sort of meaningful way for debugging purposes
-impl<'a> Ord for PCSNode<'a> {
+impl Ord for PCSNode<'_> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         #[allow(clippy::match_same_arms)]
         match (self, other) {
@@ -109,7 +109,7 @@ impl<'a> Ord for PCSNode<'a> {
     }
 }
 
-impl<'a> PartialOrd for PCSNode<'a> {
+impl PartialOrd for PCSNode<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(Ord::cmp(self, other))
     }
@@ -125,7 +125,7 @@ impl Display for Revision {
     }
 }
 
-impl<'a> Display for PCS<'a> {
+impl Display for PCS<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

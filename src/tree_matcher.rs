@@ -474,7 +474,7 @@ impl<'a> tree_edit_distance::Tree for TEDTree<'a> {
     }
 }
 
-impl<'a> TEDTree<'a> {
+impl TEDTree<'_> {
     fn display(&self, f: &mut std::fmt::Formatter<'_>, indentation: usize) -> std::fmt::Result {
         let pad = " ".repeat(indentation);
         write!(
@@ -502,7 +502,7 @@ impl<'a> TEDTree<'a> {
     }
 }
 
-impl<'a> Display for TEDTree<'a> {
+impl Display for TEDTree<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.display(f, 0)
     }

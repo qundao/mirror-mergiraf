@@ -34,7 +34,7 @@ jobs:
             ~/.cargo/registry
             target            
           key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}}"
-      - run: cargo clippy --all-targets
+      - run: cargo clippy --all-targets -- -Dwarnings
 
   test:
     runs-on: my-ubuntu-22.04
