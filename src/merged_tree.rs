@@ -179,7 +179,7 @@ impl<'a> MergedTree<'a> {
 
     /// 'Degrade' the merge by adding line-based conflicts for all subtrees rooted in the supplied nodes
     pub(crate) fn force_line_based_fallback_on_specific_nodes(
-        &self,
+        self,
         nodes: &HashSet<Leader<'a>>,
         class_mapping: &ClassMapping<'a>,
     ) -> MergedTree<'a> {
@@ -187,17 +187,17 @@ impl<'a> MergedTree<'a> {
             MergedTree::ExactTree {
                 node, revisions, ..
             } => {
-                if nodes.contains(node) {
-                    Self::line_based_local_fallback_for_revnode(*node, class_mapping)
+                if nodes.contains(&node) {
+                    Self::line_based_local_fallback_for_revnode(node, class_mapping)
                 } else {
                     let picked_revision = revisions.any();
                     let children = class_mapping
-                        .children_at_revision(*node, picked_revision)
+                        .children_at_revision(node, picked_revision)
                         .expect("non-existent children for revision in revset of ExactTree");
                     let cloned_children: Vec<MergedTree<'a>> = children
                         .iter()
                         .map(|c| {
-                            MergedTree::new_exact(*c, *revisions, class_mapping)
+                            MergedTree::new_exact(*c, revisions, class_mapping)
                                 .force_line_based_fallback_on_specific_nodes(nodes, class_mapping)
                         })
                         .collect();
@@ -205,26 +205,26 @@ impl<'a> MergedTree<'a> {
                         .iter()
                         .all(|child| matches!(child, MergedTree::ExactTree { .. }))
                     {
-                        self.clone()
+                        self
                     } else {
-                        MergedTree::new_mixed(*node, cloned_children)
+                        MergedTree::new_mixed(node, cloned_children)
                     }
                 }
             }
             MergedTree::MixedTree { node, children, .. } => {
-                if nodes.contains(node) {
-                    Self::line_based_local_fallback_for_revnode(*node, class_mapping)
+                if nodes.contains(&node) {
+                    Self::line_based_local_fallback_for_revnode(node, class_mapping)
                 } else {
                     let cloned_children = children
-                        .iter()
+                        .into_iter()
                         .map(|c| {
                             c.force_line_based_fallback_on_specific_nodes(nodes, class_mapping)
                         })
                         .collect();
-                    MergedTree::new_mixed(*node, cloned_children)
+                    MergedTree::new_mixed(node, cloned_children)
                 }
             }
-            _ => self.clone(),
+            _ => self,
         }
     }
 
