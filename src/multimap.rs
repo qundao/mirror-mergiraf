@@ -25,8 +25,12 @@ where
     }
 
     /// Gets the set of values associated to the key (which might be empty)
-    pub fn get(&self, key: K) -> &HashSet<V> {
-        self.map.get(&key).unwrap_or(&self.empty)
+    pub fn get<Q>(&self, key: &Q) -> &HashSet<V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Eq + Hash,
+    {
+        self.map.get(key).unwrap_or(&self.empty)
     }
 
     /// Adds a mapping from a key to a value.
@@ -112,17 +116,17 @@ mod tests {
     fn simple_lifecycle() {
         let mut multimap = MultiMap::new();
 
-        assert!(multimap.get(23).is_empty());
+        assert!(multimap.get(&23).is_empty());
         assert!(multimap.add(23, 45));
-        assert_eq!(multimap.get(23).iter().copied().collect_vec(), vec![45]);
+        assert_eq!(multimap.get(&23).iter().copied().collect_vec(), vec![45]);
         assert!(!multimap.add(23, 45));
-        assert_eq!(multimap.get(23).iter().copied().collect_vec(), vec![45]);
+        assert_eq!(multimap.get(&23).iter().copied().collect_vec(), vec![45]);
         assert!(multimap.add(23, 67));
 
         let expected_slice = [45, 67];
         let expected_set = expected_slice.iter().collect::<HashSet<&i32>>();
         assert_eq!(
-            multimap.get(23).iter().collect::<HashSet<&i32>>(),
+            multimap.get(&23).iter().collect::<HashSet<&i32>>(),
             expected_set
         );
 

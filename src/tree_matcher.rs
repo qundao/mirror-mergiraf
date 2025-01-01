@@ -333,7 +333,7 @@ impl TreeMatcher<'_> {
             if children_l.len() != 1 {
                 continue;
             }
-            let children_r = right_children.get((node_type, signature));
+            let children_r = right_children.get(&(node_type, signature));
             if children_r.len() != 1 {
                 continue;
             }

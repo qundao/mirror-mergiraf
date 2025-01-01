@@ -60,3 +60,13 @@ panic = "abort"
 strip = true
 lto = true
 debug = false
+
+[lints.clippy]
+explicit_into_iter_loop = "warn"
+explicit_iter_loop = "warn"
+needless_pass_by_value = "warn"
+semicolon_if_nothing_returned = "warn"
+single_char_pattern = "warn"
+single_match_else = "warn"
+trivially_copy_pass_by_ref = "warn"
+uninlined_format_args = "warn"

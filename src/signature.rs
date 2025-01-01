@@ -36,7 +36,7 @@ impl<'a, 'b> Display for Signature<'a, 'b> {
 /// with equality being defined as "quasi" isomorphism between them.
 /// Only "quasi" because this equality doesn't have access to the class mapping
 /// so has to resort to hash equality in some sub-cases.
-#[derive(Debug, Clone, Eq)]
+#[derive(Debug, Clone, Copy, Eq)]
 enum AstNodeEquiv<'a, 'b: 'a> {
     Original(&'b AstNode<'b>),
     Merged(&'a MergedTree<'b>),
@@ -230,8 +230,9 @@ impl<'a, 'b> Hash for AstNodeEquiv<'a, 'b> {
         match self {
             AstNodeEquiv::Original(ast_node) => ast_node.hash.hash(state),
             AstNodeEquiv::Merged(tree) => match tree {
-                MergedTree::ExactTree { hash, .. } => hash.hash(state),
-                MergedTree::MixedTree { hash, .. } => hash.hash(state),
+                MergedTree::ExactTree { hash, .. } | MergedTree::MixedTree { hash, .. } => {
+                    hash.hash(state);
+                }
                 MergedTree::Conflict { base, left, right } => {
                     base.hash(state);
                     left.hash(state);
@@ -316,11 +317,7 @@ impl SignatureDefinition {
         Signature(
             self.paths
                 .iter()
-                .map(|path| {
-                    path.extract(node.clone(), class_mapping)
-                        .into_iter()
-                        .collect_vec()
-                })
+                .map(|path| path.extract(node, class_mapping).into_iter().collect_vec())
                 .collect(),
         )
     }

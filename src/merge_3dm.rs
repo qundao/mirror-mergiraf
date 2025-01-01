@@ -25,7 +25,7 @@ pub fn three_way_merge<'a>(
     base: &'a Ast<'a>,
     left: &'a Ast<'a>,
     right: &'a Ast<'a>,
-    initial_matchings: Option<(Matching<'a>, Matching<'a>)>,
+    initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
     debug_dir: Option<&str>,

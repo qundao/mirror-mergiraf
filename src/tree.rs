@@ -66,7 +66,7 @@ impl<'a> Ast<'a> {
     /// Create a new tree from a `tree_sitter` tree, the source code it was generated from,
     /// and an arena to allocate the nodes from.
     pub fn new(
-        tree: Tree,
+        tree: &Tree,
         source: &'a str,
         lang_profile: &LangProfile,
         arena: &'a Arena<AstNode<'a>>,
@@ -147,7 +147,7 @@ impl<'a> AstNode<'a> {
         // if this is a leaf that spans multiple lines, create one child per line,
         // to ease matching and diffing (typically, for multi-line comments)
         if children.is_empty() && local_source.contains('\n') {
-            let lines = local_source.split("\n");
+            let lines = local_source.split('\n');
             let mut offset = range.start;
             for line in lines {
                 let trimmed = line.trim_start();
@@ -170,7 +170,7 @@ impl<'a> AstNode<'a> {
                     parent: UnsafeCell::new(None),
                     dfs: UnsafeCell::new(None),
                 }));
-                offset += line.len() + 1
+                offset += line.len() + 1;
             }
         }
 
@@ -212,7 +212,7 @@ impl<'a> AstNode<'a> {
     }
 
     fn internal_set_parent_on_children(&'a self) {
-        for child in self.children.iter() {
+        for child in &self.children {
             unsafe { *child.parent.get() = Some(self) }
         }
     }
@@ -347,18 +347,18 @@ impl<'a> AstNode<'a> {
 
     fn internal_s_expr(&self, output: &mut String) {
         if self.is_leaf() {
-            output.push_str(self.source)
+            output.push_str(self.source);
         } else {
             output.push_str(self.grammar_name);
             output.push('(');
             let mut first = true;
-            for child in self.children.iter() {
+            for child in &self.children {
                 if first {
                     first = false;
                 } else {
                     output.push(' ');
                 }
-                child.internal_s_expr(output)
+                child.internal_s_expr(output);
             }
             output.push(')');
         }
@@ -369,11 +369,11 @@ impl<'a> AstNode<'a> {
     pub fn predecessor(&'a self) -> Option<&'a AstNode<'a>> {
         let parent = self.parent()?;
         let mut previous = None;
-        for sibling in parent.children.iter() {
+        for sibling in &parent.children {
             if sibling.id == self.id {
                 return previous;
             }
-            previous = Some(sibling)
+            previous = Some(sibling);
         }
         None
     }
@@ -452,7 +452,7 @@ impl<'a> AstNode<'a> {
     /// This is None if the preceding whitespace does not contain any newline.
     pub fn preceding_indentation(&'a self) -> Option<&'a str> {
         let whitespace = self.preceding_whitespace()?;
-        let last_newline = whitespace.rfind("\n")?;
+        let last_newline = whitespace.rfind('\n')?;
         Some(&whitespace[(last_newline + 1)..])
     }
 
@@ -514,8 +514,8 @@ impl<'a> AstNode<'a> {
         tab_width: usize,
     ) -> Option<&'b str> {
         let tab_spaces = " ".repeat(tab_width);
-        let own_spaces = own_indentation.replace("\t", &tab_spaces);
-        let suffix = own_spaces.strip_prefix(&ancestor_indentation.replace("\t", &tab_spaces))?;
+        let own_spaces = own_indentation.replace('\t', &tab_spaces);
+        let suffix = own_spaces.strip_prefix(&ancestor_indentation.replace('\t', &tab_spaces))?;
         // convert back the suffix of the normalized strings to a suffix of the original string
         let mut idx = own_indentation.len();
         let mut remaining_spaces = suffix.len();
@@ -543,7 +543,7 @@ impl<'a> AstNode<'a> {
         match self.preceding_indentation().or(self.ancestor_indentation()) {
             Some(indentation) => {
                 // TODO FIXME this is invalid for multiline string literals!
-                Cow::from(self.source.replace(&format!("\n{}", indentation), "\n"))
+                Cow::from(self.source.replace(&format!("\n{indentation}"), "\n"))
             }
             None => Cow::from(self.source),
         }
@@ -552,12 +552,12 @@ impl<'a> AstNode<'a> {
     /// The source of this node, stripped from any indentation inherited by the node or its ancestors
     /// and shifted back to the desired indentation.
     pub fn reindented_source(&'a self, new_indentation: &str) -> String {
-        let new_newlines = format!("\n{}", new_indentation);
+        let new_newlines = format!("\n{new_indentation}");
         let indentation = (self.preceding_indentation())
             .or(self.ancestor_indentation())
             .unwrap_or("");
         self.source
-            .replace(&format!("\n{}", indentation), &new_newlines) // TODO FIXME this is invalid for multiline string literals!
+            .replace(&format!("\n{indentation}"), &new_newlines) // TODO FIXME this is invalid for multiline string literals!
     }
 
     /// Source of the node, including any whitespace before and after,
@@ -597,7 +597,7 @@ impl<'a> AstNode<'a> {
             "{prefix}{}{}\x1b[0m{}{}\n",
             if last_child { "└" } else { "├" },
             if let Some(key) = self.field_name {
-                format!("{}: ", key)
+                format!("{key}: ")
             } else {
                 "".to_owned()
             },
@@ -607,14 +607,14 @@ impl<'a> AstNode<'a> {
                 format!("\x1b[0;31m{}\x1b[0m", self.grammar_name)
             },
             if num_children == 0 && self.source != self.grammar_name {
-                format!(" \x1b[0;31m{}\x1b[0m", self.source.replace("\n", "\\n"))
+                format!(" \x1b[0;31m{}\x1b[0m", self.source.replace('\n', "\\n"))
             } else if next_parent.is_some() {
                 " \x1b[0;95mCommutative\x1b[0m".to_string()
             } else if let (Some(_), Some(sig)) = (
                 parent,
                 lang_profile.extract_signature_from_original_node(self)
             ) {
-                format!(" \x1b[0;96m{}\x1b[0m", sig)
+                format!(" \x1b[0;96m{sig}\x1b[0m")
             } else {
                 "".to_owned()
             }
@@ -627,7 +627,7 @@ impl<'a> AstNode<'a> {
                     index == num_children - 1,
                     lang_profile,
                     next_parent,
-                ))
+                ));
             }
         }
         result
@@ -874,7 +874,7 @@ mod tests {
                 "number",
                 "}"
             ]
-        )
+        );
     }
 
     #[test]
@@ -899,7 +899,7 @@ mod tests {
                 "object",
                 "document"
             ]
-        )
+        );
     }
 
     #[test]

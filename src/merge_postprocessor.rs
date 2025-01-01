@@ -188,14 +188,14 @@ fn highlight_duplicate_signatures<'a>(
                             } /* TODO set to OnlyInside if we are the last content node */
                         };
                         let mut merged = merge_same_sigs(
-                            cluster
+                            &cluster
                                 .iter()
                                 .map(|idx| {
                                     elements
                                         .get(*idx)
                                         .expect("Invalid element index in sig_to_indices")
                                 })
-                                .collect(),
+                                .collect::<Vec<_>>(),
                             class_mapping,
                             separator_node,
                             conflict_add_separator,
@@ -236,21 +236,21 @@ enum AddSeparator {
 /// Given a list of elements having the same signature, create a conflict highlighting this fact,
 /// or if they happen to be isomorphic in the left/right revisions, output them as-is.
 fn merge_same_sigs<'a>(
-    elements: Vec<&MergedTree<'a>>,
+    elements: &[&MergedTree<'a>],
     class_mapping: &ClassMapping<'a>,
     separator: Option<&'a AstNode<'a>>,
     add_separator: AddSeparator,
 ) -> Vec<MergedTree<'a>> {
-    if let &[first, second] = elements.as_slice() {
+    if let &[first, second] = elements {
         if isomorphic_merged_trees(first, second, class_mapping) {
             // The two elements don't just have the same signature, they are actually isomorphic!
             // So let's just deduplicate them.
             return vec![first.clone()];
         }
     }
-    let base = filter_by_revision(&elements, Revision::Base, class_mapping);
-    let left = filter_by_revision(&elements, Revision::Left, class_mapping);
-    let right = filter_by_revision(&elements, Revision::Right, class_mapping);
+    let base = filter_by_revision(elements, Revision::Base, class_mapping);
+    let left = filter_by_revision(elements, Revision::Left, class_mapping);
+    let right = filter_by_revision(elements, Revision::Right, class_mapping);
 
     if left.len() == right.len()
         && left
@@ -258,7 +258,7 @@ fn merge_same_sigs<'a>(
             .zip(right.iter())
             .all(|(elem_left, elem_right)| elem_left.isomorphic_to(elem_right))
     {
-        add_separators(left, separator, add_separator)
+        add_separators(&left, separator, add_separator)
             .iter()
             .map(|ast_node| {
                 MergedTree::new_exact(
@@ -270,9 +270,9 @@ fn merge_same_sigs<'a>(
             .collect()
     } else {
         vec![MergedTree::Conflict {
-            base: add_separators(base, separator, add_separator),
-            left: add_separators(left, separator, add_separator),
-            right: add_separators(right, separator, add_separator),
+            base: add_separators(&base, separator, add_separator),
+            left: add_separators(&left, separator, add_separator),
+            right: add_separators(&right, separator, add_separator),
         }]
     }
 }
@@ -297,7 +297,7 @@ fn filter_by_revision<'a>(
 
 /// Insert separators between a list of merged elements
 fn add_separators<'a>(
-    elements: Vec<&'a AstNode<'a>>,
+    elements: &[&'a AstNode<'a>],
     separator: Option<&'a AstNode<'a>>,
     add_separator: AddSeparator,
 ) -> Vec<&'a AstNode<'a>> {
@@ -308,7 +308,7 @@ fn add_separators<'a>(
             result.push(separator);
         }
     }
-    for element in &elements {
+    for element in elements {
         if first {
             first = false;
         } else if let Some(separator) = separator {

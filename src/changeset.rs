@@ -107,15 +107,15 @@ impl<'a> ChangeSet<'a> {
         let mut results = Vec::new();
         if let PCSNode::Node { .. } = pcs.predecessor {
             results.extend(
-                (self.predecessors.get(pcs.predecessor).iter())
-                    .chain(self.successors.get(pcs.predecessor).iter())
+                (self.predecessors.get(&pcs.predecessor).iter())
+                    .chain(self.successors.get(&pcs.predecessor).iter())
                     .filter(|other| other.parent != pcs.parent),
             );
         }
         if let PCSNode::Node { .. } = pcs.successor {
             results.extend(
-                (self.predecessors.get(pcs.successor).iter())
-                    .chain(self.successors.get(pcs.successor).iter())
+                (self.predecessors.get(&pcs.successor).iter())
+                    .chain(self.successors.get(&pcs.successor).iter())
                     .filter(|other| other.parent != pcs.parent),
             );
         }
@@ -125,7 +125,7 @@ impl<'a> ChangeSet<'a> {
     /// Finds all the PCS that are successor-conflicting with this PCS
     #[allow(dead_code)] // used in tests
     pub(crate) fn other_successors(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
-        self.parents.get(pcs.parent).iter().filter(move |other| {
+        self.parents.get(&pcs.parent).iter().filter(move |other| {
             other.successor != pcs.successor && other.predecessor == pcs.predecessor
         })
     }
@@ -133,7 +133,7 @@ impl<'a> ChangeSet<'a> {
     /// Finds all the inconsistent triples
     pub fn inconsistent_triples(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
         self.parents
-            .get(pcs.parent)
+            .get(&pcs.parent)
             .iter()
             .filter(move |other| {
                 (other.predecessor == pcs.predecessor) != (other.successor == pcs.successor)
@@ -155,9 +155,9 @@ impl<'a> ChangeSet<'a> {
     pub fn save(&self, fname: impl AsRef<Path>) {
         let mut result = String::new();
         for pcs in self.iter().sorted().map(|pcs| format!("{pcs}\n")) {
-            result.push_str(&pcs)
+            result.push_str(&pcs);
         }
-        fs::write(fname, result).expect("Unable to write changeset file")
+        fs::write(fname, result).expect("Unable to write changeset file");
     }
 }
 
@@ -213,7 +213,7 @@ mod tests {
             "(]:10…11@Base, ⊣, ⊢)",
         ];
 
-        assert_eq!(as_strings, expected)
+        assert_eq!(as_strings, expected);
     }
 
     #[test]

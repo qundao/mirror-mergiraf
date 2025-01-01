@@ -142,7 +142,7 @@ fn add_node(
         attrs.iter().map(|(k, v)| format!("{k}=\"{v}\"")).join(",")
     )?;
     if !is_exact_match {
-        for child in node.children.iter() {
+        for child in &node.children {
             let child_id = add_node(child, writer, prefix, matched, exactly_matched, visited)?;
             writeln!(writer, "    {nodeid} -- {child_id}")?;
         }
@@ -177,6 +177,6 @@ mod tests {
 
         let contents =
             fs::read_to_string(&target_path).expect("Could not read the generated graph.dot file");
-        assert!(contents.contains("subgraph ")) // yes, not a very great assertion… but node ids are all unstable!
+        assert!(contents.contains("subgraph ")); // yes, not a very great assertion… but node ids are all unstable!
     }
 }

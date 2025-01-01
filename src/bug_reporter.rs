@@ -12,9 +12,9 @@ use zip::{write::SimpleFileOptions, ZipWriter};
 use crate::{attempts::AttemptsCache, git::extract_revision_from_git, pcs::Revision};
 
 /// Creates an archive containing files necessary to reproduce a faulty merge
-pub fn report_bug(attempt_id_or_path: String) -> Result<(), String> {
+pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
     let attempts_cache = AttemptsCache::new(None, None)?;
-    let archive_name = if let Ok(attempt) = attempts_cache.parse_attempt_id(&attempt_id_or_path) {
+    let archive_name = if let Ok(attempt) = attempts_cache.parse_attempt_id(attempt_id_or_path) {
         let path_base = attempt.path("Base");
         let path_left = attempt.path("Left");
         let path_right = attempt.path("Right");

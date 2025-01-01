@@ -79,6 +79,7 @@ impl<'a> Display for PCSNode<'a> {
 // only useful to list a changeset in a sort of meaningful way for debugging purposes
 impl<'a> Ord for PCSNode<'a> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        #[allow(clippy::match_same_arms)]
         match (self, other) {
             (PCSNode::VirtualRoot, PCSNode::VirtualRoot) => Ordering::Equal,
             (PCSNode::VirtualRoot, _) => Ordering::Less,

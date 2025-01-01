@@ -183,7 +183,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
         let mut children = Vec::new();
         let mut predecessor = PCSNode::LeftMarker;
-        let mut cursor = children_map.get(predecessor);
+        let mut cursor = children_map.get(&predecessor);
         let mut seen_nodes: HashSet<PCSNode<'a>> = HashSet::new(); // to avoid looping, and to make sure every single known predecessor is visited
         seen_nodes.insert(predecessor);
 
@@ -217,7 +217,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         children.push(child_result_tree);
                         predecessor = *current_child;
                         seen_nodes.insert(predecessor);
-                        cursor = children_map.get(predecessor);
+                        cursor = children_map.get(&predecessor);
                     } else {
                         // we failed to build the result tree for a child of this node, because of a nasty conflict.
                         // We fall back on line diffing
@@ -346,20 +346,18 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 // Check if all the children are exact trees with at least one common revision
                 let mut children_revnodes = Vec::new();
                 let mut common_revisions = revisions.set();
-                for child in children.iter() {
-                    match child {
-                        MergedTree::ExactTree {
-                            node, revisions, ..
-                        } => {
-                            common_revisions = common_revisions.intersection(revisions.set());
-                            children_revnodes.push(*node);
-                        }
-                        _ => {
-                            // the child is not a tree that exactly matches a subtree in at least one revision,
-                            // so we give up as its parent can also not be one either
-                            common_revisions = RevisionSet::new();
-                            break;
-                        }
+                for child in &children {
+                    if let MergedTree::ExactTree {
+                        node, revisions, ..
+                    } = child
+                    {
+                        common_revisions = common_revisions.intersection(revisions.set());
+                        children_revnodes.push(*node);
+                    } else {
+                        // the child is not a tree that exactly matches a subtree in at least one revision,
+                        // so we give up as its parent can also not be one either
+                        common_revisions = RevisionSet::new();
+                        break;
                     }
                 }
                 if !common_revisions.is_empty() {
@@ -472,7 +470,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let mut result = Vec::new();
         let mut cursor = starting_node;
         loop {
-            let all_successors = successors.get(cursor);
+            let all_successors = successors.get(&cursor);
             let candidate = *all_successors
                 .iter()
                 .filter(|(rev, _)| *rev == revision)

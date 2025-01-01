@@ -248,7 +248,7 @@ impl<'a> ParsedMerge<'a> {
         let first_index = self.index_tree_by_merged_ranges(first_revision, first_tree);
         let second_index = self.index_tree_by_merged_ranges(second_revision, second_tree);
         let mut matching = Matching::new();
-        for (range, first_node) in first_index.iter() {
+        for (range, first_node) in &first_index {
             if let Some(second_node) = second_index.get(range) {
                 matching.add(first_node, second_node);
             }
@@ -287,7 +287,7 @@ impl<'a> ParsedMerge<'a> {
     /// Render the parsed merge back to a string representation
     pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
         let mut result = String::new();
-        for chunk in self.chunks.iter() {
+        for chunk in &self.chunks {
             match chunk {
                 MergedChunk::Resolved { contents, .. } => result.push_str(contents),
                 MergedChunk::Conflict {

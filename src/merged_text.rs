@@ -141,27 +141,24 @@ impl<'a> MergedText<'a> {
             match section {
                 MergeSection::Merged(contents) => {
                     if gathering_conflict {
-                        match contents.find('\n') {
-                            Some(newline_idx) => {
-                                let to_append = &contents[..(newline_idx + 1)];
-                                left_buffer.push_str(to_append);
-                                base_buffer.push_str(to_append);
-                                right_buffer.push_str(to_append);
-                                Self::render_conflict(
-                                    &base_buffer,
-                                    &left_buffer,
-                                    &right_buffer,
-                                    settings,
-                                    &mut output,
-                                );
-                                output.push_str(&contents[(newline_idx + 1)..]);
-                                gathering_conflict = false
-                            }
-                            None => {
-                                left_buffer.push_str(contents);
-                                base_buffer.push_str(contents);
-                                right_buffer.push_str(contents);
-                            }
+                        if let Some(newline_idx) = contents.find('\n') {
+                            let to_append = &contents[..(newline_idx + 1)];
+                            left_buffer.push_str(to_append);
+                            base_buffer.push_str(to_append);
+                            right_buffer.push_str(to_append);
+                            Self::render_conflict(
+                                &base_buffer,
+                                &left_buffer,
+                                &right_buffer,
+                                settings,
+                                &mut output,
+                            );
+                            output.push_str(&contents[(newline_idx + 1)..]);
+                            gathering_conflict = false;
+                        } else {
+                            left_buffer.push_str(contents);
+                            base_buffer.push_str(contents);
+                            right_buffer.push_str(contents);
                         }
                     } else {
                         output.push_str(contents);

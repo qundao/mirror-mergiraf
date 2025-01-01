@@ -17,7 +17,7 @@ fn run_git(args: Vec<&str>, repo_dir: &Path) {
     let output = command.output().expect("Failed to execute git command");
     if !output.status.success() {
         eprintln!("{}", str::from_utf8(&output.stderr).unwrap());
-        panic!("git command failed: {}", command_str);
+        panic!("git command failed: {command_str}");
     }
 }
 
