@@ -166,12 +166,16 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             }
 
             let fname_base = &base;
-            let contents_base = normalize_to_lf(&read_file_to_string(fname_base)?);
+            let original_contents_base = read_file_to_string(fname_base)?;
+            let contents_base = normalize_to_lf(&original_contents_base);
+
             let fname_left = &left;
             let original_contents_left = read_file_to_string(fname_left)?;
             let contents_left = normalize_to_lf(&original_contents_left);
+
             let fname_right = &right;
-            let contents_right = normalize_to_lf(&read_file_to_string(fname_right)?);
+            let original_contents_right = read_file_to_string(fname_right)?;
+            let contents_right = normalize_to_lf(&original_contents_right);
 
             let attempts_cache = AttemptsCache::new(None, None).ok();
 

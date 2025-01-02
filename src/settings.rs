@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::parsed_merge::{MergedChunk, ParsedMerge};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -132,8 +134,13 @@ pub fn imitate_cr_lf_from_input(input_contents: &str, output_contents: &str) -> 
     }
 }
 
-pub fn normalize_to_lf(contents: &str) -> String {
-    contents.replace("\r\n", "\n").replace('\r', "\n")
+pub fn normalize_to_lf(contents: &str) -> Cow<str> {
+    if !contents.contains('\r') {
+        Cow::Borrowed(contents)
+    } else {
+        let res = contents.replace("\r\n", "\n").replace('\r', "\n");
+        Cow::Owned(res)
+    }
 }
 
 #[cfg(test)]
