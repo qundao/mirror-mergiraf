@@ -594,7 +594,7 @@ impl<'a> AstNode<'a> {
         let num_children = self.children.len();
         let next_parent = lang_profile.get_commutative_parent(self.grammar_name);
         let mut result = format!(
-            "{prefix}{}{}\x1b[0m{}{}\n",
+            "{prefix}{}{}\x1b[0m{}{}{}{}\n",
             if last_child { "└" } else { "├" },
             if let Some(key) = self.field_name {
                 format!("{key}: ")
@@ -608,9 +608,15 @@ impl<'a> AstNode<'a> {
             },
             if num_children == 0 && self.source != self.grammar_name {
                 format!(" \x1b[0;31m{}\x1b[0m", self.source.replace('\n', "\\n"))
-            } else if next_parent.is_some() {
+            } else {
+                "".to_owned()
+            },
+            if next_parent.is_some() {
                 " \x1b[0;95mCommutative\x1b[0m".to_string()
-            } else if let (Some(_), Some(sig)) = (
+            } else {
+                "".to_owned()
+            },
+            if let (Some(_), Some(sig)) = (
                 parent,
                 lang_profile.extract_signature_from_original_node(self)
             ) {
