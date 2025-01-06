@@ -65,6 +65,8 @@ use tree_matcher::TreeMatcher;
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
 
+pub const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
+
 /// Helper to parse a source text with a given tree-sitter parser.
 pub(crate) fn parse<'a>(
     parser: &mut TSParser,
@@ -363,27 +365,10 @@ pub fn cascading_merge(
     if let Some(lang_profile) = lang_profile {
         // second attempt: to solve the conflicts from the line-based merge
         if !line_based_merge.has_additional_issues {
-            let start = Instant::now();
             let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents)
                 .expect("the diffy-imara rust library produced inconsistent conflict markers");
 
-            let base_recovered_rev = parsed_conflicts.reconstruct_revision(Revision::Base);
-            let left_recovered_rev = parsed_conflicts.reconstruct_revision(Revision::Left);
-            let right_recovered_rev = parsed_conflicts.reconstruct_revision(Revision::Right);
-            debug!(
-                "re-constructing revisions from parsed merge took {:?}",
-                start.elapsed()
-            );
-
-            let solved_merge = structured_merge(
-                &base_recovered_rev,
-                &left_recovered_rev,
-                &right_recovered_rev,
-                Some(&parsed_conflicts),
-                settings,
-                lang_profile,
-                debug_dir,
-            );
+            let solved_merge = resolve_merge(&parsed_conflicts, settings, lang_profile, debug_dir);
 
             match solved_merge {
                 Ok(recovered_merge) => {
@@ -428,29 +413,66 @@ pub fn cascading_merge(
 ///
 /// Returns either a merge (potentially with conflicts) or an error.
 fn resolve_merge<'a>(
-    merge_contents: &'a str,
-    settings: &mut DisplaySettings<'a>,
+    parsed_merge: &ParsedMerge<'a>,
+    settings: &DisplaySettings<'a>,
     lang_profile: &LangProfile,
     debug_dir: Option<&str>,
-) -> Result<(ParsedMerge<'a>, MergeResult), String> {
-    let parsed_merge = ParsedMerge::parse(merge_contents)?;
-
-    settings.add_revision_names(&parsed_merge);
+) -> Result<MergeResult, String> {
+    let start = Instant::now();
 
     let base_rev = parsed_merge.reconstruct_revision(Revision::Base);
     let left_rev = parsed_merge.reconstruct_revision(Revision::Left);
     let right_rev = parsed_merge.reconstruct_revision(Revision::Right);
 
-    let merge = structured_merge(
+    debug!(
+        "re-constructing revisions from parsed merge took {:?}",
+        start.elapsed()
+    );
+
+    structured_merge(
         &base_rev,
         &left_rev,
         &right_rev,
-        Some(&parsed_merge),
+        Some(parsed_merge),
         settings,
         lang_profile,
         debug_dir,
-    )?;
-    Ok((parsed_merge, merge))
+    )
+}
+
+/// Extracts the original revisions of the file from Git and performs a fully structured merge (see
+/// [`structured_merge`])
+///
+/// Returns either a merge or nothing if couldn't extract the revisions.
+fn structured_merge_from_git_revisions(
+    fname_base: &str,
+    settings: &DisplaySettings,
+    debug_dir: Option<&str>,
+    working_dir: &Path,
+    lang_profile: &LangProfile,
+) -> Result<MergeResult, String> {
+    let revision_base = extract_revision(working_dir, fname_base, Revision::Base);
+    let revision_left = extract_revision(working_dir, fname_base, Revision::Left);
+    let revision_right = extract_revision(working_dir, fname_base, Revision::Right);
+
+    // we only attempt a full structured merge if we could extract revisions from Git
+    match (revision_base, revision_left, revision_right) {
+        (Ok(contents_base), Ok(contents_left), Ok(contents_right)) => structured_merge(
+            &contents_base,
+            &contents_left,
+            &contents_right,
+            None,
+            settings,
+            lang_profile,
+            debug_dir,
+        ),
+        (rev_base, _, _) => {
+            if let Err(b) = rev_base {
+                println!("{b}");
+            }
+            Err("Could not retrieve conflict sides from Git.".to_owned())
+        }
+    }
 }
 
 /// Cascading merge resolution starting from a user-supplied file with merge conflicts
@@ -461,85 +483,68 @@ pub fn resolve_merge_cascading<'a>(
     debug_dir: Option<&str>,
     working_dir: &Path,
 ) -> Result<MergeResult, String> {
+    let mut merges = Vec::with_capacity(3);
+
     let lang_profile = LangProfile::detect_from_filename(fname_base)
         .ok_or_else(|| format!("Could not find a supported language for {fname_base}"))?;
 
-    let mut resolved_merge = None;
-    let mut parsed_merge = None;
-
-    match resolve_merge(merge_contents, &mut settings, lang_profile, debug_dir) {
-        Ok((original_merge, merge_result)) => {
-            parsed_merge = Some(original_merge);
-            resolved_merge = Some(merge_result);
-        }
+    match ParsedMerge::parse(merge_contents) {
         Err(err) => {
             if err == PARSED_MERGE_DIFF2_DETECTED {
                 // if parsing the original merge failed because it's done in diff2 mode,
                 // then we warn the user about it but don't give up yet as we can try a full merge
                 warn!("Cannot solve conflicts in diff2 style. Merging the original conflict sides from scratch instead.");
             } else {
-                return Err(err);
+                warn!("Error while parsing conflicts: {err}. Merging the original conflict sides from scratch instead.");
             }
+        }
+        Ok(parsed_merge) => {
+            settings.add_revision_names(&parsed_merge);
+
+            match resolve_merge(&parsed_merge, &settings, lang_profile, debug_dir) {
+                Ok(merge) if merge.conflict_count == 0 => {
+                    info!("Solved all conflicts.");
+                    return Ok(merge);
+                }
+                Ok(merge) => merges.push(merge),
+                Err(err) => warn!("Error while resolving conflicts: {err}"),
+            }
+
+            let rendered_from_parsed = {
+                MergeResult {
+                    contents: parsed_merge.render(&settings),
+                    conflict_count: parsed_merge.conflict_count(),
+                    conflict_mass: parsed_merge.conflict_mass(),
+                    method: FROM_PARSED_ORIGINAL,
+                    has_additional_issues: false,
+                }
+            };
+            merges.push(rendered_from_parsed);
         }
     }
 
-    match resolved_merge {
-        Some(merge) if merge.conflict_count == 0 => {
-            info!("Solved all conflicts.");
-            Ok(merge)
-        }
-        _ => {
-            // if we didn't manage to solve all conflicts, try again by extracting the original revisions from Git
-            let mut merges = Vec::new();
-            if let Some(merge) = resolved_merge {
-                merges.push(merge);
-            }
-            if let Some(parsed_merge) = parsed_merge {
-                merges.push(parsed_merge.to_merge_result(&settings));
-            }
-
-            let revision_base = extract_revision(working_dir, fname_base, Revision::Base);
-            let revision_left = extract_revision(working_dir, fname_base, Revision::Left);
-            let revision_right = extract_revision(working_dir, fname_base, Revision::Right);
-
-            // we only attempt a full structured merge if we could extract revisions from Git
-            match (revision_base, revision_left, revision_right) {
-                (Ok(contents_base), Ok(contents_left), Ok(contents_right)) => {
-                    let structured_merge = structured_merge(
-                        &contents_base,
-                        &contents_left,
-                        &contents_right,
-                        None,
-                        &settings,
-                        lang_profile,
-                        debug_dir,
-                    );
-
-                    match structured_merge {
-                        Ok(merge) => merges.push(merge),
-                        Err(err) => warn!("Full structured merge failed: {err}"),
-                    };
-                }
-                (rev_base, _, _) => {
-                    if let Err(b) = rev_base {
-                        println!("{b}");
-                    }
-                    warn!("Could not retrieve conflict sides from Git.");
-                }
-            }
-
-            if merges.is_empty() {
-                return Err("Could not generate any merge".to_string());
-            }
-            let best_merge = select_best_merge(merges);
-
-            match best_merge.conflict_count {
-                0 => info!("Solved all conflicts."),
-                n => info!("{n} conflict(s) remaining."),
-            }
-            Ok(best_merge)
-        }
+    // if we didn't manage to solve all conflicts, try again by extracting the original revisions from Git
+    match structured_merge_from_git_revisions(
+        fname_base,
+        &settings,
+        debug_dir,
+        working_dir,
+        lang_profile,
+    ) {
+        Ok(structured_merge) => merges.push(structured_merge),
+        Err(err) => warn!("Full structured merge failed: {err}"),
     }
+
+    if merges.is_empty() {
+        return Err("Could not generate any merge".to_string());
+    }
+    let best_merge = select_best_merge(merges);
+
+    match best_merge.conflict_count {
+        0 => info!("Solved all conflicts."),
+        n => info!("{n} conflict(s) remaining."),
+    }
+    Ok(best_merge)
 }
 
 fn extract_revision(working_dir: &Path, path: &str, revision: Revision) -> Result<String, String> {

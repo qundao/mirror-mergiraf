@@ -4,7 +4,6 @@ use itertools::Itertools;
 use regex::Regex;
 
 use crate::{
-    line_based::MergeResult,
     matching::Matching,
     pcs::Revision,
     settings::DisplaySettings,
@@ -310,17 +309,6 @@ impl<'a> ParsedMerge<'a> {
             }
         }
         result
-    }
-
-    /// Converts to a merge result
-    pub(crate) fn to_merge_result(&self, settings: &DisplaySettings) -> MergeResult {
-        MergeResult {
-            contents: self.render(settings),
-            conflict_count: self.conflict_count(),
-            conflict_mass: self.conflict_mass(),
-            method: "original",
-            has_additional_issues: false,
-        }
     }
 
     fn binary_search(slice: &[OffsetMap], start: usize, length: usize) -> Option<usize> {

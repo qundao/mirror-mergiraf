@@ -9,6 +9,7 @@ use mergiraf::{
     line_merge_and_structured_resolution, resolve_merge_cascading,
     settings::{imitate_cr_lf_from_input, normalize_to_lf, DisplaySettings},
     supported_langs::SUPPORTED_LANGUAGES,
+    FROM_PARSED_ORIGINAL,
 };
 
 const DISABLING_ENV_VAR: &str = "MERGIRAF_DISABLE";
@@ -236,7 +237,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 &working_dir,
             );
             match postprocessed {
-                Ok(merged) if merged.method == "original" => 1,
+                Ok(merged) if merged.method == FROM_PARSED_ORIGINAL => 1,
                 Ok(merged) => {
                     if keep {
                         print!(
