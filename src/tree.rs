@@ -593,50 +593,55 @@ impl<'a> AstNode<'a> {
     ) -> String {
         let num_children = self.children.len();
         let next_parent = lang_profile.get_commutative_parent(self.grammar_name);
-        let mut result = format!(
-            "{prefix}{}{}\x1b[0m{}{}{}{}\n",
-            if last_child { "└" } else { "├" },
-            if let Some(key) = self.field_name {
-                format!("{key}: ")
-            } else {
-                "".to_owned()
-            },
-            if self.source != self.grammar_name {
-                self.grammar_name.to_owned()
-            } else {
-                format!("\x1b[0;31m{}\x1b[0m", self.grammar_name)
-            },
-            if num_children == 0 && self.source != self.grammar_name {
-                format!(" \x1b[0;31m{}\x1b[0m", self.source.replace('\n', "\\n"))
-            } else {
-                "".to_owned()
-            },
-            if next_parent.is_some() {
-                " \x1b[0;95mCommutative\x1b[0m".to_string()
-            } else {
-                "".to_owned()
-            },
-            if let (Some(_), Some(sig)) = (
-                parent,
-                lang_profile.extract_signature_from_original_node(self)
-            ) {
-                format!(" \x1b[0;96m{sig}\x1b[0m")
-            } else {
-                "".to_owned()
-            }
-        );
-        for (index, child) in self.children.iter().enumerate() {
-            if child.grammar_name != "@virtual_line@" {
-                let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
-                result.push_str(&child.internal_ascii_tree(
-                    &new_prefix,
-                    index == num_children - 1,
-                    lang_profile,
-                    next_parent,
-                ));
-            }
-        }
-        result
+
+        let tree_sym = if last_child { "└" } else { "├" };
+
+        let key = (self.field_name)
+            .map(|key| format!("{key}: "))
+            .unwrap_or_default();
+
+        let grammar_name = if self.source != self.grammar_name {
+            self.grammar_name
+        } else {
+            &format!("\x1b[0;31m{}\x1b[0m", self.grammar_name)
+        };
+
+        let source = (num_children == 0 && self.source != self.grammar_name)
+            .then(|| format!(" \x1b[0;31m{}\x1b[0m", self.source.replace('\n', "\\n")))
+            .unwrap_or_default();
+
+        let commutative = (next_parent.is_some())
+            .then_some(" \x1b[0;95mCommutative\x1b[0m")
+            .unwrap_or_default();
+
+        let sig = (parent.is_some())
+            .then(|| {
+                lang_profile
+                    .extract_signature_from_original_node(self)
+                    .map(|sig| format!(" \x1b[0;96m{sig}\x1b[0m"))
+            })
+            .flatten()
+            .unwrap_or_default();
+
+        std::iter::once(format!(
+            "{prefix}{tree_sym}{key}\x1b[0m{grammar_name}{source}{commutative}{sig}\n"
+        ))
+        .chain(
+            self.children
+                .iter()
+                .enumerate()
+                .filter(|(_, child)| child.grammar_name != "@virtual_line@")
+                .map(|(index, child)| {
+                    let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
+                    child.internal_ascii_tree(
+                        &new_prefix,
+                        index == num_children - 1,
+                        lang_profile,
+                        next_parent,
+                    )
+                }),
+        )
+        .collect()
     }
 }
 
