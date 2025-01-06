@@ -535,7 +535,10 @@ pub fn resolve_merge_cascading<'a>(
         Err(err) => warn!("Full structured merge failed: {err}"),
     }
 
-    if merges.is_empty() {
+    if merges.is_empty() ||
+    // the only "merge" is the parsed input
+    (merges.len() == 1 && merges[0].method == FROM_PARSED_ORIGINAL)
+    {
         return Err("Could not generate any merge".to_string());
     }
     let best_merge = select_best_merge(merges);
