@@ -1,7 +1,12 @@
 use std::{fs, process::exit};
 
 use clap::{Parser, Subcommand};
-use mergiraf::{lang_profile::LangProfile, settings::normalize_to_lf, tree::Ast};
+use mergiraf::{
+    lang_profile::LangProfile,
+    // XXX: move the uses to lib to avoid making these public?
+    newline::normalize_to_lf,
+    tree::Ast,
+};
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
 

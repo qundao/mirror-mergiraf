@@ -60,6 +60,6 @@ pub(crate) fn extract_revision_from_git(
         )
     })?;
     Ok(GitTempFile {
-        path: repo_dir.join(PathBuf::from(temp_file_path)),
+        path: repo_dir.join(Path::new(temp_file_path)),
     })
 }

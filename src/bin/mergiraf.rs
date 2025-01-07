@@ -6,8 +6,11 @@ use log::warn;
 use mergiraf::{
     attempts::AttemptsCache,
     bug_reporter::report_bug,
-    line_merge_and_structured_resolution, resolve_merge_cascading,
-    settings::{imitate_cr_lf_from_input, normalize_to_lf, DisplaySettings},
+    line_merge_and_structured_resolution,
+    // XXX: move the uses to lib to avoid making these public?
+    newline::{imitate_cr_lf_from_input, normalize_to_lf},
+    resolve_merge_cascading,
+    settings::DisplaySettings,
     supported_langs::SUPPORTED_LANGUAGES,
 };
 

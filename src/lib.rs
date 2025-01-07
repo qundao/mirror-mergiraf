@@ -25,15 +25,18 @@ pub(crate) mod line_based;
 pub(crate) mod matching;
 pub(crate) mod merge_3dm;
 pub(crate) mod merge_postprocessor;
+pub(crate) mod merge_result;
 pub(crate) mod merged_text;
 pub(crate) mod merged_tree;
 #[allow(clippy::mutable_key_type)]
 pub(crate) mod multimap;
+pub mod newline;
 pub(crate) mod parsed_merge;
 pub(crate) mod pcs;
 pub(crate) mod priority_list;
 pub mod settings;
 pub(crate) mod signature;
+pub(crate) mod structured;
 pub mod supported_langs;
 #[cfg(test)]
 pub(crate) mod test_utils;
@@ -43,25 +46,22 @@ pub(crate) mod tree_matcher;
 pub(crate) mod visualizer;
 
 use core::cmp::Ordering;
-use std::{borrow::Cow, fs, path::Path, time::Instant};
+use std::{fs, path::Path, time::Instant};
 
 use attempts::AttemptsCache;
 use git::extract_revision_from_git;
 
 use itertools::Itertools;
 use lang_profile::LangProfile;
-use line_based::{
-    line_based_merge, with_final_newline, MergeResult, FULLY_STRUCTURED_METHOD, LINE_BASED_METHOD,
-    STRUCTURED_RESOLUTION_METHOD,
-};
+use line_based::{line_based_merge_with_duplicate_signature_detection, LINE_BASED_METHOD};
 use log::{debug, info, warn};
-use merge_3dm::three_way_merge;
 
+use merge_result::MergeResult;
 use parsed_merge::{ParsedMerge, PARSED_MERGE_DIFF2_DETECTED};
 use pcs::Revision;
 use settings::DisplaySettings;
+use structured::structured_merge;
 use tree::{Ast, AstNode};
-use tree_matcher::TreeMatcher;
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
 
@@ -79,96 +79,6 @@ pub(crate) fn parse<'a>(
         .parse(contents, None)
         .expect("Parsing example source code failed");
     Ast::new(&tree, contents, lang_profile, arena, ref_arena)
-}
-
-/// Performs a fully structured merge, parsing the contents of all three revisions,
-/// creating tree matchings between all pairs, and merging them.
-///
-/// The language to use is detected from the extension of `fname_base`.
-/// If a debug dir is provided, various intermediate stages of the matching will be
-/// written as files in that directory.
-/// Fails if the language cannot be detected or loaded.
-pub fn structured_merge(
-    contents_base: &str,
-    contents_left: &str,
-    contents_right: &str,
-    parsed_merge: Option<&ParsedMerge>,
-    settings: &DisplaySettings,
-    lang_profile: &LangProfile,
-    debug_dir: Option<&str>,
-) -> Result<MergeResult, String> {
-    let arena = Arena::new();
-    let ref_arena = Arena::new();
-
-    let start = Instant::now();
-    let mut parser = TSParser::new();
-    parser
-        .set_language(&lang_profile.language)
-        .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
-    debug!("initializing the parser took {:?}", start.elapsed());
-
-    let primary_matcher = TreeMatcher {
-        min_height: 1,
-        sim_threshold: 0.4,
-        max_recovery_size: 100,
-        use_rted: true,
-        lang_profile,
-    };
-    let auxiliary_matcher = TreeMatcher {
-        min_height: 2,
-        sim_threshold: 0.6,
-        max_recovery_size: 100,
-        use_rted: false,
-        lang_profile,
-    };
-
-    let start = Instant::now();
-    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena, &ref_arena)?;
-    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena, &ref_arena)?;
-    let tree_right = parse(
-        &mut parser,
-        contents_right,
-        lang_profile,
-        &arena,
-        &ref_arena,
-    )?;
-    debug!("parsing all three files took {:?}", start.elapsed());
-
-    let initial_matchings = parsed_merge.map(|parsed_merge| {
-        (
-            parsed_merge
-                .generate_matching(Revision::Base, Revision::Left, &tree_base, &tree_left)
-                .add_submatches(),
-            parsed_merge
-                .generate_matching(Revision::Base, Revision::Right, &tree_base, &tree_right)
-                .add_submatches(),
-        )
-    });
-
-    let (result_tree, class_mapping) = three_way_merge(
-        &tree_base,
-        &tree_left,
-        &tree_right,
-        initial_matchings.as_ref(),
-        &primary_matcher,
-        &auxiliary_matcher,
-        debug_dir,
-    );
-    debug!("{result_tree}");
-
-    let result = Cow::from(result_tree.pretty_print(&class_mapping, settings));
-
-    Ok(MergeResult {
-        contents: with_final_newline(result).into_owned(),
-        conflict_count: result_tree.count_conflicts(),
-        conflict_mass: result_tree.conflict_mass(),
-        method: if parsed_merge.is_none() {
-            FULLY_STRUCTURED_METHOD
-        } else {
-            STRUCTURED_RESOLUTION_METHOD
-        },
-        has_additional_issues: false,
-    })
 }
 
 /// Merge the files textually and then attempt to merge any conflicts
@@ -291,49 +201,6 @@ fn line_based_and_best(mut merges: Vec<MergeResult>) -> LineBasedAndBestAre {
     }
 }
 
-/// Do a line-based merge. If it is conflict-free, also check if it introduced any duplicate signatures,
-/// in which case this is logged as an additional issue on the merge result.
-fn line_based_merge_with_duplicate_signature_detection(
-    contents_base: &str,
-    contents_left: &str,
-    contents_right: &str,
-    settings: &DisplaySettings,
-    lang_profile: Option<&LangProfile>,
-) -> MergeResult {
-    let mut line_based_merge = line_based_merge(
-        &with_final_newline(Cow::from(contents_base)),
-        &with_final_newline(Cow::from(contents_left)),
-        &with_final_newline(Cow::from(contents_right)),
-        settings,
-    );
-
-    if line_based_merge.conflict_count == 0 {
-        // If we support this language, check that there aren't any signature conflicts in the line-based merge
-        if let Some(lang_profile) = lang_profile {
-            let mut parser = TSParser::new();
-            parser
-                .set_language(&lang_profile.language)
-                .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
-            let arena = Arena::new();
-            let ref_arena = Arena::new();
-            let tree_left = parse(
-                &mut parser,
-                &line_based_merge.contents,
-                lang_profile,
-                &arena,
-                &ref_arena,
-            );
-
-            if let Ok(ast) = tree_left {
-                if lang_profile.has_signature_conflicts(ast.root()) {
-                    line_based_merge.has_additional_issues = true;
-                }
-            }
-        }
-    }
-    line_based_merge
-}
-
 /// Attempts various merging method in turn, and stops early when
 /// any of them finds a conflict-free merge without any additional issues.
 pub fn cascading_merge(
@@ -362,47 +229,49 @@ pub fn cascading_merge(
         return vec![line_based_merge];
     }
 
-    if let Some(lang_profile) = lang_profile {
-        // second attempt: to solve the conflicts from the line-based merge
-        if !line_based_merge.has_additional_issues {
-            let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents)
-                .expect("the diffy-imara rust library produced inconsistent conflict markers");
+    let Some(lang_profile) = lang_profile else {
+        return vec![line_based_merge];
+    };
 
-            let solved_merge = resolve_merge(&parsed_conflicts, settings, lang_profile, debug_dir);
+    // second attempt: to solve the conflicts from the line-based merge
+    if !line_based_merge.has_additional_issues {
+        let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents)
+            .expect("the diffy-imara rust library produced inconsistent conflict markers");
 
-            match solved_merge {
-                Ok(recovered_merge) => {
-                    if recovered_merge.conflict_count == 0 && !recovered_merge.has_additional_issues
-                    {
-                        return vec![line_based_merge, recovered_merge];
-                    }
-                    merges.push(recovered_merge);
+        let solved_merge = resolve_merge(&parsed_conflicts, settings, lang_profile, debug_dir);
+
+        match solved_merge {
+            Ok(recovered_merge) => {
+                if recovered_merge.conflict_count == 0 && !recovered_merge.has_additional_issues {
+                    return vec![line_based_merge, recovered_merge];
                 }
-                Err(err) => {
-                    debug!("error while attempting conflict resolution of line-based merge: {err}");
-                }
+                merges.push(recovered_merge);
+            }
+            Err(err) => {
+                debug!("error while attempting conflict resolution of line-based merge: {err}");
             }
         }
-
-        if full_merge || line_based_merge.has_additional_issues {
-            // third attempt: full-blown structured merge
-            let structured_merge = structured_merge(
-                contents_base,
-                contents_left,
-                contents_right,
-                None,
-                settings,
-                lang_profile,
-                debug_dir,
-            );
-            match structured_merge {
-                Ok(successful_merge) => merges.push(successful_merge),
-                Err(parse_error) => {
-                    debug!("full structured merge encountered an error: {parse_error}");
-                }
-            };
-        }
     }
+
+    if full_merge || line_based_merge.has_additional_issues {
+        // third attempt: full-blown structured merge
+        let structured_merge = structured_merge(
+            contents_base,
+            contents_left,
+            contents_right,
+            None,
+            settings,
+            lang_profile,
+            debug_dir,
+        );
+        match structured_merge {
+            Ok(successful_merge) => merges.push(successful_merge),
+            Err(parse_error) => {
+                debug!("full structured merge encountered an error: {parse_error}");
+            }
+        };
+    }
+
     merges.push(line_based_merge);
     merges
 }
@@ -510,14 +379,12 @@ pub fn resolve_merge_cascading<'a>(
                 Err(err) => warn!("Error while resolving conflicts: {err}"),
             }
 
-            let rendered_from_parsed = {
-                MergeResult {
-                    contents: parsed_merge.render(&settings),
-                    conflict_count: parsed_merge.conflict_count(),
-                    conflict_mass: parsed_merge.conflict_mass(),
-                    method: FROM_PARSED_ORIGINAL,
-                    has_additional_issues: false,
-                }
+            let rendered_from_parsed = MergeResult {
+                contents: parsed_merge.render(&settings),
+                conflict_count: parsed_merge.conflict_count(),
+                conflict_mass: parsed_merge.conflict_mass(),
+                method: FROM_PARSED_ORIGINAL,
+                has_additional_issues: false,
             };
             merges.push(rendered_from_parsed);
         }
