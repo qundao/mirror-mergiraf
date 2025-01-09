@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use crate::tree::AstNode;
 
 /// A one-to-one relation between nodes of two trees.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Matching<'tree> {
     left_to_right: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
     right_to_left: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
@@ -87,10 +87,10 @@ impl<'tree> Matching<'tree> {
     }
 
     /// Reverse the direction of the matching
-    pub fn reverse(&self) -> Matching<'tree> {
+    pub fn into_reversed(self) -> Matching<'tree> {
         Matching {
-            left_to_right: self.right_to_left.clone(),
-            right_to_left: self.left_to_right.clone(),
+            left_to_right: self.right_to_left,
+            right_to_left: self.left_to_right,
         }
     }
 

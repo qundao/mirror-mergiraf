@@ -122,7 +122,7 @@ fn solve_command(#[case] conflict_style: &str) {
             "first_branch",
             "--no-gpg-sign",
         ]
-        .iter(),
+        .into_iter(),
     );
     // in case Git is configured to use Mergiraf
     command

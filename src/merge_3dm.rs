@@ -61,7 +61,8 @@ pub fn three_way_merge<'a>(
     debug!("matching left to right");
     let composed_matching = base_left_matching
         .full
-        .reverse()
+        .clone()
+        .into_reversed()
         .compose(&base_right_matching.full);
     let left_right_matching = auxiliary_matcher.match_trees(left, right, Some(&composed_matching));
     debug!("matching all three pairs took {:?}", start.elapsed());

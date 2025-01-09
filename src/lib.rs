@@ -201,7 +201,7 @@ fn line_based_and_best(mut merges: Vec<MergeResult>) -> LineBasedAndBestAre {
     }
 }
 
-/// Attempts various merging method in turn, and stops early when
+/// Attempts various merging methods in turn, and stops early when
 /// any of them finds a conflict-free merge without any additional issues.
 pub fn cascading_merge(
     contents_base: &str,

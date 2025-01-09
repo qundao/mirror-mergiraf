@@ -16,7 +16,7 @@ use crate::{
     tree::AstNode,
 };
 
-/// A merged tree, which can contain a mixture of elements from the original trees,s
+/// A merged tree, which can contain a mixture of elements from the original trees,
 /// conflict markers, or even new elements inserted by commutative merging to separate them.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum MergedTree<'a> {
@@ -141,7 +141,7 @@ impl<'a> MergedTree<'a> {
         let right_src = class_mapping.node_at_rev(node, Revision::Right);
         match (base_src, left_src, right_src) {
             (None, None, None) => {
-                panic!("A node that does not belong to any revision, how curious!")
+                unreachable!("A node that does not belong to any revision, how curious!")
             }
             (_, Some(_), None) => MergedTree::new_exact(
                 node,
@@ -195,9 +195,9 @@ impl<'a> MergedTree<'a> {
                         .children_at_revision(node, picked_revision)
                         .expect("non-existent children for revision in revset of ExactTree");
                     let cloned_children: Vec<MergedTree<'a>> = children
-                        .iter()
+                        .into_iter()
                         .map(|c| {
-                            MergedTree::new_exact(*c, revisions, class_mapping)
+                            MergedTree::new_exact(c, revisions, class_mapping)
                                 .force_line_based_fallback_on_specific_nodes(nodes, class_mapping)
                         })
                         .collect();
@@ -343,9 +343,9 @@ impl<'a> MergedTree<'a> {
                     (right.first(), Revision::Right),
                     (base.first(), Revision::Base),
                 ]
-                .iter()
+                .into_iter()
                 .find_map(|(maybe_node, rev)| {
-                    maybe_node.map(|node| class_mapping.map_to_leader(RevNode::new(*rev, node)))
+                    maybe_node.map(|node| class_mapping.map_to_leader(RevNode::new(rev, node)))
                 })
                 .expect("The conflict should contain at least one node");
                 Self::add_preceding_whitespace(
@@ -595,7 +595,7 @@ impl<'a> MergedTree<'a> {
 
     /// Debug print with indentation
     fn debug_print(&self, indentation: usize) -> String {
-        let mut result = " ".to_string().repeat(indentation);
+        let mut result = " ".repeat(indentation);
         let c = match self {
             MergedTree::ExactTree {
                 node, revisions, ..

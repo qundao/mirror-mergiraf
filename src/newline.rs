@@ -21,7 +21,7 @@ fn infer_cr_lf_from_file(contents: &str) -> LineFeedStyle {
     }
 }
 
-/// Renormalize an output file to contain CRLF or just LF by imitating an input file
+/// Renormalize an output file to contain CRLF or just LF by imitating an input file
 pub fn imitate_cr_lf_from_input(input_contents: &str, output_contents: &str) -> String {
     let without_crlf = output_contents.replace("\r\n", "\n");
     match infer_cr_lf_from_file(input_contents) {

@@ -32,18 +32,14 @@ impl MergeResult {
         attempt.write_best_merge_id(self.method).ok();
         if self.conflict_count == 0 && line_based_conflicts > 0 {
             match line_based_conflicts {
-                1 => {
-                    info!(
-                        "Mergiraf: Solved 1 conflict. Review with: mergiraf review {}",
-                        attempt.id()
-                    );
-                }
-                n => {
-                    info!(
-                        "Mergiraf: Solved {n} conflicts. Review with: mergiraf review {}",
-                        attempt.id()
-                    );
-                }
+                1 => info!(
+                    "Mergiraf: Solved 1 conflict. Review with: mergiraf review {}",
+                    attempt.id()
+                ),
+                n => info!(
+                    "Mergiraf: Solved {n} conflicts. Review with: mergiraf review {}",
+                    attempt.id()
+                ),
             }
         }
     }
