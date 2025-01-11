@@ -11,6 +11,42 @@ use crate::{
 /// The list of supported language profiles,
 /// which contain all the language-specific information required to merge files in that language.
 pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
+    let typescript_commutative_parents = vec![
+        CommutativeParent::without_delimiters("program", "\n")
+            .restricted_to_groups(&[&["import_statement"]]),
+        CommutativeParent::new("named_imports", "{", ", ", "}"),
+        CommutativeParent::new("object", "{", ", ", "}"),
+        CommutativeParent::new("class_body", " {\n", "\n\n", "\n}\n"),
+        CommutativeParent::new("interface_body", " {\n", ";\n", "\n}\n"),
+        CommutativeParent::new("object_type", " {\n", ";\n", "\n}\n"),
+        CommutativeParent::new("enum_body", " {\n", ",\n", "\n}\n"),
+        CommutativeParent::new("object_pattern", "{", ", ", "}"),
+    ];
+    let typescript_signatures = vec![
+        signature("import_specifier", vec![vec![Field("name")]]),
+        signature("pair", vec![vec![Field("key")]]),
+        signature("identifier", vec![vec![]]),
+        signature("method_definition", vec![vec![Field("name")]]),
+        signature("public_field_definition", vec![vec![Field("name")]]),
+        signature("property_signature", vec![vec![Field("name")]]),
+        signature("property_identifier", vec![vec![]]),
+        signature("pair_pattern", vec![vec![Field("key")]]),
+    ];
+
+    let tsx_commutative_parents = [
+        typescript_commutative_parents.clone(),
+        vec![CommutativeParent::new("jsx_opening_element", "<", " ", ">")],
+    ]
+    .concat();
+    let tsx_signatures = [
+        typescript_signatures.clone(),
+        vec![signature(
+            "jsx_attribute",
+            vec![vec![ChildType("identifier")]],
+        )],
+    ]
+    .concat();
+
     vec![
         LangProfile {
             name: "Java",
@@ -325,27 +361,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extensions: vec![".ts"],
             language: tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
             atomic_nodes: vec![],
-            commutative_parents: vec![
-                CommutativeParent::without_delimiters("program", "\n")
-                    .restricted_to_groups(&[&["import_statement"]]),
-                CommutativeParent::new("named_imports", "{", ", ", "}"),
-                CommutativeParent::new("object", "{", ", ", "}"),
-                CommutativeParent::new("class_body", " {\n", "\n\n", "\n}\n"),
-                CommutativeParent::new("interface_body", " {\n", ";\n", "\n}\n"),
-                CommutativeParent::new("object_type", " {\n", ";\n", "\n}\n"),
-                CommutativeParent::new("enum_body", " {\n", ",\n", "\n}\n"),
-                CommutativeParent::new("object_pattern", "{", ", ", "}"),
-            ],
-            signatures: vec![
-                signature("import_specifier", vec![vec![Field("name")]]),
-                signature("pair", vec![vec![Field("key")]]),
-                signature("identifier", vec![vec![]]),
-                signature("method_definition", vec![vec![Field("name")]]),
-                signature("public_field_definition", vec![vec![Field("name")]]),
-                signature("property_signature", vec![vec![Field("name")]]),
-                signature("property_identifier", vec![vec![]]),
-                signature("pair_pattern", vec![vec![Field("key")]]),
-            ],
+            commutative_parents: typescript_commutative_parents,
+            signatures: typescript_signatures,
+        },
+        LangProfile {
+            name: "Typescript (TSX)",
+            extensions: vec![".tsx"],
+            language: tree_sitter_typescript::LANGUAGE_TSX.into(),
+            atomic_nodes: vec![],
+            commutative_parents: tsx_commutative_parents,
+            signatures: tsx_signatures,
         },
         LangProfile {
             name: "Python",
