@@ -406,5 +406,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("attribute_list", vec![vec![]]),
             ],
         },
+        LangProfile {
+            name: "Solidity",
+            extensions: vec![".sol"],
+            language: tree_sitter_solidity::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("source_file", "\n"),
+                CommutativeParent::without_delimiters("contract_body", "\n"),
+            ],
+            signatures: vec![],
+        },
     ]
 });

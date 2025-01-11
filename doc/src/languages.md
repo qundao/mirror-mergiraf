@@ -12,6 +12,7 @@ Mergiraf currently supports the following programming languages:
 * Scala (*.scala, *.sbt)
 * Python (*.py)
 * PHP (*.php)
+* Solidity (*.sol)
 
 and the following declarative file formats:
 * JSON (*.json)
