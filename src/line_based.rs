@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use crate::{parse, MergeResult, TSParser};
 use diffy_imara::{Algorithm, ConflictStyle, MergeOptions};
 use typed_arena::Arena;
@@ -8,15 +6,6 @@ use crate::{lang_profile::LangProfile, parsed_merge::ParsedMerge, settings::Disp
 pub const LINE_BASED_METHOD: &str = "line_based";
 pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
 pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
-
-/// Ensures a given string has a newline at the end.
-pub(crate) fn with_final_newline(s: Cow<str>) -> Cow<str> {
-    if s.ends_with('\n') {
-        s
-    } else {
-        s + "\n"
-    }
-}
 
 /// Perform a textual merge with the diff3 algorithm.
 pub(crate) fn line_based_merge(
@@ -58,12 +47,8 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
     settings: &DisplaySettings,
     lang_profile: Option<&LangProfile>,
 ) -> MergeResult {
-    let mut line_based_merge = line_based_merge(
-        &with_final_newline(Cow::from(contents_base)),
-        &with_final_newline(Cow::from(contents_left)),
-        &with_final_newline(Cow::from(contents_right)),
-        settings,
-    );
+    let mut line_based_merge =
+        line_based_merge(contents_base, contents_left, contents_right, settings);
 
     if line_based_merge.conflict_count == 0 {
         // If we support this language, check that there aren't any signature conflicts in the line-based merge

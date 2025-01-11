@@ -1,11 +1,11 @@
-use std::{borrow::Cow, time::Instant};
+use std::time::Instant;
 
 use log::debug;
 use typed_arena::Arena;
 
 use crate::{
     lang_profile::LangProfile,
-    line_based::{with_final_newline, FULLY_STRUCTURED_METHOD, STRUCTURED_RESOLUTION_METHOD},
+    line_based::{FULLY_STRUCTURED_METHOD, STRUCTURED_RESOLUTION_METHOD},
     merge_3dm::three_way_merge,
     parse,
     parsed_merge::ParsedMerge,
@@ -84,10 +84,8 @@ pub fn structured_merge(
     );
     debug!("{result_tree}");
 
-    let result = Cow::from(result_tree.pretty_print(&class_mapping, settings));
-
     Ok(MergeResult {
-        contents: with_final_newline(result).into_owned(),
+        contents: result_tree.pretty_print(&class_mapping, settings),
         conflict_count: result_tree.count_conflicts(),
         conflict_mass: result_tree.conflict_mass(),
         method: if parsed_merge.is_none() {
