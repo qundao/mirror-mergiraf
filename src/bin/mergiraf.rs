@@ -1,4 +1,7 @@
-use std::{env, fs, process::exit, process::Command};
+use std::{
+    env, fs,
+    process::{exit, Command},
+};
 
 use clap::{Parser, Subcommand};
 use itertools::Itertools;

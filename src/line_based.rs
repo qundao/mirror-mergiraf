@@ -45,32 +45,29 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
     contents_left: &str,
     contents_right: &str,
     settings: &DisplaySettings,
-    lang_profile: Option<&LangProfile>,
+    lang_profile: &LangProfile,
 ) -> MergeResult {
     let mut line_based_merge =
         line_based_merge(contents_base, contents_left, contents_right, settings);
 
     if line_based_merge.conflict_count == 0 {
-        // If we support this language, check that there aren't any signature conflicts in the line-based merge
-        if let Some(lang_profile) = lang_profile {
-            let mut parser = TSParser::new();
-            parser
-                .set_language(&lang_profile.language)
-                .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
-            let arena = Arena::new();
-            let ref_arena = Arena::new();
-            let tree_left = parse(
-                &mut parser,
-                &line_based_merge.contents,
-                lang_profile,
-                &arena,
-                &ref_arena,
-            );
+        let mut parser = TSParser::new();
+        parser
+            .set_language(&lang_profile.language)
+            .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
+        let arena = Arena::new();
+        let ref_arena = Arena::new();
+        let tree_left = parse(
+            &mut parser,
+            &line_based_merge.contents,
+            lang_profile,
+            &arena,
+            &ref_arena,
+        );
 
-            if let Ok(ast) = tree_left {
-                if lang_profile.has_signature_conflicts(ast.root()) {
-                    line_based_merge.has_additional_issues = true;
-                }
+        if let Ok(ast) = tree_left {
+            if lang_profile.has_signature_conflicts(ast.root()) {
+                line_based_merge.has_additional_issues = true;
             }
         }
     }

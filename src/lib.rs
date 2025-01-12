@@ -53,7 +53,9 @@ use git::extract_revision_from_git;
 
 use itertools::Itertools;
 use lang_profile::LangProfile;
-use line_based::{line_based_merge_with_duplicate_signature_detection, LINE_BASED_METHOD};
+use line_based::{
+    line_based_merge, line_based_merge_with_duplicate_signature_detection, LINE_BASED_METHOD,
+};
 use log::{debug, info, warn};
 
 use merge_result::MergeResult;
@@ -96,11 +98,17 @@ pub fn line_merge_and_structured_resolution(
     attempts_cache: Option<&AttemptsCache>,
     debug_dir: Option<&str>,
 ) -> MergeResult {
+    let Some(lang_profile) = LangProfile::detect_from_filename(fname_base) else {
+        // can't do anything fancier anyway
+        debug!("Could not find a supported language for {fname_base}. Falling back to a line-based merge.");
+        return line_based_merge(contents_base, contents_left, contents_right, settings);
+    };
+
     let merges = cascading_merge(
         contents_base,
         contents_left,
         contents_right,
-        fname_base,
+        lang_profile,
         settings,
         full_merge,
         debug_dir,
@@ -207,13 +215,12 @@ pub fn cascading_merge(
     contents_base: &str,
     contents_left: &str,
     contents_right: &str,
-    fname_base: &str,
+    lang_profile: &LangProfile,
     settings: &DisplaySettings,
     full_merge: bool,
     debug_dir: Option<&str>,
 ) -> Vec<MergeResult> {
     let mut merges = Vec::new();
-    let lang_profile = LangProfile::detect_from_filename(fname_base);
 
     // first attempt: try to merge as line-based
     let start = Instant::now();
@@ -228,10 +235,6 @@ pub fn cascading_merge(
     if line_based_merge.conflict_count == 0 && !line_based_merge.has_additional_issues {
         return vec![line_based_merge];
     }
-
-    let Some(lang_profile) = lang_profile else {
-        return vec![line_based_merge];
-    };
 
     // second attempt: to solve the conflicts from the line-based merge
     if !line_based_merge.has_additional_issues {
