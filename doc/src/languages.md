@@ -13,6 +13,7 @@ Mergiraf currently supports the following programming languages:
 * Python (*.py)
 * PHP (*.php)
 * Solidity (*.sol)
+* Lua (*.lua)
 
 and the following declarative file formats:
 * JSON (*.json)
