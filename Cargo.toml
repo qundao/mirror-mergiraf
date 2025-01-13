@@ -48,6 +48,7 @@ tree-sitter-scala = "0.23.3"
 either = "1.13.0"
 rustc-hash = "2.0.0"
 diffy-imara = "0.1.0"
+nu-ansi-term = "0.50.1"
 
 [dev-dependencies]
 rstest = "0.23.0"

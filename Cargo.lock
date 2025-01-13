@@ -625,6 +625,7 @@ dependencies = [
  "etcetera",
  "itertools 0.14.0",
  "log",
+ "nu-ansi-term",
  "rand",
  "regex",
  "rstest",
