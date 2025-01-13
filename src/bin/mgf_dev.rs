@@ -56,7 +56,7 @@ fn real_main() -> Result<i32, String> {
 
             let original_contents =
                 fs::read_to_string(&path).map_err(|err| format!("Could not read {path}: {err}"))?;
-            let contents = normalize_to_lf(&original_contents);
+            let contents = normalize_to_lf(original_contents);
 
             let ts_tree = parser.parse(&*contents, None).ok_or("Parsing failed")?;
             let tree = Ast::new(&ts_tree, &contents, lang_profile, &arena, &ref_arena)

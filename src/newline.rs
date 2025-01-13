@@ -31,9 +31,10 @@ pub fn imitate_cr_lf_from_input(input_contents: &str, output_contents: &str) -> 
     }
 }
 
-pub fn normalize_to_lf(contents: &str) -> Cow<str> {
+pub fn normalize_to_lf<'a>(contents: impl Into<Cow<'a, str>>) -> Cow<'a, str> {
+    let contents = contents.into();
     if !contents.contains('\r') {
-        Cow::Borrowed(contents)
+        contents
     } else {
         let res = contents.replace("\r\n", "\n").replace('\r', "\n");
         Cow::Owned(res)

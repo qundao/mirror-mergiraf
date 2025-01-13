@@ -134,7 +134,7 @@ fn solve_command(#[case] conflict_style: &str) {
     // call mergiraf to the rescue
     let conflicts_contents =
         fs::read_to_string(repo_dir.join(&file_name)).expect("could not read the conflicts");
-    let conflicts_contents = normalize_to_lf(&conflicts_contents);
+    let conflicts_contents = normalize_to_lf(conflicts_contents);
     let merge_result = resolve_merge_cascading(
         &conflicts_contents,
         &file_name,
@@ -146,7 +146,7 @@ fn solve_command(#[case] conflict_style: &str) {
 
     let expected_result = fs::read_to_string(test_dir.join(format!("Expected.{extension}")))
         .expect("could not read the expected results");
-    let expected_result = normalize_to_lf(&expected_result);
+    let expected_result = normalize_to_lf(expected_result);
     assert_eq!(merge_result.contents, expected_result);
 }
 
