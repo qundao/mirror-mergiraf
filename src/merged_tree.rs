@@ -317,11 +317,11 @@ impl<'a> MergedTree<'a> {
                         previous_sibling.as_ref(),
                         &new_indentation,
                     );
-                    previous_sibling = match c {
+                    previous_sibling = match *c {
                         MergedTree::ExactTree { node, .. }
                         | MergedTree::MixedTree { node, .. }
                         | MergedTree::LineBasedMerge { node, .. } => {
-                            Some(PreviousSibling::RealNode(*node))
+                            Some(PreviousSibling::RealNode(node))
                         }
                         MergedTree::Conflict { .. } => None,
                         MergedTree::CommutativeChildSeparator { separator } => {

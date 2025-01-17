@@ -211,20 +211,19 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                             self.commutative_or_line_based_local_fallback(node, visiting_state);
                         return line_diff;
                     }
-                    if let Ok(child_result_tree) =
-                        self.build_subtree(*current_child, visiting_state)
-                    {
-                        children.push(child_result_tree);
-                        predecessor = *current_child;
-                        seen_nodes.insert(predecessor);
-                        cursor = children_map.get(&predecessor);
-                    } else {
+
+                    let subtree = self.build_subtree(*current_child, visiting_state);
+                    let Ok(child_result_tree) = subtree else {
                         // we failed to build the result tree for a child of this node, because of a nasty conflict.
                         // We fall back on line diffing
                         let line_diff =
                             self.commutative_or_line_based_local_fallback(node, visiting_state);
                         return line_diff;
-                    }
+                    };
+                    children.push(child_result_tree);
+                    predecessor = *current_child;
+                    seen_nodes.insert(predecessor);
+                    cursor = children_map.get(&predecessor);
                 }
                 2 => {
                     let conflict = self.build_conflict(
@@ -262,9 +261,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         }
                     }
                 }
-                _ => {
-                    panic!("unexpected conflict size: more than two diverging sides!")
-                }
+                _ => unreachable!("unexpected conflict size: more than two diverging sides!"),
             }
         }
 
@@ -506,27 +503,26 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     ) -> Result<MergedTree<'a>, String> {
         let pad = visiting_state.indentation();
         debug!("{pad}{node} commutative_or_line_based_local_fallback");
-        // If the root happens to be commutative, we can merge all children accordingly.
-        if let PCSNode::Node { node, .. } = node {
-            if let Some(commutative_parent) = self
-                .lang_profile
-                .get_commutative_parent(node.grammar_name())
-            {
-                let commutative_merge =
-                    self.commutatively_merge_children(node, commutative_parent, visiting_state);
-                if let Ok(successful_merge) = commutative_merge {
-                    return Ok(MergedTree::new_mixed(node, successful_merge));
-                }
-            }
-            Ok(MergedTree::line_based_local_fallback_for_revnode(
-                node,
-                self.class_mapping,
-            ))
-        } else {
-            Err(format!(
+        let PCSNode::Node { node, .. } = node else {
+            return Err(format!(
                 "impossible to do a line-based local fallback for a virtual PCS node {node}"
-            ))
+            ));
+        };
+        // If the root happens to be commutative, we can merge all children accordingly.
+        if let Some(commutative_parent) = self
+            .lang_profile
+            .get_commutative_parent(node.grammar_name())
+        {
+            let commutative_merge =
+                self.commutatively_merge_children(node, commutative_parent, visiting_state);
+            if let Ok(successful_merge) = commutative_merge {
+                return Ok(MergedTree::new_mixed(node, successful_merge));
+            }
         }
+        Ok(MergedTree::line_based_local_fallback_for_revnode(
+            node,
+            self.class_mapping,
+        ))
     }
 
     /// knowing that the order of all elements of the conflict does not matter, solve the conflict
@@ -835,9 +831,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
         // remove the common prefix of all three
         let common_prefix_length = Self::common_prefix(
-            Box::new(children_base.iter()),
-            Box::new(children_left.iter()),
-            Box::new(children_right.iter()),
+            children_base.iter(),
+            children_left.iter(),
+            children_right.iter(),
         );
         let common_prefix = &children_base[..common_prefix_length];
         let children_base = &children_base[common_prefix_length..];
@@ -846,9 +842,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
         // remove the common suffix of all three
         let common_suffix_length = Self::common_prefix(
-            Box::new(children_base.iter().rev()),
-            Box::new(children_left.iter().rev()),
-            Box::new(children_right.iter().rev()),
+            children_base.iter().rev(),
+            children_left.iter().rev(),
+            children_right.iter().rev(),
         );
         let common_suffix = &children_base[children_base.len() - common_suffix_length..];
         let children_base = &children_base[..children_base.len() - common_suffix_length];
@@ -919,10 +915,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     }
 
     /// Find the common prefix of three lists
-    fn common_prefix<'c, T: Eq>(
-        first: Box<dyn Iterator<Item = T> + 'c>,
-        second: Box<dyn Iterator<Item = T> + 'c>,
-        third: Box<dyn Iterator<Item = T> + 'c>,
+    fn common_prefix<T: Eq>(
+        first: impl Iterator<Item = T>,
+        second: impl Iterator<Item = T>,
+        third: impl Iterator<Item = T>,
     ) -> usize {
         first
             .zip(second)
@@ -958,10 +954,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 {
                     Some(children_revnodes) => {
                         let children = children_revnodes
-                            .iter()
+                            .into_iter()
                             .map(|child| {
                                 MergedTree::new_exact(
-                                    *child,
+                                    child,
                                     RevisionNESet::singleton(modifying_revision),
                                     self.class_mapping,
                                 )
@@ -1001,15 +997,18 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     // if all children can be covered then return the union of all children's covers
                     if let Some(children_covers) = children_covers {
                         let union: HashSet<Leader<'a>> =
-                            children_covers.iter().flatten().copied().collect();
+                            children_covers
+                                .into_iter()
+                                .fold(HashSet::new(), |mut acc, s| {
+                                    acc.extend(s);
+                                    acc
+                                });
                         return Some(union);
                     }
                     // at least one child could not be covered at all - the root is our only last possibility
                 }
                 if available_in_revs.contains(target_revision) {
-                    let mut set = HashSet::new();
-                    set.insert(*node);
-                    Some(set)
+                    Some(HashSet::from([*node]))
                 } else {
                     None
                 }

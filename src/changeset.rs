@@ -123,7 +123,7 @@ impl<'a> ChangeSet<'a> {
     }
 
     /// Finds all the PCS that are successor-conflicting with this PCS
-    #[allow(dead_code)] // used in tests
+    #[cfg(test)]
     pub(crate) fn other_successors(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
         self.parents.get(&pcs.parent).iter().filter(move |other| {
             other.successor != pcs.successor && other.predecessor == pcs.predecessor

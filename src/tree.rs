@@ -148,9 +148,8 @@ impl<'a> AstNode<'a> {
         // if this is a leaf that spans multiple lines, create one child per line,
         // to ease matching and diffing (typically, for multi-line comments)
         if children.is_empty() && local_source.contains('\n') {
-            let lines = local_source.split('\n');
             let mut offset = range.start;
-            for line in lines {
+            for line in local_source.lines() {
                 let trimmed = line.trim_start();
                 let start_position = offset + line.len() - trimmed.len();
                 let mut hasher = crate::fxhasher();
@@ -162,10 +161,7 @@ impl<'a> AstNode<'a> {
                     source: trimmed,
                     grammar_name: "@virtual_line@",
                     field_name: None,
-                    byte_range: Range {
-                        start: start_position,
-                        end: start_position + trimmed.len(),
-                    },
+                    byte_range: start_position..start_position + trimmed.len(),
                     id: 2 * start_position + 1, // start_position is known to be unique among virtual lines
                     descendant_count: 1,
                     parent: UnsafeCell::new(None),
@@ -245,10 +241,12 @@ impl<'a> AstNode<'a> {
 
     /// The height of the subtree under that node
     pub fn height(&self) -> i32 {
-        match self.children.iter().map(|c| c.height()).max() {
-            None => 0,
-            Some(x) => x + 1,
-        }
+        self.children
+            .iter()
+            .copied()
+            .map(AstNode::height)
+            .max()
+            .map_or(0, |x| x + 1)
     }
 
     /// The number of descendants of the node (including itself).
@@ -295,7 +293,7 @@ impl<'a> AstNode<'a> {
     /// Depth-first search iterator
     pub fn dfs(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
         // SAFETY: This is not written to after construction.
-        if let Some(dfs) = unsafe { &*self.dfs.get() } {
+        if let Some(dfs) = unsafe { *self.dfs.get() } {
             Either::Left(dfs.iter().copied())
         } else {
             Either::Right(DfsIterator {
@@ -387,7 +385,7 @@ impl<'a> AstNode<'a> {
             .children
             .iter()
             .skip_while(|sibling| sibling.id != self.id)
-            .dropping(1)
+            .skip(1)
             .copied()
             .next()
     }

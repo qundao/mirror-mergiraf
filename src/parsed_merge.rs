@@ -111,8 +111,7 @@ impl<'a> ParsedMerge<'a> {
                         } else {
                             "unexpected end of file before base conflict marker"
                         }
-                    })
-                    .map_err(ToString::to_string)?;
+                    })?;
                 let base_match = base_captures.get(0).unwrap();
                 let left = &remaining_source[local_offset..(local_offset + base_match.start())];
                 let local_offset = local_offset + base_match.end();
