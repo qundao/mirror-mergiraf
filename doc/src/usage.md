@@ -61,6 +61,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.php merge=mergiraf
 *.sol merge=mergiraf
 *.lua merge=mergiraf
+*.kt merge=mergiraf
 ```
 
 Or run:
