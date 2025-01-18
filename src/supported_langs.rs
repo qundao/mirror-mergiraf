@@ -259,7 +259,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "YAML",
             extensions: vec![".yml", ".yaml"],
-            language: tree_sitter_yaml::language(),
+            language: tree_sitter_yaml::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![CommutativeParent::without_delimiters("block_mapping", "\n")],
             signatures: vec![signature("block_mapping_pair", vec![vec![Field("key")]])],
@@ -267,7 +267,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "TOML",
             extensions: vec![".toml"],
-            language: tree_sitter_toml_ng::language(),
+            language: tree_sitter_toml_ng::LANGUAGE.into(),
             atomic_nodes: vec!["string"],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("document", "\n"),
