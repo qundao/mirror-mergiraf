@@ -67,6 +67,22 @@ use tree::{Ast, AstNode};
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
 
+/// Current way to disable Mergiraf
+/// ## Usage
+/// ```console
+/// mergiraf=0 mergiraf merge foo bar baz
+/// ```
+pub const DISABLING_ENV_VAR: &str = "mergiraf";
+
+// NOTE: can't use the `#[deprecated]` macro here, since its `since` part isn't respected outside std
+// https://doc.rust-lang.org/stable/nightly-rustc/rustc_lint/builtin/static.DEPRECATED_IN_FUTURE.html
+//
+/// The old way to disable Mergiraf
+/// ## Usage
+/// ```console
+/// MERGIRAF_DISABLE=1 mergiraf merge foo bar baz
+/// ```
+pub const DISABLING_ENV_VAR_LEGACY: &str = "MERGIRAF_DISABLE"; // TODO(0.5.0): deprecate
 pub const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
 
 /// Helper to parse a source text with a given tree-sitter parser.

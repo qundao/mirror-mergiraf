@@ -6,7 +6,10 @@ use std::process::Command;
 use diffy_imara::{create_patch, PatchFormatter};
 use mergiraf::newline::normalize_to_lf;
 use mergiraf::settings::DisplaySettings;
-use mergiraf::{line_merge_and_structured_resolution, resolve_merge_cascading};
+use mergiraf::{
+    line_merge_and_structured_resolution, resolve_merge_cascading, DISABLING_ENV_VAR,
+    DISABLING_ENV_VAR_LEGACY,
+};
 use rstest::rstest;
 
 fn run_git(args: &[&str], repo_dir: &Path) {
@@ -126,8 +129,8 @@ fn solve_command(#[case] conflict_style: &str) {
     );
     // in case Git is configured to use Mergiraf
     command
-        .env("mergiraf", "0") // current way to disable Mergiraf
-        .env("MERGIRAF_DISABLE", "1"); // up to 0.3.1
+        .env(DISABLING_ENV_VAR, "0")
+        .env(DISABLING_ENV_VAR_LEGACY, "1");
     let output = command.output().expect("Failed to execute git command");
     assert!(!output.status.success(), "expected a rebase conflict");
 
