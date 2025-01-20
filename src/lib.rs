@@ -83,7 +83,7 @@ pub const DISABLING_ENV_VAR: &str = "mergiraf";
 /// MERGIRAF_DISABLE=1 mergiraf merge foo bar baz
 /// ```
 pub const DISABLING_ENV_VAR_LEGACY: &str = "MERGIRAF_DISABLE"; // TODO(0.5.0): deprecate
-pub const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
+pub(crate) const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
 
 /// Helper to parse a source text with a given tree-sitter parser.
 pub(crate) fn parse<'a>(
@@ -130,7 +130,7 @@ pub fn line_merge_and_structured_resolution(
         debug_dir,
     );
 
-    match line_based_and_best(merges) {
+    match select_best_merge(merges) {
         LineBasedAndBestAre::TheSame(merge) => merge,
         LineBasedAndBestAre::NotTheSame { line_based, best } => {
             if best.conflict_count == 0 {
@@ -159,22 +159,6 @@ pub fn line_merge_and_structured_resolution(
     }
 }
 
-/// Takes a non-empty vector of merge results and picks the best one
-fn select_best_merge(mut merges: Vec<MergeResult>) -> MergeResult {
-    merges.sort_by_key(|merge| merge.conflict_mass);
-    debug!("~~~ Merge statistics ~~~");
-    for merge in &merges {
-        debug!(
-            "{}: {} conflict(s), {} mass, has_additional_issues: {}",
-            merge.method, merge.conflict_count, merge.conflict_mass, merge.has_additional_issues
-        );
-    }
-    merges
-        .into_iter()
-        .find_or_first(|merge| !merge.has_additional_issues)
-        .expect("At least one merge result should be present")
-}
-
 enum LineBasedAndBestAre {
     TheSame(MergeResult),
     NotTheSame {
@@ -186,7 +170,7 @@ enum LineBasedAndBestAre {
 /// Takes a non-empty vector of merge results
 /// Returns both the line-based and the best one
 /// These may happen to coincide, so returns either one or two merges
-fn line_based_and_best(mut merges: Vec<MergeResult>) -> LineBasedAndBestAre {
+fn select_best_merge(mut merges: Vec<MergeResult>) -> LineBasedAndBestAre {
     merges.sort_by_key(|merge| merge.conflict_mass);
     debug!("~~~ Merge statistics ~~~");
     for merge in &merges {
@@ -295,6 +279,34 @@ pub fn cascading_merge(
     merges
 }
 
+/// Takes a vector of merge results produced by [`resolve_merge_cascading`] and picks the best one
+fn select_best_solve(mut solves: Vec<MergeResult>) -> Result<MergeResult, String> {
+    if solves.is_empty() {
+        return Err("Could not generate any solution".to_string());
+    }
+
+    solves.sort_by_key(|solve| solve.conflict_mass);
+    debug!("~~~ Solve statistics ~~~");
+    for solve in &solves {
+        debug!(
+            "{}: {} conflict(s), {} mass, has_additional_issues: {}",
+            solve.method, solve.conflict_count, solve.conflict_mass, solve.has_additional_issues
+        );
+    }
+
+    let best_solve = solves
+        .into_iter()
+        .find_or_first(|solve| !solve.has_additional_issues)
+        .expect("checked for non-emptiness above");
+
+    if best_solve.method == FROM_PARSED_ORIGINAL {
+        // the best solve we've got is the line-based one
+        Err("Could not generate any solution".to_string())
+    } else {
+        Ok(best_solve)
+    }
+}
+
 /// Takes the result of an earlier merge process (likely line-based)
 /// and attempts to resolve the remaining conflicts using structured merge
 /// on the enclosing AST nodes.
@@ -371,7 +383,7 @@ pub fn resolve_merge_cascading<'a>(
     debug_dir: Option<&str>,
     working_dir: &Path,
 ) -> Result<MergeResult, String> {
-    let mut merges = Vec::with_capacity(3);
+    let mut solves = Vec::with_capacity(3);
 
     let lang_profile = LangProfile::detect_from_filename(fname_base)
         .ok_or_else(|| format!("Could not find a supported language for {fname_base}"))?;
@@ -390,11 +402,11 @@ pub fn resolve_merge_cascading<'a>(
             settings.add_revision_names(&parsed_merge);
 
             match resolve_merge(&parsed_merge, &settings, lang_profile, debug_dir) {
-                Ok(merge) if merge.conflict_count == 0 => {
+                Ok(solve) if solve.conflict_count == 0 => {
                     info!("Solved all conflicts.");
-                    return Ok(merge);
+                    return Ok(solve);
                 }
-                Ok(merge) => merges.push(merge),
+                Ok(solve) => solves.push(solve),
                 Err(err) => warn!("Error while resolving conflicts: {err}"),
             }
 
@@ -405,7 +417,7 @@ pub fn resolve_merge_cascading<'a>(
                 method: FROM_PARSED_ORIGINAL,
                 has_additional_issues: false,
             };
-            merges.push(rendered_from_parsed);
+            solves.push(rendered_from_parsed);
         }
     }
 
@@ -417,23 +429,16 @@ pub fn resolve_merge_cascading<'a>(
         working_dir,
         lang_profile,
     ) {
-        Ok(structured_merge) => merges.push(structured_merge),
+        Ok(structured_merge) => solves.push(structured_merge),
         Err(err) => warn!("Full structured merge failed: {err}"),
     }
+    let best_solve = select_best_solve(solves)?;
 
-    if merges.is_empty() ||
-    // the only "merge" is the parsed input
-    (merges.len() == 1 && merges[0].method == FROM_PARSED_ORIGINAL)
-    {
-        return Err("Could not generate any merge".to_string());
-    }
-    let best_merge = select_best_merge(merges);
-
-    match best_merge.conflict_count {
+    match best_solve.conflict_count {
         0 => info!("Solved all conflicts."),
         n => info!("{n} conflict(s) remaining."),
     }
-    Ok(best_merge)
+    Ok(best_solve)
 }
 
 fn extract_revision(working_dir: &Path, path: &str, revision: Revision) -> Result<String, String> {
