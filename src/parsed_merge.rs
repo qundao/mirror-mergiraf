@@ -69,66 +69,62 @@ impl<'a> ParsedMerge<'a> {
     /// Fails if the conflict markers do not appear in a consistent order.
     pub(crate) fn parse(source: &str) -> Result<ParsedMerge, String> {
         let mut chunks = Vec::new();
-        let start_marker = Regex::new(r"(^|\n)<<<<<<<( .*)?\n").unwrap();
-        let base_marker = Regex::new(r"\|\|\|\|\|\|\|( [^\n]*)?\r?\n").unwrap();
-        let right_marker = Regex::new(r"=======\r?\n").unwrap();
-        let end_marker = Regex::new(r">>>>>>>( [^\n]*)?\r?\n").unwrap();
+        let left_marker = Regex::new(r"<<<<<<<(?: (.*))?\r?\n").unwrap();
+        let base_marker = Regex::new(r"\|\|\|\|\|\|\|(?: (.*))?\r?\n").unwrap();
+        let middle_marker = Regex::new(r"=======\r?\n").unwrap();
+        let right_marker = Regex::new(r">>>>>>>(?: (.*))?\r?\n").unwrap();
 
-        let mut offset = 0;
-        while offset < source.len() {
-            let remaining_source = &source[offset..];
-            let start_marker = &start_marker.captures(remaining_source);
-            let resolved_end = match start_marker {
+        let mut remaining_source = source;
+        while !remaining_source.is_empty() {
+            let left_captures = &left_marker.captures(remaining_source);
+            let resolved_end = match left_captures {
                 None => remaining_source.len(),
-                Some(occurrence) => {
-                    let whole_occurrence = occurrence
-                        .get(0)
-                        .expect("whole match is guaranteed to exist");
-                    if whole_occurrence.as_str().starts_with('\n') {
-                        whole_occurrence.start() + 1
-                    } else {
-                        whole_occurrence.start()
-                    }
-                }
+                Some(occurrence) => occurrence
+                    .get(0)
+                    .expect("whole match is guaranteed to exist")
+                    .start(),
             };
             if resolved_end > 0 {
+                // SAFETY: `remaining_source` is derived from `source`
+                let offset = unsafe { remaining_source.as_ptr().offset_from(source.as_ptr()) }
+                    .try_into()
+                    .expect("`remaining_source` points to the _remainder_ of `source`");
                 chunks.push(MergedChunk::Resolved {
                     offset,
                     contents: &remaining_source[..resolved_end],
                 });
             }
-            offset += resolved_end;
-            if let Some(start_marker) = start_marker {
-                let left_name = start_marker.get(2).map_or("", |m| m.as_str().trim());
-                let whole_start_marker = start_marker.get(0).unwrap();
-                let local_offset = whole_start_marker.end();
+            if let Some(left_captures) = left_captures {
+                let left_match = left_captures.get(0).unwrap();
+                let left_name = left_captures.get(1).map_or("", |m| m.as_str());
+                remaining_source = &remaining_source[left_match.end()..];
 
-                let base_captures = base_marker
-                    .captures(&remaining_source[local_offset..])
-                    .ok_or_else(|| {
-                        if right_marker.is_match(&remaining_source[local_offset..]) {
-                            PARSED_MERGE_DIFF2_DETECTED
-                        } else {
-                            "unexpected end of file before base conflict marker"
-                        }
-                    })?;
+                let base_captures = base_marker.captures(remaining_source).ok_or_else(|| {
+                    if middle_marker.is_match(remaining_source) {
+                        PARSED_MERGE_DIFF2_DETECTED
+                    } else {
+                        "unexpected end of file before base conflict marker"
+                    }
+                })?;
                 let base_match = base_captures.get(0).unwrap();
-                let left = &remaining_source[local_offset..(local_offset + base_match.start())];
-                let local_offset = local_offset + base_match.end();
-                let base_name = base_captures.get(1).map_or("", |m| m.as_str().trim());
+                let base_name = base_captures.get(1).map_or("", |m| m.as_str());
+                let left = &remaining_source[..base_match.start()];
+                remaining_source = &remaining_source[base_match.end()..];
 
-                let right_match = right_marker
-                    .find(&remaining_source[local_offset..])
+                let middle_match = middle_marker
+                    .find(remaining_source)
+                    .ok_or("unexpected end of file before middle conflict marker")?;
+                let base = &remaining_source[..middle_match.start()];
+                remaining_source = &remaining_source[middle_match.end()..];
+
+                let right_captures = right_marker
+                    .captures(remaining_source)
                     .ok_or("unexpected end of file before right conflict marker")?;
-                let base = &remaining_source[local_offset..(local_offset + right_match.start())];
-                let local_offset = local_offset + right_match.end();
+                let right_match = right_captures.get(0).unwrap();
+                let right_name = right_captures.get(1).map_or("", |m| m.as_str());
+                let right = &remaining_source[..right_match.start()];
+                remaining_source = &remaining_source[right_match.end()..];
 
-                let end_captures = end_marker
-                    .captures(&remaining_source[local_offset..])
-                    .ok_or("unexpected end of file before end conflict marker")?;
-                let end_match = end_captures.get(0).unwrap();
-                let right_name = end_captures.get(1).map_or("", |m| m.as_str().trim());
-                let right = &remaining_source[local_offset..(local_offset + end_match.start())];
                 chunks.push(MergedChunk::Conflict {
                     left,
                     base,
@@ -137,7 +133,8 @@ impl<'a> ParsedMerge<'a> {
                     base_name,
                     right_name,
                 });
-                offset += local_offset + end_match.end() - resolved_end;
+            } else {
+                remaining_source = &remaining_source[resolved_end..];
             }
         }
         Ok(ParsedMerge::new(chunks))
@@ -436,55 +433,34 @@ mod tests {
             parsed.rev_range_to_merged_range(&Range { start: 25, end: 28 }, Revision::Right),
             None
         );
+        #[rustfmt::skip]
         assert_eq!(
             parsed.rev_range_to_merged_range(&Range { start: 45, end: 49 }, Revision::Base),
-            Some(Range {
-                start: 128,
-                end: 132
-            })
+            Some(Range { start: 128, end: 132 })
         );
+        #[rustfmt::skip]
         assert_eq!(
             parsed.rev_range_to_merged_range(&Range { start: 47, end: 49 }, Revision::Left),
-            Some(Range {
-                start: 128,
-                end: 130
-            })
+            Some(Range { start: 128, end: 130 })
         );
+        #[rustfmt::skip]
         assert_eq!(
             parsed.rev_range_to_merged_range(&Range { start: 45, end: 48 }, Revision::Right),
-            Some(Range {
-                start: 129,
-                end: 132
-            })
+            Some(Range { start: 129, end: 132 })
         );
+        #[rustfmt::skip]
         assert_eq!(
-            parsed.rev_range_to_merged_range(
-                &Range {
-                    start: 180,
-                    end: 183
-                },
-                Revision::Base
-            ),
+            parsed.rev_range_to_merged_range(&Range { start: 180, end: 183 }, Revision::Base),
             None
         );
+        #[rustfmt::skip]
         assert_eq!(
-            parsed.rev_range_to_merged_range(
-                &Range {
-                    start: 190,
-                    end: 193
-                },
-                Revision::Left
-            ),
+            parsed.rev_range_to_merged_range(&Range { start: 190, end: 193 }, Revision::Left),
             None
         );
+        #[rustfmt::skip]
         assert_eq!(
-            parsed.rev_range_to_merged_range(
-                &Range {
-                    start: 200,
-                    end: 203
-                },
-                Revision::Right
-            ),
+            parsed.rev_range_to_merged_range(&Range { start: 200, end: 203 }, Revision::Right),
             None
         );
     }
@@ -560,17 +536,8 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_diffy_imara() {
-        let source = r#"my_struct_t instance = {
-<<<<<<< LEFT
-    .foo = 3,
-    .bar = 2,
-||||||| BASE
-    .foo = 3,
-=======
->>>>>>> RIGHT
-};
-"#;
+    fn parse_diffy_imara() {
+        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n=======\n>>>>>>> RIGHT\n};\n";
 
         let parsed = ParsedMerge::parse(source).expect("could not parse!");
 
@@ -605,35 +572,18 @@ mod tests {
 
     #[test]
     fn parse_diff2() {
-        let source = r#"my_struct_t instance = {
-<<<<<<< LEFT
-    .foo = 3,
-    .bar = 2,
-=======
->>>>>>> RIGHT
-};
-"#;
+        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n=======\n>>>>>>> RIGHT\n};\n";
 
-        match ParsedMerge::parse(source) {
-            Ok(_) => panic!("expected a parse failure for diff2 conflicts"),
-            Err(e) => assert_eq!(e, PARSED_MERGE_DIFF2_DETECTED),
-        };
+        let parse_err =
+            ParsedMerge::parse(source).expect_err("expected a parse failure for diff2 conflicts");
+
+        assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
     }
 
     #[test]
     fn matching() {
         let ctx = ctx();
-        let source = r#"struct MyType {
-    field: bool,
-<<<<<<< LEFT
-    foo: int,
-    bar: String,
-||||||| BASE
-    foo: String,
-=======
->>>>>>> RIGHT
-};
-"#;
+        let source = "struct MyType {\n    field: bool,\n<<<<<<< LEFT\n    foo: int,\n    bar: String,\n||||||| BASE\n    foo: String,\n=======\n>>>>>>> RIGHT\n};\n";
         let parsed = ParsedMerge::parse(source).expect("could not parse!");
 
         let left_rev = parsed.reconstruct_revision(Revision::Left);
