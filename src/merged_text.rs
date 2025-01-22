@@ -123,7 +123,7 @@ impl<'a> MergedText<'a> {
 
     /// Renders the full file according to the supplied [`DisplaySettings`]
     pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
-        if settings.compact {
+        if settings.compact_or_default() {
             self.render_compact(settings)
         } else {
             self.render_full_lines(settings)
@@ -223,14 +223,14 @@ impl<'a> MergedText<'a> {
         output: &mut String,
     ) {
         Self::maybe_add_newline(output);
-        output.push_str(&settings.left_marker());
+        output.push_str(&settings.left_marker_or_default());
         output.push('\n');
         if !left.trim().is_empty() {
             output.push_str(left);
         }
         if settings.diff3 {
             Self::maybe_add_newline(output);
-            output.push_str(&settings.base_marker());
+            output.push_str(&settings.base_marker_or_default());
             output.push('\n');
             if !base.trim().is_empty() {
                 output.push_str(base);
@@ -243,7 +243,7 @@ impl<'a> MergedText<'a> {
             output.push_str(right);
         }
         Self::maybe_add_newline(output);
-        output.push_str(&settings.right_marker());
+        output.push_str(&settings.right_marker_or_default());
         output.push('\n');
     }
 

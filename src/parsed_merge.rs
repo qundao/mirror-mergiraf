@@ -288,18 +288,18 @@ impl<'a> ParsedMerge<'a> {
                 MergedChunk::Conflict {
                     left, base, right, ..
                 } => {
-                    result.push_str(&settings.left_marker());
+                    result.push_str(&settings.left_marker_or_default());
                     result.push('\n');
                     result.push_str(left);
                     if settings.diff3 {
-                        result.push_str(&settings.base_marker());
+                        result.push_str(&settings.base_marker_or_default());
                         result.push('\n');
                         result.push_str(base);
                     }
                     result.push_str(&settings.middle_marker());
                     result.push('\n');
                     result.push_str(right);
-                    result.push_str(&settings.right_marker());
+                    result.push_str(&settings.right_marker_or_default());
                     result.push('\n');
                 }
             }
@@ -633,9 +633,9 @@ mod tests {
         assert_eq!(
             enriched_settings,
             DisplaySettings {
-                left_revision_name: "my_left",
-                base_revision_name: "my_base",
-                right_revision_name: "my_right",
+                left_revision_name: Some("my_left"),
+                base_revision_name: Some("my_base"),
+                right_revision_name: Some("my_right"),
                 ..initial_settings
             }
         );

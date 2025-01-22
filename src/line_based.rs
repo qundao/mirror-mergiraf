@@ -15,7 +15,7 @@ pub(crate) fn line_based_merge(
     settings: &DisplaySettings,
 ) -> MergeResult {
     let merge_options = MergeOptions {
-        conflict_marker_length: settings.conflict_marker_size,
+        conflict_marker_length: settings.conflict_marker_size_or_default(),
         style: if settings.diff3 {
             ConflictStyle::Diff3
         } else {

@@ -50,8 +50,8 @@ enum CliCommand {
         #[clap(long)]
         fast: bool,
         /// Display compact conflicts, breaking down lines
-        #[arg(short, long, default_value_t = false)]
-        compact: bool,
+        #[arg(short, long)]
+        compact: Option<bool>,
         /// Behave as a git merge driver: overwrite the left revision
         #[clap(short, long)]
         git: bool,
@@ -80,8 +80,8 @@ enum CliCommand {
         /// Path to a file containing merge conflicts
         conflicts: String,
         /// Display compact conflicts, breaking down lines
-        #[clap(short, long, default_value_t = false)]
-        compact: bool,
+        #[clap(short, long)]
+        compact: Option<bool>,
         /// Keep file untouched and show the results of resolution on standard output instead
         #[clap(short, long)]
         keep: bool,
@@ -122,10 +122,6 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         .init()
         .unwrap();
 
-    let default_base_name = "base";
-    let default_left_name = "left";
-    let default_right_name = "right";
-
     let return_code = match args.command {
         CliCommand::Merge {
             base,
@@ -144,20 +140,21 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
 
             let settings = DisplaySettings {
                 compact,
+                conflict_marker_size: None, // TODO: get as flag
                 base_revision_name: match base_name.as_deref() {
-                    Some("%S") => default_base_name,
-                    Some(name) => name,
-                    None => &base,
+                    Some("%S") => None,
+                    Some(name) => Some(name),
+                    None => Some(&base),
                 },
                 left_revision_name: match left_name.as_deref() {
-                    Some("%X") => default_left_name,
-                    Some(name) => name,
-                    None => &left,
+                    Some("%X") => None,
+                    Some(name) => Some(name),
+                    None => Some(&left),
                 },
                 right_revision_name: match right_name.as_deref() {
-                    Some("%Y") => default_right_name,
-                    Some(name) => name,
-                    None => &right,
+                    Some("%Y") => None,
+                    Some(name) => Some(name),
+                    None => Some(&right),
                 },
                 ..Default::default()
             };
@@ -224,9 +221,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         } => {
             let settings = DisplaySettings {
                 compact,
-                base_revision_name: default_base_name, // TODO detect from file
-                left_revision_name: default_left_name,
-                right_revision_name: default_right_name,
+                // NOTE: the names will be recognized in `resolve_merge_cascading` (if possible)
+                base_revision_name: None,
+                left_revision_name: None,
+                right_revision_name: None,
+                conflict_marker_size: None, // TODO: get as flag
                 ..Default::default()
             };
 
@@ -313,13 +312,21 @@ fn fallback_to_git_merge_file(
     if !git {
         command.arg("-p");
     }
+    if let (Some(base_rev_name), Some(left_rev_name), Some(right_rev_name)) = (
+        settings.base_revision_name,
+        settings.left_revision_name,
+        settings.right_revision_name,
+    ) {
+        command
+            .arg("-L")
+            .arg(left_rev_name)
+            .arg("-L")
+            .arg(base_rev_name)
+            .arg("-L")
+            .arg(right_rev_name);
+    };
+
     command
-        .arg("-L")
-        .arg(settings.left_revision_name)
-        .arg("-L")
-        .arg(settings.base_revision_name)
-        .arg("-L")
-        .arg(settings.right_revision_name)
         .arg(left)
         .arg(base)
         .arg(right)
