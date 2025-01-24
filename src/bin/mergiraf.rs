@@ -3,7 +3,7 @@ use std::{
     process::{exit, Command},
 };
 
-use clap::{Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 use itertools::Itertools;
 use log::warn;
 use mergiraf::{
@@ -85,6 +85,16 @@ enum CliCommand {
         /// Keep file untouched and show the results of resolution on standard output instead
         #[clap(short, long)]
         keep: bool,
+        /// Create a copy of the original file by adding the `.orig` suffix to it (`true` by default)
+        #[clap(
+            long,
+            default_missing_value = "true",
+            default_value_t = true,
+            num_args = 0..=1,
+            require_equals = true,
+            action = ArgAction::Set,
+        )]
+        keep_backup: bool,
     },
     /// Review the resolution of a merge by showing the differences with a line-based merge
     Review {
@@ -106,6 +116,13 @@ enum CliCommand {
 
 fn main() {
     let args = CliArgs::parse();
+
+    stderrlog::new()
+        .module(module_path!())
+        .verbosity(if args.verbose { 3 } else { 2 })
+        .init()
+        .unwrap();
+
     match real_main(args) {
         Ok(exit_code) => exit(exit_code),
         Err(error) => {
@@ -116,12 +133,6 @@ fn main() {
 }
 
 fn real_main(args: CliArgs) -> Result<i32, String> {
-    stderrlog::new()
-        .module(module_path!())
-        .verbosity(if args.verbose { 3 } else { 2 })
-        .init()
-        .unwrap();
-
     let return_code = match args.command {
         CliCommand::Merge {
             base,
@@ -218,6 +229,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             conflicts: fname_conflicts,
             compact,
             keep,
+            keep_backup,
         } => {
             let settings = DisplaySettings {
                 compact,
@@ -249,7 +261,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                         );
                     } else {
                         write_string_to_file(&fname_conflicts, &merged.contents)?;
-                        write_string_to_file(&(fname_conflicts + ".orig"), &conflict_contents)?;
+                        if keep_backup {
+                            write_string_to_file(&(fname_conflicts + ".orig"), &conflict_contents)?;
+                        }
                     };
                     0
                 }
@@ -339,8 +353,85 @@ fn fallback_to_git_merge_file(
         .map_err(|err| err.to_string())
 }
 
-#[test]
-fn verify_cli() {
-    use clap::CommandFactory;
-    CliArgs::command().debug_assert();
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn verify_cli() {
+        use clap::CommandFactory;
+        CliArgs::command().debug_assert();
+    }
+
+    #[test]
+    fn keep_backup_flag() {
+        // `true` when nothing passed
+        let CliCommand::Solve { keep_backup, .. } =
+            CliArgs::parse_from(["mergiraf", "solve", "foo.c"]).command
+        else {
+            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+        };
+        assert!(keep_backup);
+
+        // `true` when passed without value
+        // (and doesn't try to parse `foo.c` as value because of `require_equals`)
+        let CliCommand::Solve { keep_backup, .. } =
+            CliArgs::parse_from(["mergiraf", "solve", "--keep-backup", "foo.c"]).command
+        else {
+            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+        };
+        assert!(keep_backup);
+
+        // `true` when passed with explicit `=true`
+        let CliCommand::Solve { keep_backup, .. } =
+            CliArgs::parse_from(["mergiraf", "solve", "--keep-backup=true", "foo.c"]).command
+        else {
+            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+        };
+        assert!(keep_backup);
+
+        // `false` when passed with explicit `=false`
+        let CliCommand::Solve { keep_backup, .. } =
+            CliArgs::parse_from(["mergiraf", "solve", "--keep-backup=false", "foo.c"]).command
+        else {
+            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+        };
+        assert!(!keep_backup);
+    }
+
+    #[test]
+    fn keep_backup_keeps_backup() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let test_file_name = "test.c";
+
+        let test_file_abs_path = repo_path.join(test_file_name);
+        fs::write(&test_file_abs_path, "hello\nworld\n")
+            .expect("failed to write test file to git repository");
+
+        let test_file_orig_file_path = repo_path.join(format!("{test_file_name}.orig"));
+
+        // `solve` without keeping backup
+        real_main(CliArgs::parse_from([
+            "mergiraf",
+            "solve",
+            "--keep-backup=false",
+            test_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf solve`");
+
+        assert!(!test_file_orig_file_path.exists());
+
+        // `solve` once again but with backup this time
+        real_main(CliArgs::parse_from([
+            "mergiraf",
+            "solve",
+            "--keep-backup=true",
+            test_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf solve`");
+
+        assert!(test_file_orig_file_path.exists());
+    }
 }
