@@ -112,7 +112,7 @@ pub fn line_merge_and_structured_resolution(
     settings: &DisplaySettings,
     full_merge: bool,
     attempts_cache: Option<&AttemptsCache>,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
 ) -> MergeResult {
     let Some(lang_profile) = LangProfile::detect_from_filename(fname_base) else {
         // can't do anything fancier anyway
@@ -218,7 +218,7 @@ pub fn cascading_merge(
     lang_profile: &LangProfile,
     settings: &DisplaySettings,
     full_merge: bool,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
 ) -> Vec<MergeResult> {
     let mut merges = Vec::new();
 
@@ -316,7 +316,7 @@ fn resolve_merge<'a>(
     parsed_merge: &ParsedMerge<'a>,
     settings: &DisplaySettings<'a>,
     lang_profile: &LangProfile,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
 ) -> Result<MergeResult, String> {
     let start = Instant::now();
 
@@ -347,7 +347,7 @@ fn resolve_merge<'a>(
 fn structured_merge_from_git_revisions(
     fname_base: &str,
     settings: &DisplaySettings,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
     working_dir: &Path,
     lang_profile: &LangProfile,
 ) -> Result<MergeResult, String> {
@@ -380,7 +380,7 @@ pub fn resolve_merge_cascading<'a>(
     merge_contents: &'a str,
     fname_base: &str,
     mut settings: DisplaySettings<'a>,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
     working_dir: &Path,
 ) -> Result<MergeResult, String> {
     let mut solves = Vec::with_capacity(3);

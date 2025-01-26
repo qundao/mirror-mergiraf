@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{path::Path, time::Instant};
 
 use log::debug;
 use typed_arena::Arena;
@@ -28,7 +28,7 @@ pub fn structured_merge(
     parsed_merge: Option<&ParsedMerge>,
     settings: &DisplaySettings,
     lang_profile: &LangProfile,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
 ) -> Result<MergeResult, String> {
     let arena = Arena::new();
     let ref_arena = Arena::new();

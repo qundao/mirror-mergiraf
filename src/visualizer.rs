@@ -14,11 +14,12 @@ use crate::{
 
 /// Renders a mapping between two trees as a dotty graph
 pub fn write_matching_to_dotty_file<'a>(
-    path: &Path,
+    path: impl AsRef<Path>,
     left: &Ast<'a>,
     right: &Ast<'a>,
     mapping: &DetailedMatching<'a>,
 ) {
+    let path = path.as_ref();
     if let Err(err) = matching_to_graph(path, left, right, mapping) {
         error!(
             "Mergiraf: Could not write matching to {}: {err}",

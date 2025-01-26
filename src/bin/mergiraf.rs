@@ -1,5 +1,6 @@
 use std::{
     env, fs,
+    path::PathBuf,
     process::{exit, Command},
 };
 
@@ -27,7 +28,7 @@ struct CliArgs {
     /// Write debug files to a particular directory to analyze
     /// the internal aspects of the merge
     #[clap(short, long = "debug", global = true)]
-    debug_dir: Option<String>,
+    debug_dir: Option<PathBuf>,
     /// Verbosity
     #[clap(short, long, global = true)]
     verbose: bool,

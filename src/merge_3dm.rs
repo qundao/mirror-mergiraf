@@ -28,7 +28,7 @@ pub fn three_way_merge<'a>(
     initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
-    debug_dir: Option<&str>,
+    debug_dir: Option<&Path>,
 ) -> (MergedTree<'a>, ClassMapping<'a>) {
     // match all pairs of revisions
     let start = Instant::now();
@@ -72,7 +72,7 @@ pub fn three_way_merge<'a>(
         thread::scope(|s| {
             s.spawn(|| {
                 write_matching_to_dotty_file(
-                    Path::new(&format!("{debug_dir}/base_left.dot")),
+                    debug_dir.join("base_left.dot"),
                     base,
                     left,
                     &base_left_matching,
@@ -80,7 +80,7 @@ pub fn three_way_merge<'a>(
             });
             s.spawn(|| {
                 write_matching_to_dotty_file(
-                    Path::new(&format!("{debug_dir}/base_right.dot")),
+                    debug_dir.join("base_right.dot"),
                     base,
                     right,
                     &base_right_matching,
@@ -88,7 +88,7 @@ pub fn three_way_merge<'a>(
             });
             s.spawn(|| {
                 write_matching_to_dotty_file(
-                    Path::new(&format!("{debug_dir}/left_right.dot")),
+                    debug_dir.join("left_right.dot"),
                     left,
                     right,
                     &left_right_matching,
@@ -148,7 +148,7 @@ pub fn three_way_merge<'a>(
     changeset.add_tree(right, Revision::Right, &class_mapping);
 
     if let Some(debug_dir) = debug_dir {
-        changeset.save(format!("{debug_dir}/changeset.txt"));
+        changeset.save(debug_dir.join("changeset.txt"));
     }
 
     // also generate a base changeset
@@ -156,7 +156,7 @@ pub fn three_way_merge<'a>(
     base_changeset.add_tree(base, Revision::Base, &class_mapping);
 
     if let Some(debug_dir) = debug_dir {
-        base_changeset.save(format!("{debug_dir}/base_changeset.txt"));
+        base_changeset.save(debug_dir.join("base_changeset.txt"));
     }
     debug!("generating PCS triples took {:?}", start.elapsed());
 
@@ -186,7 +186,7 @@ pub fn three_way_merge<'a>(
     debug!("cleaning up PCS triples took {:?}", start.elapsed());
 
     if let Some(debug_dir) = debug_dir {
-        cleaned_changeset.save(format!("{debug_dir}/cleaned.txt"));
+        cleaned_changeset.save(debug_dir.join("cleaned.txt"));
     }
 
     // construct the merged tree!
