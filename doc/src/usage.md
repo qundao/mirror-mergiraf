@@ -17,7 +17,7 @@ First, add the following section in your `~/.gitconfig` file:
 ```ini
 [merge "mergiraf"]
     name = mergiraf
-    driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P
+    driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
 
 # if you haven't got a global gitattributes file yet
 [core]
@@ -27,7 +27,7 @@ First, add the following section in your `~/.gitconfig` file:
 Or run:
 ```console
 $ git config --global merge.mergiraf.name mergiraf
-$ git config --global merge.mergiraf.driver 'mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P'
+$ git config --global merge.mergiraf.driver 'mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L'
 $ git config --global core.attributesfile ~/.gitattributes
 ```
 

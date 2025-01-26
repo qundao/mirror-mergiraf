@@ -238,7 +238,7 @@ pub fn cascading_merge(
 
     // second attempt: to solve the conflicts from the line-based merge
     if !line_based_merge.has_additional_issues {
-        let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents)
+        let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents, settings)
             .expect("the diffy-imara rust library produced inconsistent conflict markers");
 
         let solved_merge = resolve_merge(&parsed_conflicts, settings, lang_profile, debug_dir);
@@ -388,7 +388,7 @@ pub fn resolve_merge_cascading<'a>(
     let lang_profile = LangProfile::detect_from_filename(fname_base)
         .ok_or_else(|| format!("Could not find a supported language for {fname_base}"))?;
 
-    match ParsedMerge::parse(merge_contents) {
+    match ParsedMerge::parse(merge_contents, &settings) {
         Err(err) => {
             if err == PARSED_MERGE_DIFF2_DETECTED {
                 // if parsing the original merge failed because it's done in diff2 mode,

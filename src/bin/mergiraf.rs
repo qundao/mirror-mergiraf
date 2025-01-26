@@ -52,6 +52,9 @@ enum CliCommand {
         /// Display compact conflicts, breaking down lines
         #[arg(short, long)]
         compact: Option<bool>,
+        #[arg(short = 'l', long)]
+        // the choice of 'l' is inherited from Git's merge driver interface
+        conflict_marker_size: Option<usize>,
         /// Behave as a git merge driver: overwrite the left revision
         #[clap(short, long)]
         git: bool,
@@ -82,6 +85,9 @@ enum CliCommand {
         /// Display compact conflicts, breaking down lines
         #[clap(short, long)]
         compact: Option<bool>,
+        #[arg(short = 'l', long)]
+        // the choice of 'l' is inherited from Git's merge driver interface
+        conflict_marker_size: Option<usize>,
         /// Keep file untouched and show the results of resolution on standard output instead
         #[clap(short, long)]
         keep: bool,
@@ -146,12 +152,13 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             left_name,
             right_name,
             compact,
+            conflict_marker_size,
         } => {
             let old_git_detected = base_name.as_deref().is_some_and(|n| n == "%S");
 
             let settings = DisplaySettings {
                 compact,
-                conflict_marker_size: None, // TODO: get as flag
+                conflict_marker_size,
                 base_revision_name: match base_name.as_deref() {
                     Some("%S") => None,
                     Some(name) => Some(name),
@@ -228,6 +235,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         CliCommand::Solve {
             conflicts: fname_conflicts,
             compact,
+            conflict_marker_size,
             keep,
             keep_backup,
         } => {
@@ -237,7 +245,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 base_revision_name: None,
                 left_revision_name: None,
                 right_revision_name: None,
-                conflict_marker_size: None, // TODO: get as flag
+                conflict_marker_size,
                 ..Default::default()
             };
 
@@ -341,6 +349,8 @@ fn fallback_to_git_merge_file(
     };
 
     command
+        .arg("--marker-size")
+        .arg(settings.conflict_marker_size_or_default().to_string())
         .arg(left)
         .arg(base)
         .arg(right)

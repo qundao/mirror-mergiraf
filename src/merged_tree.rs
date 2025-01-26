@@ -268,7 +268,7 @@ impl<'a> MergedTree<'a> {
         settings: &DisplaySettings,
     ) -> String {
         let mut output = MergedText::new();
-        self.pretty_print_recursively(&mut output, class_mapping, None, "");
+        self.pretty_print_recursively(&mut output, class_mapping, None, "", settings);
         output.render(settings)
     }
 
@@ -279,6 +279,7 @@ impl<'a> MergedTree<'a> {
         class_mapping: &ClassMapping<'a>,
         previous_sibling: Option<&PreviousSibling<'a>>,
         indentation: &str,
+        settings: &DisplaySettings,
     ) {
         match self {
             MergedTree::ExactTree {
@@ -316,6 +317,7 @@ impl<'a> MergedTree<'a> {
                         class_mapping,
                         previous_sibling.as_ref(),
                         &new_indentation,
+                        settings,
                     );
                     previous_sibling = match *c {
                         MergedTree::ExactTree { node, .. }
@@ -381,7 +383,7 @@ impl<'a> MergedTree<'a> {
                         .indentation_shift()
                         .unwrap_or("")
                 );
-                output.push_line_based_merge(contents, &full_indentation);
+                output.push_line_based_merge(contents, &full_indentation, settings);
             }
             MergedTree::CommutativeChildSeparator { separator, .. } => {
                 output.push_merged(Cow::from(*separator));

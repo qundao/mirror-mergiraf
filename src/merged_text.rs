@@ -61,9 +61,14 @@ impl<'a> MergedText<'a> {
 
     /// Appends some text which might contain line-based conflicts.
     /// If the text contains newlines it also gets re-indented to the indentation level supplied.
-    pub(crate) fn push_line_based_merge(&mut self, line_based_merge: &str, indentation: &str) {
-        let parsed =
-            ParsedMerge::parse(line_based_merge).expect("Parsing the line-based merge failed");
+    pub(crate) fn push_line_based_merge(
+        &mut self,
+        line_based_merge: &str,
+        indentation: &str,
+        settings: &DisplaySettings,
+    ) {
+        let parsed = ParsedMerge::parse(line_based_merge, settings)
+            .expect("Parsing the line-based merge failed");
         let mut newline_found = false;
         for section in parsed.chunks {
             self.sections.push(match section {
