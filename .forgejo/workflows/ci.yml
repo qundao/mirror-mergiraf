@@ -20,10 +20,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target            
-          key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}}"
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}} lock ${{ hashFiles('**/Cargo.lock') }}""
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
