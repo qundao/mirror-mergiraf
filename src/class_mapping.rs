@@ -176,10 +176,10 @@ impl<'a> ClassMapping<'a> {
         revision: Revision,
     ) -> Option<Vec<Leader<'a>>> {
         let repr = if leader.0.rev == revision {
-            Some(&leader.0)
+            &leader.0
         } else {
-            self.internal_representatives(leader).get(&revision)
-        }?;
+            self.internal_representatives(leader).get(&revision)?
+        };
         Some(
             repr.node
                 .children

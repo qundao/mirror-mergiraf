@@ -23,7 +23,7 @@ impl Display for Signature<'_, '_> {
                     x.iter()
                         .map(|element| match element {
                             AstNodeEquiv::Original(ast_node) => ast_node.source.to_owned(),
-                            AstNodeEquiv::Merged(tree) => format!("{tree}"),
+                            AstNodeEquiv::Merged(tree) => tree.to_string(),
                         })
                         .join(", ")
                 ))
@@ -50,12 +50,10 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
         class_mapping: &ClassMapping<'b>,
     ) -> Vec<AstNodeEquiv<'a, 'b>> {
         match self {
-            AstNodeEquiv::Original(ast_node) => ast_node
+            Self::Original(ast_node) => ast_node
                 .children_by_field_name(field_name)
-                .iter()
-                .flat_map(|l| l.iter().map(|c| AstNodeEquiv::Original(c)))
-                .collect(),
-            AstNodeEquiv::Merged(tree) => match tree {
+                .map_or(vec![], |l| l.iter().copied().map(Self::Original).collect()),
+            Self::Merged(tree) => match tree {
                 MergedTree::ExactTree {
                     node, revisions, ..
                 } => {
@@ -63,13 +61,13 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                     let representative = class_mapping
                         .node_at_rev(*node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
-                    (AstNodeEquiv::Original(representative))
+                    (Self::Original(representative))
                         .children_by_field_name(field_name, class_mapping)
                 }
                 MergedTree::MixedTree { children, .. } => children
                     .iter()
                     .filter(|child| child.field_name(class_mapping) == Some(field_name))
-                    .map(AstNodeEquiv::Merged)
+                    .map(Self::Merged)
                     .collect(),
                 MergedTree::Conflict { .. }
                 | MergedTree::LineBasedMerge { .. }
@@ -85,13 +83,14 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
         class_mapping: &ClassMapping<'b>,
     ) -> Vec<AstNodeEquiv<'a, 'b>> {
         match self {
-            AstNodeEquiv::Original(ast_node) => ast_node
+            Self::Original(ast_node) => ast_node
                 .children
                 .iter()
                 .filter(|child| child.grammar_name == grammar_name)
-                .map(|l| AstNodeEquiv::Original(l))
+                .copied()
+                .map(Self::Original)
                 .collect(),
-            AstNodeEquiv::Merged(tree) => match tree {
+            Self::Merged(tree) => match tree {
                 MergedTree::ExactTree {
                     node, revisions, ..
                 } => {
@@ -99,13 +98,13 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                     let representative = class_mapping
                         .node_at_rev(*node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
-                    (AstNodeEquiv::Original(representative))
+                    (Self::Original(representative))
                         .children_by_grammar_name(grammar_name, class_mapping)
                 }
                 MergedTree::MixedTree { children, .. } => children
                     .iter()
                     .filter(|child| child.grammar_name() == Some(grammar_name))
-                    .map(AstNodeEquiv::Merged)
+                    .map(Self::Merged)
                     .collect(),
                 MergedTree::Conflict { .. }
                 | MergedTree::LineBasedMerge { .. }
@@ -116,9 +115,8 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
 
     fn isomorphic(&self, other: &Self, class_mapping: Option<&ClassMapping<'b>>) -> bool {
         match (self, other) {
-            (AstNodeEquiv::Original(a), AstNodeEquiv::Original(b)) => a.isomorphic_to(b),
-            (AstNodeEquiv::Original(a), AstNodeEquiv::Merged(b))
-            | (AstNodeEquiv::Merged(b), AstNodeEquiv::Original(a)) => {
+            (Self::Original(a), Self::Original(b)) => a.isomorphic_to(b),
+            (Self::Original(a), Self::Merged(b)) | (Self::Merged(b), Self::Original(a)) => {
                 match b {
                     MergedTree::ExactTree {
                         hash,
@@ -142,10 +140,8 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                                 .iter()
                                 .zip(a.children.iter())
                                 .all(|(child, ast_node)| {
-                                    AstNodeEquiv::Merged(child).isomorphic(
-                                        &AstNodeEquiv::Original(ast_node),
-                                        class_mapping,
-                                    )
+                                    Self::Merged(child)
+                                        .isomorphic(&Self::Original(ast_node), class_mapping)
                                 })
                     }
                     MergedTree::Conflict { .. } => false,
@@ -157,7 +153,7 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                     }
                 }
             }
-            (AstNodeEquiv::Merged(a), AstNodeEquiv::Merged(b)) => match (a, b) {
+            (Self::Merged(a), Self::Merged(b)) => match (a, b) {
                 (
                     MergedTree::ExactTree {
                         revisions, node, ..
@@ -174,10 +170,8 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                         let representative = class_mapping
                             .node_at_rev(*node, revisions.any())
                             .expect("inconsistent class mapping and ExactTree::revisions");
-                        AstNodeEquiv::Merged(b).isomorphic(
-                            &AstNodeEquiv::Original(representative),
-                            Some(class_mapping),
-                        )
+                        Self::Merged(b)
+                            .isomorphic(&Self::Original(representative), Some(class_mapping))
                     } else {
                         // we don't have access to a class mapping so we resort on hash equality
                         let mut hasher = crate::fxhasher();
@@ -207,8 +201,8 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
                             .iter()
                             .zip(children_b.iter())
                             .all(|(child_a, child_b)| {
-                                AstNodeEquiv::Merged(child_a)
-                                    .isomorphic(&AstNodeEquiv::Merged(child_b), class_mapping)
+                                Self::Merged(child_a)
+                                    .isomorphic(&Self::Merged(child_b), class_mapping)
                             })
                 }
                 (MergedTree::MixedTree { .. }, _) | (_, MergedTree::MixedTree { .. }) => false,
@@ -228,8 +222,8 @@ impl PartialEq for AstNodeEquiv<'_, '_> {
 impl Hash for AstNodeEquiv<'_, '_> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
-            AstNodeEquiv::Original(ast_node) => ast_node.hash.hash(state),
-            AstNodeEquiv::Merged(tree) => match tree {
+            Self::Original(ast_node) => ast_node.hash.hash(state),
+            Self::Merged(tree) => match tree {
                 MergedTree::ExactTree { hash, .. } | MergedTree::MixedTree { hash, .. } => {
                     hash.hash(state);
                 }
@@ -253,8 +247,8 @@ impl Hash for AstNodeEquiv<'_, '_> {
 impl Display for AstNodeEquiv<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AstNodeEquiv::Original(ast_node) => write!(f, "Original({ast_node})"),
-            AstNodeEquiv::Merged(merged) => write!(f, "Merged({merged})"),
+            Self::Original(ast_node) => write!(f, "Original({ast_node})"),
+            Self::Merged(merged) => write!(f, "Merged({merged})"),
         }
     }
 }

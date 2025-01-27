@@ -32,7 +32,7 @@ fn write_file_from_rev(
     extension: &str,
 ) -> String {
     let file_name = format!("file.{extension}");
-    let fname_base = format!("{}/{}.{}", test_dir.display(), revision, extension);
+    let fname_base = test_dir.join(format!("{revision}.{extension}"));
     let contents = fs::read_to_string(&fname_base).expect("Unable to read left file");
     fs::write(repo_dir.join(&file_name), contents)
         .expect("failed to write test file to git repository");
@@ -59,8 +59,8 @@ fn detect_extension(test_dir: &Path) -> String {
 #[case("merge")]
 #[case("diff3")]
 fn solve_command(#[case] conflict_style: &str) {
-    let test_dir = PathBuf::from("examples/java/working/demo");
-    let extension = detect_extension(&test_dir);
+    let test_dir = Path::new("examples/java/working/demo");
+    let extension = detect_extension(test_dir);
 
     // create temp directory
     let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
@@ -68,7 +68,7 @@ fn solve_command(#[case] conflict_style: &str) {
     // init git repository
     run_git(&["init", "."], repo_dir);
     run_git(&["checkout", "-b", "first_branch"], repo_dir);
-    let file_name = write_file_from_rev(repo_dir, &test_dir, "Base", &extension);
+    let file_name = write_file_from_rev(repo_dir, test_dir, "Base", &extension);
     run_git(&["add", &file_name], repo_dir);
     run_git(
         &[
@@ -83,7 +83,7 @@ fn solve_command(#[case] conflict_style: &str) {
         ],
         repo_dir,
     );
-    write_file_from_rev(repo_dir, &test_dir, "Left", &extension);
+    write_file_from_rev(repo_dir, test_dir, "Left", &extension);
     run_git(
         &[
             "-c",
@@ -99,7 +99,7 @@ fn solve_command(#[case] conflict_style: &str) {
     );
     run_git(&["checkout", "HEAD~"], repo_dir);
     run_git(&["checkout", "-b", "second_branch"], repo_dir);
-    write_file_from_rev(repo_dir, &test_dir, "Right", &extension);
+    write_file_from_rev(repo_dir, test_dir, "Right", &extension);
     run_git(
         &[
             "-c",

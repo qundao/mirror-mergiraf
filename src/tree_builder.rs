@@ -266,7 +266,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         }
 
         // check that all non-base nodes were visited
-        let non_base_nodes = children_map
+        let non_base_nodes: HashSet<PCSNode<'a>> = children_map
             .keys()
             .copied()
             .filter(|pcsnode| {
@@ -276,7 +276,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     false
                 }
             })
-            .collect::<HashSet<PCSNode<'a>>>();
+            .collect();
         if !seen_nodes.is_superset(&non_base_nodes) {
             // We have a conflict where some node is deleted and we cannot gather where exactly.
             debug!(
@@ -646,10 +646,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         }
 
         // then, compute the symmetric difference between the base and right lists
-        let right_removed = base_leaders
+        let right_removed: HashSet<&Leader<'_>> = base_leaders
             .iter()
             .filter(|x| !right_leaders.contains(x))
-            .collect::<HashSet<&Leader>>();
+            .collect();
         debug!("{pad}right_removed: {}", right_removed.iter().join(", "));
         // check which right removed elements have been modified on the left-hand side,
         // in which case they should be kept
@@ -706,7 +706,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     visiting_state,
                 )
             })
-            .collect::<Result<Vec<MergedTree<'a>>, String>>()?;
+            .collect::<Result<_, _>>()?;
 
         // try to find examples of delimiters and separator in the existing revisions
         let left_delim = [
@@ -884,7 +884,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             commutative_parent,
             visiting_state,
         )?;
-        let mut prefix_trees = common_prefix
+        let mut prefix_trees: Vec<_> = common_prefix
             .iter()
             .map(|revnode| {
                 self.build_subtree(
@@ -895,8 +895,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     visiting_state,
                 )
             })
-            .collect::<Result<Vec<MergedTree<'a>>, String>>()?;
-        let mut suffix_trees = common_suffix
+            .collect::<Result<_, _>>()?;
+        let mut suffix_trees: Vec<_> = common_suffix
             .iter()
             .map(|revnode| {
                 self.build_subtree(
@@ -907,7 +907,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     visiting_state,
                 )
             })
-            .collect::<Result<Vec<MergedTree<'a>>, String>>()?;
+            .collect::<Result<_, _>>()?;
 
         prefix_trees.append(&mut merge_result);
         prefix_trees.append(&mut suffix_trees);
@@ -988,12 +988,12 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     .children_at_revision(*node, modifying_revision)?;
                 if children_base == children_modified {
                     // the change didn't happen at this level
-                    let children_covers = children
+                    let children_covers: Option<Vec<HashSet<Leader<'a>>>> = children
                         .iter()
                         .map(|child| {
                             self.cover_modified_nodes(child, target_revision, modifying_revision)
                         })
-                        .collect::<Option<Vec<HashSet<Leader<'a>>>>>();
+                        .collect();
                     // if all children can be covered then return the union of all children's covers
                     if let Some(children_covers) = children_covers {
                         let union: HashSet<Leader<'a>> =

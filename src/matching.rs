@@ -41,18 +41,12 @@ impl<'tree> Matching<'tree> {
 
     /// Set of left node ids that are matched to any node on the right
     pub fn left_matched(&self) -> HashSet<usize> {
-        self.left_to_right
-            .keys()
-            .map(|c| c.id)
-            .collect::<HashSet<usize>>()
+        self.left_to_right.keys().map(|c| c.id).collect()
     }
 
     /// Set of right node ids that are matched to any node on the left
     pub fn right_matched(&self) -> HashSet<usize> {
-        self.right_to_left
-            .keys()
-            .map(|c| c.id)
-            .collect::<HashSet<usize>>()
+        self.right_to_left.keys().map(|c| c.id).collect()
     }
 
     /// Adds a match between two nodes (in both directions)
@@ -123,11 +117,10 @@ impl<'tree> Matching<'tree> {
     }
 
     /// Retrieve match ids from left to right
-    pub fn as_ids(&self) -> Vec<(usize, usize)> {
+    pub fn as_ids<'s>(&'s self) -> impl Iterator<Item = (usize, usize)> + use<'s, 'tree> {
         self.left_to_right
             .iter()
             .map(|(source, target)| (source.id, target.id))
-            .collect::<Vec<(usize, usize)>>()
     }
 
     /// Computes the dice coefficient of two trees according to this matching
@@ -135,7 +128,7 @@ impl<'tree> Matching<'tree> {
         let size_left = left.size();
         let size_right = right.size();
 
-        let right_descendants = right.dfs().collect::<HashSet<&AstNode>>();
+        let right_descendants: HashSet<&AstNode<'_>> = right.dfs().collect();
         let mapped = left
             .dfs()
             .flat_map(|left_descendant| self.get_from_left(left_descendant).into_iter())
@@ -162,10 +155,10 @@ impl<'tree> Matching<'tree> {
         let mapping_right = Self::index_tree(new_right);
         let mut matching = Matching::new();
         for (right, left) in self.iter_right_to_left() {
-            if let Some(right_mapped) = mapping_right.get(&right.id) {
-                if let Some(left_mapped) = mapping_left.get(&left.id) {
-                    matching.add(left_mapped, right_mapped);
-                }
+            if let (Some(right_mapped), Some(left_mapped)) =
+                (mapping_right.get(&right.id), mapping_left.get(&left.id))
+            {
+                matching.add(left_mapped, right_mapped);
             }
         }
         matching
@@ -178,6 +171,8 @@ impl<'tree> Matching<'tree> {
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use crate::test_utils::ctx;
 
     use super::*;
@@ -194,7 +189,10 @@ mod tests {
 
         matching.add(tree.root(), tree2.root());
         assert_eq!(matching.len(), 1);
-        assert_eq!(matching.as_ids(), vec![(tree.root().id, tree2.root().id)]);
+        assert_eq!(
+            matching.as_ids().collect_vec(),
+            vec![(tree.root().id, tree2.root().id)]
+        );
     }
 
     #[test]

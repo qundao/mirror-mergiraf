@@ -103,7 +103,7 @@ impl<'a> ChangeSet<'a> {
 
     /// Finds all the PCS which contain either the successor or predecessor of this PCS as successor or predecessor,
     /// and whose parent is different.
-    pub fn other_roots(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
+    pub fn other_roots(&self, pcs: &PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
         let mut results = Vec::new();
         if let PCSNode::Node { .. } = pcs.predecessor {
             results.extend(
@@ -124,14 +124,20 @@ impl<'a> ChangeSet<'a> {
 
     /// Finds all the PCS that are successor-conflicting with this PCS
     #[cfg(test)]
-    pub(crate) fn other_successors(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
+    pub(crate) fn other_successors<'s, 'b>(
+        &'s self,
+        pcs: &'b PCS<'a>,
+    ) -> impl Iterator<Item = &'s PCS<'a>> + use<'s, 'a, 'b> {
         self.parents.get(&pcs.parent).iter().filter(move |other| {
             other.successor != pcs.successor && other.predecessor == pcs.predecessor
         })
     }
 
     /// Finds all the inconsistent triples
-    pub fn inconsistent_triples(&self, pcs: PCS<'a>) -> impl Iterator<Item = &PCS<'a>> {
+    pub fn inconsistent_triples<'s, 'b>(
+        &'s self,
+        pcs: &'b PCS<'a>,
+    ) -> impl Iterator<Item = &'s PCS<'a>> + use<'s, 'a, 'b> {
         self.parents
             .get(&pcs.parent)
             .iter()
@@ -228,7 +234,7 @@ mod tests {
 
         let empty_conflicts: Vec<&PCS> = vec![];
         for pcs in changeset.iter() {
-            let conflicts = changeset.other_successors(*pcs).collect_vec();
+            let conflicts = changeset.other_successors(pcs).collect_vec();
             for conflicting_pcs in &conflicts {
                 debug!("conflict between {pcs} and {conflicting_pcs}");
             }

@@ -12,8 +12,8 @@ use crate::{
 /// Backbone of the 3DM merge algorithm.
 ///
 /// This:
-/// * generates matchings between all three pairs of revisions,
-/// * creates a class mapping to cluster nodes together,
+/// * generates [`Matching`]s between all three pairs of revisions,
+/// * creates a [`ClassMapping`] to cluster nodes together,
 /// * converts the trees to [`ChangeSet`]s
 /// * cleans up the union of the changesets
 /// * converts back the union of changesets to a [`MergedTree`]
@@ -167,8 +167,8 @@ pub fn three_way_merge<'a>(
     for pcs in changeset.iter() {
         let mut conflict_found = false;
         if pcs.revision == Revision::Base {
-            let mut conflicting_triples = changeset.inconsistent_triples(*pcs);
-            let count = changeset.inconsistent_triples(*pcs).count();
+            let mut conflicting_triples = changeset.inconsistent_triples(pcs);
+            let count = changeset.inconsistent_triples(pcs).count();
             if count > 0 {
                 debug!("number of conflicting triples: {count}");
             }
