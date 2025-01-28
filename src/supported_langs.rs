@@ -55,11 +55,55 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec!["import_declaration"],
             commutative_parents: vec![
                 // top-level node, for imports and class declarations
-                CommutativeParent::without_delimiters("program", "\n"),
+                CommutativeParent::without_delimiters("program", "\n").restricted_to_groups(&[
+                    &["module_declaration"],
+                    &["package_declaration"],
+                    &["import_declaration"],
+                    &[
+                        "class_declaration",
+                        "record_declaration",
+                        "interface_declaration",
+                        "annotation_type_declaration",
+                        "enum_declaration",
+                    ],
+                ]),
                 // strictly speaking, this isn't true (order can be accessed via reflection)
-                CommutativeParent::new("class_body", " {\n", "\n", "\n}\n"),
-                // TODO this encompasses both "public / static / final" sort of things (generally separated by a space) and annotations (separated by newlines)
-                CommutativeParent::without_delimiters("modifiers", " "),
+                CommutativeParent::new("class_body", " {\n", "\n", "\n}\n").restricted_to_groups(
+                    &[
+                        &["field_declaration"],
+                        &[
+                            "record_declaration",
+                            "class_declaration",
+                            "interface_declaration",
+                            "annotation_type_declaration",
+                            "enum_declaration",
+                        ],
+                        &[
+                            "constructor_declaration",
+                            "method_declaration",
+                            "compact_constructor_declaration",
+                        ],
+                    ],
+                ),
+                CommutativeParent::without_delimiters("modifiers", " ").restricted_to_groups(&[
+                    &[
+                        "public",
+                        "protected",
+                        "private",
+                        "abstract",
+                        "static",
+                        "final",
+                        "strictfp",
+                        "default",
+                        "synchronized",
+                        "native",
+                        "transient",
+                        "volatile",
+                        "sealed",
+                        "non-sealed",
+                    ],
+                    &["marker_annotation", "annotation"],
+                ]),
                 CommutativeParent::without_delimiters("catch_type", " | "),
                 CommutativeParent::without_delimiters("type_list", ", "), // for "implements" or "sealed"
                 CommutativeParent::new("annotation_argument_list", "{", ", ", "}"),
@@ -154,19 +198,66 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             language: tree_sitter_rust::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![
-                CommutativeParent::without_delimiters("source_file", "\n"),
+                CommutativeParent::without_delimiters("source_file", "\n").restricted_to_groups(&[
+                    &["use_declaration"], // to keep use declarations together (even if it's not actually required)
+                    &[
+                        "const_item",
+                        "macro_definition",
+                        "mod_item",
+                        "foreign_mod_item",
+                        "struct_item",
+                        "union_item",
+                        "enum_item",
+                        "type_item",
+                        "function_item",
+                        "function_signature_item",
+                        "trait_item",
+                        "associated_type",
+                        "let_declaration",
+                        "extern_crate_declaration",
+                        "static_item",
+                    ],
+                ]),
                 // module members, impls…
-                CommutativeParent::new("declaration_list", " {\n", "\n", "\n}\n"),
+                CommutativeParent::new("declaration_list", " {\n", "\n", "\n}\n")
+                    .restricted_to_groups(&[
+                        &["use_declaration"], // to keep use declarations together (even if it's not actually required)
+                        &[
+                            "const_item",
+                            "macro_definition",
+                            "mod_item",
+                            "foreign_mod_item",
+                            "struct_item",
+                            "union_item",
+                            "enum_item",
+                            "type_item",
+                            "function_item",
+                            "function_signature_item",
+                            "trait_item",
+                            "associated_type",
+                            "let_declaration",
+                            "extern_crate_declaration",
+                            "static_item",
+                        ],
+                    ]),
                 // scoped "use" declaration
                 CommutativeParent::new("use_list", "{", ", ", "}"),
                 CommutativeParent::with_left_delimiter("trait_bounds", ": ", " + "),
                 // strictly speaking, the derived order on values depends on their declaration
-                CommutativeParent::new("enum_variant_list", " {\n", ", ", "\n}\n"),
+                CommutativeParent::new("enum_variant_list", " {\n", ", ", "\n}\n")
+                    .restricted_to_groups(&[&["enum_variant"]]),
                 // strictly speaking, the order can matter if using the C ABI
-                CommutativeParent::new("field_declaration_list", " {\n", ", ", "\n}\n"),
-                CommutativeParent::new("field_initializer_list", "{ ", ", ", " }"),
+                CommutativeParent::new("field_declaration_list", " {\n", ", ", "\n}\n")
+                    .restricted_to_groups(&[&["field_declaration"]]),
+                CommutativeParent::new("field_initializer_list", "{ ", ", ", " }")
+                    .restricted_to_groups(&[&[
+                        "shorthand_field_initializer",
+                        "field_initializer",
+                        "base_field_initializer",
+                    ]]),
                 CommutativeParent::without_delimiters("function_modifiers", " "),
-                CommutativeParent::with_left_delimiter("where_clause", "where", ",\n"),
+                CommutativeParent::with_left_delimiter("where_clause", "where", ",\n")
+                    .restricted_to_groups(&[&["where_predicate"]]),
             ],
             signatures: vec![
                 // as module member, impls…
@@ -208,10 +299,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             language: tree_sitter_go::LANGUAGE.into(),
             atomic_nodes: vec!["interpreted_string_literal"], // for https://github.com/tree-sitter/tree-sitter-go/issues/150
             commutative_parents: vec![
-                CommutativeParent::without_delimiters("source_file", "\n"),
-                CommutativeParent::new("import_spec_list", "(\n", "\n", "\n)\n"),
-                CommutativeParent::new("field_declaration_list", " {\n", "\n", "\n}\n"), // not strictly speaking, because it impacts memory layout
-                CommutativeParent::new("literal_value", "{", ", ", "}"),
+                CommutativeParent::without_delimiters("source_file", "\n").restricted_to_groups(&[
+                    &["import_declaration"],
+                    &["function_declaration", "method_declaration"],
+                ]),
+                CommutativeParent::new("import_spec_list", "(\n", "\n", "\n)\n")
+                    .restricted_to_groups(&[&["import_spec"]]),
+                CommutativeParent::new("field_declaration_list", " {\n", "\n", "\n}\n") // not strictly speaking, because it impacts memory layout
+                    .restricted_to_groups(&[&["field_declaration"]]),
+                CommutativeParent::new("literal_value", "{", ", ", "}")
+                    .restricted_to_groups(&[&["literal_element", "keyed_element"]]),
             ],
             signatures: vec![
                 signature(
