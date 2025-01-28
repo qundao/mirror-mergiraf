@@ -79,7 +79,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     }
 
     /// Build the merged tree
-    pub fn build_tree(&self) -> MergedTree<'a> {
+    pub fn build_tree(&self) -> Result<MergedTree<'a>, String> {
         let mut visiting_state = VisitingState {
             // keep track of all nodes that have been deleted on one side and modified on the other
             deleted_and_modified: HashSet::new(),
@@ -88,8 +88,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         };
 
         // recursively build the tree by starting from the virtual root
-        let merged_tree = self.build_subtree(PCSNode::VirtualRoot, &mut visiting_state)
-            .expect("Recovering the result tree from the virtual root failed, this should not be allowed to happen!");
+        let merged_tree = self.build_subtree(PCSNode::VirtualRoot, &mut visiting_state)?;
 
         debug!("{merged_tree}");
 
@@ -119,8 +118,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             parents_to_recompute.iter().join(", ")
         );
 
-        merged_tree
-            .force_line_based_fallback_on_specific_nodes(&parents_to_recompute, self.class_mapping)
+        Ok(merged_tree
+            .force_line_based_fallback_on_specific_nodes(&parents_to_recompute, self.class_mapping))
     }
 
     /// Recursive function to build the merged subtree rooted in a node,
@@ -1057,11 +1056,11 @@ mod tests {
 
         assert_eq!(
             result_tree,
-            MergedTree::new_exact(
+            Ok(MergedTree::new_exact(
                 class_mapping.map_to_leader(RevNode::new(Revision::Base, tree.root())),
                 RevisionNESet::singleton(Revision::Base),
                 &class_mapping,
-            )
+            ))
         );
     }
 
@@ -1089,7 +1088,8 @@ mod tests {
                 lang_profile,
             );
             tree_gatherer.build_tree()
-        };
+        }
+        .expect("a successful merge was expected");
 
         assert!(result_tree.contains(
             class_mapping.map_to_leader(RevNode::new(Revision::Base, tree.root())),

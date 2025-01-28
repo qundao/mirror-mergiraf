@@ -3,10 +3,18 @@ use std::{path::Path, thread, time::Instant};
 use log::debug;
 
 use crate::{
-    changeset::ChangeSet, class_mapping::ClassMapping, matching::Matching,
+    changeset::ChangeSet,
+    class_mapping::{ClassMapping, RevNode},
+    line_based::line_based_merge,
+    matching::Matching,
     merge_postprocessor::post_process_merged_tree_for_duplicate_signatures,
-    merged_tree::MergedTree, pcs::Revision, tree::Ast, tree_builder::TreeBuilder,
-    tree_matcher::TreeMatcher, visualizer::write_matching_to_dotty_file,
+    merged_tree::MergedTree,
+    pcs::Revision,
+    settings::DisplaySettings,
+    tree::Ast,
+    tree_builder::TreeBuilder,
+    tree_matcher::TreeMatcher,
+    visualizer::write_matching_to_dotty_file,
 };
 
 /// Backbone of the 3DM merge algorithm.
@@ -197,7 +205,19 @@ pub fn three_way_merge<'a>(
         &class_mapping,
         primary_matcher.lang_profile,
     );
-    let merged_tree = tree_builder.build_tree();
+    let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
+        let line_based = line_based_merge(
+            base.source(),
+            left.source(),
+            right.source(),
+            &DisplaySettings::default(),
+        );
+        MergedTree::LineBasedMerge {
+            node: class_mapping.map_to_leader(RevNode::new(Revision::Base, base.root())),
+            contents: line_based.contents,
+            conflict_mass: line_based.conflict_mass,
+        }
+    });
     debug!("constructing the merged tree took {:?}", start.elapsed());
 
     // post-process to highlight signature conflicts
