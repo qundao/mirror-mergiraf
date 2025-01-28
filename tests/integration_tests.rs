@@ -2,8 +2,10 @@ use core::str;
 use std::fs::{self, read_dir};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
 
 use diffy_imara::{create_patch, PatchFormatter};
+use mergiraf::line_based::line_based_merge;
 use mergiraf::newline::normalize_to_lf;
 use mergiraf::settings::DisplaySettings;
 use mergiraf::{
@@ -153,27 +155,81 @@ fn solve_command(#[case] conflict_style: &str) {
     assert_eq!(merge_result.contents, expected_result);
 }
 
+#[rstest]
+fn timeout_support() {
+    let test_dir = "examples/java/working/move_and_modify_conflict";
+    let ext = "java";
+    let fname_base = format!("{test_dir}/Base.{ext}").leak();
+    let contents_base = fs::read_to_string(&fname_base)
+        .expect("Unable to read left file")
+        .leak();
+    let fname_left = format!("{test_dir}/Left.{ext}");
+    let contents_left = fs::read_to_string(fname_left)
+        .expect("Unable to read left file")
+        .leak();
+    let fname_right = format!("{test_dir}/Right.{ext}").leak();
+    let contents_right = fs::read_to_string(fname_right)
+        .expect("Unable to read right file")
+        .leak();
+    let contents_expected = line_based_merge(
+        contents_base,
+        contents_left,
+        contents_right,
+        &DisplaySettings::default(),
+    )
+    .contents;
+
+    let merge_result = line_merge_and_structured_resolution(
+        contents_base,
+        contents_left,
+        contents_right,
+        fname_base,
+        DisplaySettings::default(),
+        true,
+        None,
+        None,
+        Duration::from_millis(1), // very small timeout: structured merging should never be that fast
+    );
+
+    let expected = contents_expected.trim();
+    let actual = merge_result.contents.trim();
+    if expected != actual {
+        let patch = create_patch(expected, actual);
+        let f = PatchFormatter::new().with_color();
+        print!("{}", f.fmt_patch(&patch));
+        eprintln!("test failed: outputs differ for {test_dir}");
+        panic!();
+    }
+}
+
 fn run_test_from_dir(test_dir: &Path) {
     let ext = detect_extension(test_dir);
     let test_dir = test_dir.display();
-    let fname_base = format!("{test_dir}/Base.{ext}");
-    let contents_base = fs::read_to_string(&fname_base).expect("Unable to read left file");
+    let fname_base = format!("{test_dir}/Base.{ext}").leak();
+    let contents_base = fs::read_to_string(&fname_base)
+        .expect("Unable to read left file")
+        .leak();
     let fname_left = format!("{test_dir}/Left.{ext}");
-    let contents_left = fs::read_to_string(fname_left).expect("Unable to read left file");
+    let contents_left = fs::read_to_string(fname_left)
+        .expect("Unable to read left file")
+        .leak();
     let fname_right = format!("{test_dir}/Right.{ext}");
-    let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
+    let contents_right = fs::read_to_string(fname_right)
+        .expect("Unable to read right file")
+        .leak();
     let fname_expected = format!("{test_dir}/Expected.{ext}");
     let contents_expected = fs::read_to_string(fname_expected).expect("Unable to read right file");
 
     let merge_result = line_merge_and_structured_resolution(
-        &contents_base,
-        &contents_left,
-        &contents_right,
-        &fname_base,
-        &DisplaySettings::default(),
+        contents_base,
+        contents_left,
+        contents_right,
+        fname_base,
+        DisplaySettings::default(),
         true,
         None,
         None,
+        Duration::from_millis(0),
     );
 
     let expected = contents_expected.trim();

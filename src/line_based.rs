@@ -8,7 +8,7 @@ pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
 pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
 /// Perform a textual merge with the diff3 algorithm.
-pub(crate) fn line_based_merge(
+pub fn line_based_merge(
     contents_base: &str,
     contents_left: &str,
     contents_right: &str,

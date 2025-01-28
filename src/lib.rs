@@ -21,7 +21,7 @@ pub(crate) mod changeset;
 pub(crate) mod class_mapping;
 pub(crate) mod git;
 pub mod lang_profile;
-pub(crate) mod line_based;
+pub mod line_based;
 pub(crate) mod matching;
 pub(crate) mod merge_3dm;
 pub(crate) mod merge_postprocessor;
@@ -46,7 +46,12 @@ pub(crate) mod tree_matcher;
 pub(crate) mod visualizer;
 
 use core::cmp::Ordering;
-use std::{fs, path::Path, time::Instant};
+use std::{
+    fs,
+    path::Path,
+    thread,
+    time::{Duration, Instant},
+};
 
 use attempts::AttemptsCache;
 use git::extract_revision_from_git;
@@ -105,19 +110,20 @@ pub(crate) fn parse<'a>(
 /// merge (independently of the textual merge) is attempted
 #[allow(clippy::too_many_arguments)]
 pub fn line_merge_and_structured_resolution(
-    contents_base: &str,
-    contents_left: &str,
-    contents_right: &str,
-    fname_base: &str,
-    settings: &DisplaySettings,
+    contents_base: &'static str,
+    contents_left: &'static str,
+    contents_right: &'static str,
+    fname_base: &'static str,
+    settings: DisplaySettings<'static>,
     full_merge: bool,
     attempts_cache: Option<&AttemptsCache>,
-    debug_dir: Option<&Path>,
+    debug_dir: Option<&'static Path>,
+    timeout: Duration,
 ) -> MergeResult {
     let Some(lang_profile) = LangProfile::detect_from_filename(fname_base) else {
         // can't do anything fancier anyway
         debug!("Could not find a supported language for {fname_base}. Falling back to a line-based merge.");
-        return line_based_merge(contents_base, contents_left, contents_right, settings);
+        return line_based_merge(contents_base, contents_left, contents_right, &settings);
     };
 
     let merges = cascading_merge(
@@ -128,6 +134,7 @@ pub fn line_merge_and_structured_resolution(
         settings,
         full_merge,
         debug_dir,
+        timeout,
     );
 
     match select_best_merge(merges) {
@@ -211,24 +218,24 @@ fn select_best_merge(mut merges: Vec<MergeResult>) -> LineBasedAndBestAre {
 
 /// Attempts various merging methods in turn, and stops early when
 /// any of them finds a conflict-free merge without any additional issues.
+#[allow(clippy::too_many_arguments)]
 pub fn cascading_merge(
-    contents_base: &str,
-    contents_left: &str,
-    contents_right: &str,
-    lang_profile: &LangProfile,
-    settings: &DisplaySettings,
+    contents_base: &'static str,
+    contents_left: &'static str,
+    contents_right: &'static str,
+    lang_profile: &'static LangProfile,
+    settings: DisplaySettings<'static>,
     full_merge: bool,
-    debug_dir: Option<&Path>,
+    debug_dir: Option<&'static Path>,
+    timeout: Duration,
 ) -> Vec<MergeResult> {
-    let mut merges = Vec::new();
-
     // first attempt: try to merge as line-based
     let start = Instant::now();
     let line_based_merge = line_based_merge_with_duplicate_signature_detection(
         contents_base,
         contents_left,
         contents_right,
-        settings,
+        &settings,
         lang_profile,
     );
     debug!("line-based merge took {:?}", start.elapsed());
@@ -236,44 +243,68 @@ pub fn cascading_merge(
         return vec![line_based_merge];
     }
 
-    // second attempt: to solve the conflicts from the line-based merge
-    if !line_based_merge.has_additional_issues {
-        let parsed_conflicts = ParsedMerge::parse(&line_based_merge.contents, settings)
-            .expect("the diffy-imara rust library produced inconsistent conflict markers");
+    let (tx, rx) = oneshot::channel();
 
-        let solved_merge = resolve_merge(&parsed_conflicts, settings, lang_profile, debug_dir);
+    let line_based_merge_clone = line_based_merge.clone();
 
-        match solved_merge {
-            Ok(recovered_merge) => {
-                if recovered_merge.conflict_count == 0 && !recovered_merge.has_additional_issues {
-                    return vec![line_based_merge, recovered_merge];
+    thread::spawn(move || {
+        let mut merges = Vec::new();
+
+        // second attempt: to solve the conflicts from the line-based merge
+        if !line_based_merge_clone.has_additional_issues {
+            let parsed_conflicts = ParsedMerge::parse(&line_based_merge_clone.contents, &settings)
+                .expect("the diffy-imara rust library produced inconsistent conflict markers");
+
+            let solved_merge = resolve_merge(&parsed_conflicts, &settings, lang_profile, debug_dir);
+
+            match solved_merge {
+                Ok(recovered_merge) => {
+                    if recovered_merge.conflict_count == 0 && !recovered_merge.has_additional_issues
+                    {
+                        let _ = tx.send(vec![recovered_merge]);
+                        return;
+                    }
+                    merges.push(recovered_merge);
                 }
-                merges.push(recovered_merge);
-            }
-            Err(err) => {
-                debug!("error while attempting conflict resolution of line-based merge: {err}");
+                Err(err) => {
+                    debug!("error while attempting conflict resolution of line-based merge: {err}");
+                }
             }
         }
-    }
 
-    if full_merge || line_based_merge.has_additional_issues {
-        // third attempt: full-blown structured merge
-        let structured_merge = structured_merge(
-            contents_base,
-            contents_left,
-            contents_right,
-            None,
-            settings,
-            lang_profile,
-            debug_dir,
-        );
-        match structured_merge {
-            Ok(successful_merge) => merges.push(successful_merge),
-            Err(parse_error) => {
-                debug!("full structured merge encountered an error: {parse_error}");
+        if full_merge || line_based_merge_clone.has_additional_issues {
+            // third attempt: full-blown structured merge
+            let structured_merge = structured_merge(
+                contents_base,
+                contents_left,
+                contents_right,
+                None,
+                &settings,
+                lang_profile,
+                debug_dir,
+            );
+            match structured_merge {
+                Ok(successful_merge) => merges.push(successful_merge),
+                Err(parse_error) => {
+                    debug!("full structured merge encountered an error: {parse_error}");
+                }
+            };
+        }
+        let _ = tx.send(merges);
+    });
+
+    let mut merges = if timeout.is_zero() {
+        rx.recv().unwrap()
+    } else {
+        match rx.recv_timeout(timeout) {
+            Ok(merges) => merges,
+            Err(oneshot::RecvTimeoutError::Timeout) => {
+                warn!("structured merge took too long, falling back to Git");
+                vec![]
             }
-        };
-    }
+            Err(oneshot::RecvTimeoutError::Disconnected) => unreachable!(),
+        }
+    };
 
     merges.push(line_based_merge);
     merges

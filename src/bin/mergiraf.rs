@@ -2,6 +2,7 @@ use std::{
     env, fs,
     path::PathBuf,
     process::{exit, Command},
+    time::Duration,
 };
 
 use clap::{ArgAction, Parser, Subcommand};
@@ -79,6 +80,9 @@ enum CliCommand {
         #[clap(short = 'y', long)]
         // the choice of 'y' is inherited from Git's merge driver interface
         right_name: Option<String>,
+        /// Maximum number of milliseconds to try doing the merging for, after which we fall back on git's own algorithm. Set to 0 to disable this limit.
+        #[clap(short, long)]
+        timeout: Option<u64>,
     },
     /// Solve the conflicts in a merged file
     Solve {
@@ -155,26 +159,40 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             right_name,
             compact,
             conflict_marker_size,
+            timeout,
         } => {
             let old_git_detected = base_name.as_deref().is_some_and(|n| n == "%S");
 
-            let settings = DisplaySettings {
+            let base = base.leak();
+            let left = left.leak();
+            let right = right.leak();
+
+            // NOTE: reborrow to turn `&mut str` returned by `String::leak` into `&str`
+            let path_name = path_name.map(|s| &*s.leak());
+
+            let base_name = base_name.map(|s| &*s.leak());
+            let left_name = left_name.map(|s| &*s.leak());
+            let right_name = right_name.map(|s| &*s.leak());
+
+            let debug_dir = args.debug_dir.map(|s| &*Box::leak(s.into_boxed_path()));
+
+            let settings: DisplaySettings<'static> = DisplaySettings {
                 compact,
                 conflict_marker_size,
-                base_revision_name: match base_name.as_deref() {
+                base_revision_name: match base_name {
                     Some("%S") => None,
                     Some(name) => Some(name),
-                    None => Some(&base),
+                    None => Some(&*base),
                 },
-                left_revision_name: match left_name.as_deref() {
+                left_revision_name: match left_name {
                     Some("%X") => None,
                     Some(name) => Some(name),
-                    None => Some(&left),
+                    None => Some(&*left),
                 },
-                right_revision_name: match right_name.as_deref() {
+                right_revision_name: match right_name {
                     Some("%Y") => None,
                     Some(name) => Some(name),
-                    None => Some(&right),
+                    None => Some(&*right),
                 },
                 ..Default::default()
             };
@@ -184,35 +202,39 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     || env::var(DISABLING_ENV_VAR_LEGACY).is_ok_and(|v| !v.is_empty());
 
                 if mergiraf_disabled {
-                    return fallback_to_git_merge_file(&base, &left, &right, git, &settings);
+                    return fallback_to_git_merge_file(base, left, right, git, &settings);
                 }
             }
 
-            let fname_base = &base;
+            let fname_base = &*base;
             let original_contents_base = read_file_to_string(fname_base)?;
             let contents_base = normalize_to_lf(original_contents_base);
+            let contents_base = contents_base.into_owned().leak();
 
             let fname_left = &left;
             let original_contents_left = read_file_to_string(fname_left)?;
             let contents_left = normalize_to_lf(&original_contents_left);
+            let contents_left = contents_left.into_owned().leak();
 
             let fname_right = &right;
             let original_contents_right = read_file_to_string(fname_right)?;
             let contents_right = normalize_to_lf(original_contents_right);
+            let contents_right = contents_right.into_owned().leak();
 
             let attempts_cache = AttemptsCache::new(None, None).ok();
 
-            let fname_base = path_name.as_deref().unwrap_or(fname_base);
+            let fname_base = path_name.unwrap_or(fname_base);
 
             let merge_result = line_merge_and_structured_resolution(
-                &contents_base,
-                &contents_left,
-                &contents_right,
+                contents_base,
+                contents_left,
+                contents_right,
                 fname_base,
-                &settings,
+                settings,
                 !fast,
                 attempts_cache.as_ref(),
-                args.debug_dir.as_deref(),
+                debug_dir,
+                Duration::from_millis(timeout.unwrap_or(if fast { 5000 } else { 10000 })),
             );
             if let Some(fname_out) = output {
                 write_string_to_file(&fname_out, &merge_result.contents)?;
