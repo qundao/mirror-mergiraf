@@ -5,6 +5,11 @@ on:
   pull_request:
     branches:
       - main
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+
 jobs:
   test:
     runs-on: my-ubuntu-22.04
@@ -29,6 +34,6 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
-        run: cargo clippy --all-targets -- -Dwarnings
+        run: cargo clippy --all-targets --locked -- -Dwarnings
       - name: Run tests
-        run: cargo test --all-features
+        run: cargo test --all-features --locked
