@@ -32,6 +32,6 @@ else
         cat $1/Expected.$ext | sed -e '$a\' | tee /tmp/expected$$
 fi
 echo "------ diff ------"
-diff -C 3 --color=auto -B /tmp/expected$$ /tmp/out$$
+diff -C 3 --color=auto /tmp/expected$$ /tmp/out$$
 
 rm /tmp/expected$$ /tmp/out$$
