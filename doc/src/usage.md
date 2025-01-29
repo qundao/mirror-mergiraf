@@ -53,6 +53,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.hpp merge=mergiraf
 *.cs merge=mergiraf
 *.dart merge=mergiraf
+*.dts merge=mergiraf
 *.scala merge=mergiraf
 *.sbt merge=mergiraf
 *.ts merge=mergiraf

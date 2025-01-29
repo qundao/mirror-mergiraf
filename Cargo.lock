@@ -588,6 +588,7 @@ dependencies = [
  "tree-sitter-c-sharp",
  "tree-sitter-cpp",
  "tree-sitter-dart",
+ "tree-sitter-devicetree",
  "tree-sitter-go",
  "tree-sitter-html",
  "tree-sitter-java",
@@ -1051,6 +1052,16 @@ checksum = "19f1f70b80ce41343e14aafcef67b5ba2e9de89587535b4aabbabb8036f4e38a"
 dependencies = [
  "cc",
  "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-devicetree"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5316f2424900931de827a78cd2d46d86b0bb30ff1f8b497f2219650cc9af3afb"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
 ]
 
 [[package]]

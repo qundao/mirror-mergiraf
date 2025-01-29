@@ -22,6 +22,7 @@ and the following declarative file formats:
 * XML (*.xml, *.xhtml)
 * YAML (*.yml, *.yaml)
 * TOML (*.toml)
+* Devicetree Source (*.dts)
 
 This list can also be obtained with the `mergiraf languages` command.
 

@@ -51,6 +51,7 @@ rustc-hash = "2.1.0"
 diffy-imara = "0.1.0"
 nu-ansi-term = "0.50.1"
 oneshot = {version = "0.1.8", default-features = false, features = ["std"]}
+tree-sitter-devicetree = "0.12.1"
 
 [dev-dependencies]
 rstest = "0.24.0"

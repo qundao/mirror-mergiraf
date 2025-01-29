@@ -1,0 +1,15 @@
+/{
+        compatible = "mergiraf,example", "mergiraf,test";
+        interrupt-parent = <&intc>;
+        test = "foo";
+
+        chosen { };
+        aliases { };
+
+        memory {
+                device_type = "memory";
+                reg = <0x00000000 0x40000000>;
+        };
+
+        example = "bar";
+};
