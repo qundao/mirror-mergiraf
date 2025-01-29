@@ -123,7 +123,12 @@ pub fn line_merge_and_structured_resolution(
     let Some(lang_profile) = LangProfile::detect_from_filename(fname_base) else {
         // can't do anything fancier anyway
         debug!("Could not find a supported language for {fname_base}. Falling back to a line-based merge.");
-        return line_based_merge(contents_base, contents_left, contents_right, &settings);
+        return line_based_merge(
+            contents_base,
+            contents_left,
+            contents_right,
+            Some(&settings),
+        );
     };
 
     let merges = cascading_merge(

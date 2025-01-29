@@ -12,8 +12,13 @@ pub fn line_based_merge(
     contents_base: &str,
     contents_left: &str,
     contents_right: &str,
-    settings: &DisplaySettings,
+    settings: Option<&DisplaySettings>,
 ) -> MergeResult {
+    let settings = if let Some(settings) = settings {
+        settings
+    } else {
+        &DisplaySettings::default()
+    };
     let merge_options = MergeOptions {
         conflict_marker_length: settings.conflict_marker_size_or_default(),
         style: if settings.diff3 {
@@ -48,7 +53,7 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
     lang_profile: &LangProfile,
 ) -> MergeResult {
     let mut line_based_merge =
-        line_based_merge(contents_base, contents_left, contents_right, settings);
+        line_based_merge(contents_base, contents_left, contents_right, Some(settings));
 
     if line_based_merge.conflict_count == 0 {
         let mut parser = TSParser::new();
