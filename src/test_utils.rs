@@ -36,27 +36,27 @@ impl<'a> TestContext<'a> {
     }
 
     pub fn parse_rust(&'a self, source: &'a str) -> Ast<'a> {
-        self.parse_internal(".rs", source)
+        self.parse_internal("a.rs", source)
     }
 
     pub fn parse_json(&'a self, source: &'a str) -> Ast<'a> {
-        self.parse_internal(".json", source)
+        self.parse_internal("a.json", source)
     }
 
     pub fn parse_java(&'a self, source: &'a str) -> Ast<'a> {
-        self.parse_internal(".java", source)
+        self.parse_internal("a.java", source)
     }
 
     pub fn parse_go(&'a self, source: &'a str) -> Ast<'a> {
-        self.parse_internal(".go", source)
+        self.parse_internal("a.go", source)
     }
 
     pub fn parse_yaml(&'a self, source: &'a str) -> Ast<'a> {
-        self.parse_internal(".yaml", source)
+        self.parse_internal("a.yaml", source)
     }
 
     pub fn parse_toml(&'a self, source: &'a str) -> Ast<'a> {
-        self.parse_internal(".toml", source)
+        self.parse_internal("a.toml", source)
     }
 }
 

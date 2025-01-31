@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::parsed_merge::{MergedChunk, ParsedMerge};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -10,11 +12,11 @@ pub struct DisplaySettings<'a> {
     /// The number of characters for conflict markers (7 by default)
     pub conflict_marker_size: Option<usize>,
     /// The string that identifies the left revision in conflict markers
-    pub left_revision_name: Option<&'a str>,
+    pub left_revision_name: Option<Cow<'a, str>>,
     /// The string that identifies the base revision in conflict markers
-    pub base_revision_name: Option<&'a str>,
+    pub base_revision_name: Option<Cow<'a, str>>,
     /// The string that identifies the right revision in conflict markers
-    pub right_revision_name: Option<&'a str>,
+    pub right_revision_name: Option<Cow<'a, str>>,
 }
 
 impl<'a> DisplaySettings<'a> {
@@ -30,17 +32,17 @@ impl<'a> DisplaySettings<'a> {
 
     /// The value of `left_revision_name` if set, the default value otherwise
     pub fn left_revision_name_or_default(&self) -> &str {
-        self.left_revision_name.unwrap_or("LEFT")
+        self.left_revision_name.as_deref().unwrap_or("LEFT")
     }
 
     /// The value of `base_revision_name` if set, the default value otherwise
     pub fn base_revision_name_or_default(&self) -> &str {
-        self.base_revision_name.unwrap_or("BASE")
+        self.base_revision_name.as_deref().unwrap_or("BASE")
     }
 
     /// The value of `right_revision_name` if set, the default value otherwise
     pub fn right_revision_name_or_default(&self) -> &str {
-        self.right_revision_name.unwrap_or("RIGHT")
+        self.right_revision_name.as_deref().unwrap_or("RIGHT")
     }
 
     /// The marker at the beginning of the "left" (first) part of a conflict.
@@ -104,9 +106,9 @@ impl<'a> DisplaySettings<'a> {
             Some((left_name, base_name, right_name))
                 if !left_name.is_empty() && !base_name.is_empty() && !right_name.is_empty() =>
             {
-                self.left_revision_name = Some(left_name);
-                self.base_revision_name = Some(base_name);
-                self.right_revision_name = Some(right_name);
+                self.left_revision_name = Some(Cow::Borrowed(left_name));
+                self.base_revision_name = Some(Cow::Borrowed(base_name));
+                self.right_revision_name = Some(Cow::Borrowed(right_name));
             }
             _ => {}
         }

@@ -19,7 +19,7 @@ Then, go to `src/supported_langs.rs` and add a profile for the language. You can
 ```rust
 LangProfile {
     name: "C#", // only used for logging purposes so far
-    extensions: vec![".cs"], // all file extensions for this language
+    extensions: vec!["cs"], // all file extensions for this language (note the lack of `.`!)
     language: tree_sitter_c_sharp::LANGUAGE.into(), // the tree-sitter parser
     // optional settings, explained below
     atomic_nodes: vec![],

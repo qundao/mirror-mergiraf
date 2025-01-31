@@ -359,6 +359,8 @@ impl<'a> ParsedMerge<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::Cow;
+
     use crate::test_utils::ctx;
 
     use super::*;
@@ -713,9 +715,9 @@ mod tests {
         assert_eq!(
             enriched_settings,
             DisplaySettings {
-                left_revision_name: Some("my_left"),
-                base_revision_name: Some("my_base"),
-                right_revision_name: Some("my_right"),
+                left_revision_name: Some(Cow::Borrowed("my_left")),
+                base_revision_name: Some(Cow::Borrowed("my_base")),
+                right_revision_name: Some(Cow::Borrowed("my_right")),
                 ..initial_settings
             }
         );

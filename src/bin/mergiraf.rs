@@ -1,6 +1,7 @@
 use std::{
+    borrow::Cow,
     env, fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{exit, Command},
     time::Duration,
 };
@@ -17,6 +18,7 @@ use mergiraf::{
     resolve_merge_cascading,
     settings::DisplaySettings,
     supported_langs::SUPPORTED_LANGUAGES,
+    PathBufExt,
     DISABLING_ENV_VAR,
     DISABLING_ENV_VAR_LEGACY,
 };
@@ -43,11 +45,11 @@ enum CliCommand {
     /// Do a three-way merge
     Merge {
         /// The path to the file containing the base revision
-        base: String,
+        base: PathBuf,
         /// The path to the file containing the left revision
-        left: String,
+        left: PathBuf,
         /// The path to the file containing the right revision
-        right: String,
+        right: PathBuf,
         /// Only attempt to merge the files by solving textual conflicts,
         /// without doing a full structured merge from the ground up.
         #[clap(long)]
@@ -63,11 +65,11 @@ enum CliCommand {
         git: bool,
         /// The path to the file to write the merge result to
         #[clap(short, long, conflicts_with = "git")]
-        output: Option<String>,
+        output: Option<PathBuf>,
         /// Final path in which the merged result will be stored.
         /// It is used to detect the language of the files using the file extension.
         #[clap(short, long)]
-        path_name: Option<String>,
+        path_name: Option<PathBuf>,
         /// Name to use for the base revision in conflict markers
         #[clap(short = 's', long)]
         // the choice of 's' is inherited from Git's merge driver interface
@@ -87,7 +89,7 @@ enum CliCommand {
     /// Solve the conflicts in a merged file
     Solve {
         /// Path to a file containing merge conflicts
-        conflicts: String,
+        conflicts: PathBuf,
         /// Display compact conflicts, breaking down lines
         #[clap(short, long)]
         compact: Option<bool>,
@@ -163,36 +165,41 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         } => {
             let old_git_detected = base_name.as_deref().is_some_and(|n| n == "%S");
 
+            #[expect(unstable_name_collisions)]
             let base = base.leak();
+            #[expect(unstable_name_collisions)]
             let left = left.leak();
+            #[expect(unstable_name_collisions)]
             let right = right.leak();
 
             // NOTE: reborrow to turn `&mut str` returned by `String::leak` into `&str`
+            #[expect(unstable_name_collisions)]
             let path_name = path_name.map(|s| &*s.leak());
 
             let base_name = base_name.map(|s| &*s.leak());
             let left_name = left_name.map(|s| &*s.leak());
             let right_name = right_name.map(|s| &*s.leak());
 
-            let debug_dir = args.debug_dir.map(|s| &*Box::leak(s.into_boxed_path()));
+            #[expect(unstable_name_collisions)]
+            let debug_dir = args.debug_dir.map(|s| &*s.leak());
 
             let settings: DisplaySettings<'static> = DisplaySettings {
                 compact,
                 conflict_marker_size,
                 base_revision_name: match base_name {
                     Some("%S") => None,
-                    Some(name) => Some(name),
-                    None => Some(&*base),
+                    Some(name) => Some(Cow::Borrowed(name)),
+                    None => Some(base.to_string_lossy()),
                 },
                 left_revision_name: match left_name {
                     Some("%X") => None,
-                    Some(name) => Some(name),
-                    None => Some(&*left),
+                    Some(name) => Some(Cow::Borrowed(name)),
+                    None => Some(left.to_string_lossy()),
                 },
                 right_revision_name: match right_name {
                     Some("%Y") => None,
-                    Some(name) => Some(name),
-                    None => Some(&*right),
+                    Some(name) => Some(Cow::Borrowed(name)),
+                    None => Some(right.to_string_lossy()),
                 },
                 ..Default::default()
             };
@@ -294,7 +301,10 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     } else {
                         write_string_to_file(&fname_conflicts, &merged.contents)?;
                         if keep_backup {
-                            write_string_to_file(&(fname_conflicts + ".orig"), &conflict_contents)?;
+                            write_string_to_file(
+                                &fname_conflicts.with_added_extension("orig"),
+                                &conflict_contents,
+                            )?;
                         }
                     };
                     0
@@ -338,18 +348,18 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
     Ok(return_code)
 }
 
-fn read_file_to_string(path: &str) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|err| format!("Could not read {path}: {err}"))
+fn read_file_to_string(path: &Path) -> Result<String, String> {
+    fs::read_to_string(path).map_err(|err| format!("Could not read {}: {err}", path.display()))
 }
 
-fn write_string_to_file(path: &str, contents: &str) -> Result<(), String> {
-    fs::write(path, contents).map_err(|err| format!("Could not write {path}: {err}"))
+fn write_string_to_file(path: &Path, contents: &str) -> Result<(), String> {
+    fs::write(path, contents).map_err(|err| format!("Could not write {}: {err}", path.display()))
 }
 
 fn fallback_to_git_merge_file(
-    base: &str,
-    left: &str,
-    right: &str,
+    base: &Path,
+    left: &Path,
+    right: &Path,
     git: bool,
     settings: &DisplaySettings,
 ) -> Result<i32, String> {
@@ -359,9 +369,9 @@ fn fallback_to_git_merge_file(
         command.arg("-p");
     }
     if let (Some(base_rev_name), Some(left_rev_name), Some(right_rev_name)) = (
-        settings.base_revision_name,
-        settings.left_revision_name,
-        settings.right_revision_name,
+        settings.base_revision_name.as_deref(),
+        settings.left_revision_name.as_deref(),
+        settings.right_revision_name.as_deref(),
     ) {
         command
             .arg("-L")
