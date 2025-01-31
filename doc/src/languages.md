@@ -15,6 +15,7 @@ Mergiraf currently supports the following programming languages:
 * Solidity (*.sol)
 * Lua (*.lua)
 * Kotlin (*.kt)
+* Ruby (*.rb)
 
 and the following declarative file formats:
 * JSON (*.json)

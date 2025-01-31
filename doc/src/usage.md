@@ -63,6 +63,7 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.sol merge=mergiraf
 *.lua merge=mergiraf
 *.kt merge=mergiraf
+*.rb merge=mergiraf
 ```
 
 Or run:
