@@ -62,6 +62,8 @@ impl VisitingState<'_> {
     }
 }
 
+type SuccessorsCursor<'a> = HashSet<(Revision, PCSNode<'a>)>;
+
 impl<'a, 'b> TreeBuilder<'a, 'b> {
     /// Create a tree builder from PCS triples, the class mapping and language-specific settings
     pub fn new(
@@ -387,7 +389,6 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Construct a conflict by following successors on all three revisions
     /// from the given predecessor.
-    #[allow(clippy::type_complexity)]
     fn build_conflict(
         &self,
         predecessor: PCSNode<'a>,
@@ -395,7 +396,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         base_successors: &'b MultiMap<PCSNode<'a>, (Revision, PCSNode<'a>)>,
         seen_nodes: &mut HashSet<PCSNode<'a>>,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<(&'b HashSet<(Revision, PCSNode<'a>)>, MergedTree<'a>), String> {
+    ) -> Result<(&'b SuccessorsCursor<'a>, MergedTree<'a>), String> {
         let pad = visiting_state.indentation();
         debug!("{pad}{predecessor} build_conflict");
         let (end_left, list_left) = self.extract_conflict_side(
@@ -451,7 +452,6 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
     /// Extract one side of a conflict by iteratively following the successor
     /// from the given starting node.
-    #[allow(clippy::type_complexity)]
     fn extract_conflict_side(
         &self,
         starting_node: PCSNode<'a>,
@@ -460,7 +460,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         other_successors: &'b MultiMap<PCSNode<'a>, (Revision, PCSNode<'a>)>,
         seen_nodes: &mut HashSet<PCSNode<'a>>,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<(&'b HashSet<(Revision, PCSNode<'a>)>, Vec<&'a AstNode<'a>>), String> {
+    ) -> Result<(&'b SuccessorsCursor<'a>, Vec<&'a AstNode<'a>>), String> {
         let pad = visiting_state.indentation();
         debug!("{pad}{starting_node} extract_conflict_side");
         let mut result = Vec::new();
