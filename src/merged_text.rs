@@ -84,17 +84,32 @@ impl<'a> MergedText<'a> {
                     left, base, right, ..
                 } => {
                     let result = MergeSection::Conflict {
-                        left: Self::reindent_line_based_merge(left, indentation, false, false)
-                            .into(),
-                        base: Self::reindent_line_based_merge(base, indentation, false, false)
-                            .into(),
-                        right: Self::reindent_line_based_merge(right, indentation, false, false)
-                            .into(),
+                        left: Self::reindent_line_based_merge(
+                            left.unwrap_or_default(),
+                            indentation,
+                            false,
+                            false,
+                        )
+                        .into(),
+                        base: Self::reindent_line_based_merge(
+                            base.unwrap_or_default(),
+                            indentation,
+                            false,
+                            false,
+                        )
+                        .into(),
+                        right: Self::reindent_line_based_merge(
+                            right.unwrap_or_default(),
+                            indentation,
+                            false,
+                            false,
+                        )
+                        .into(),
                     };
                     newline_found = newline_found
-                        || left.contains('\n')
-                        || right.contains('\n')
-                        || base.contains('\n');
+                        || left.unwrap_or_default().contains('\n')
+                        || right.unwrap_or_default().contains('\n')
+                        || base.unwrap_or_default().contains('\n');
                     result
                 }
             });

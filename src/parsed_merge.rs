@@ -36,13 +36,21 @@ pub enum MergedChunk<'a> {
         contents: &'a str,
     },
     /// A diff3-style conflict
+    ///
+    /// The diff3 format allows representing conflicts where some (or all) sides may have no final
+    /// newline. In that case, there will be no newline at the end of the conflict, i.e. after the
+    /// right marker -- instead, a newline will be added to each side to ensure that the markers
+    /// coming after them are still placed at the beginning of a line. But the newline that
+    /// might've been a part of a conflict side is preserved as well.
+    ///
+    /// We recognize this property, and preserve whatever newline was present in the original sides.
     Conflict {
-        /// The left part of the conflict, including the last newline before the next marker
-        left: &'a str,
-        /// The base (or ancestor) part of the conflict, including the last newline before the next marker.
-        base: &'a str,
-        /// The right part of the conflict, including the last newline before the next marker.
-        right: &'a str,
+        /// The left part of the conflict, with the final newline preserved (if present)
+        left: Option<&'a str>,
+        /// The base (or ancestor) part of the conflict, with the final newline preserved (if present)
+        base: Option<&'a str>,
+        /// The right part of the conflict, with the final newline preserved (if present)
+        right: Option<&'a str>,
         /// The name of the left revision (potentially empty)
         left_name: Option<&'a str>,
         /// The name of the base revision (potentially empty)
@@ -76,21 +84,70 @@ impl<'a> ParsedMerge<'a> {
         let middle_marker = "=".repeat(marker_size);
         let right_marker = ">".repeat(marker_size);
 
-        let left_marker = Regex::new(&format!(r"{left_marker}(?: (.*))?\r?\n")).unwrap();
-        let base_marker = Regex::new(&format!(r"{base_marker}(?: (.*))?\r?\n")).unwrap();
-        let middle_marker = Regex::new(&format!(r"{middle_marker}\r?\n")).unwrap();
-        let right_marker = Regex::new(&format!(r"{right_marker}(?: (.*))?\r?\n",)).unwrap();
+        let diff2conflict = Regex::new(&format!(
+            r"(?mx)
+            ^{left_marker} (?:\ (.*))? \r?\n
+            ((?s:.)*? \r?\n)??
+            {middle_marker}            \r?\n
+            ((?s:.)*? \r?\n)??
+            {right_marker} (?:\ (.*))? \r?\n
+            "
+        ))
+        .unwrap();
+
+        let diff3conflict = Regex::new(&format!(
+            r"(?mx)
+            ^{left_marker} (?:\ (.*))? \r?\n
+            ((?s:.)*? \r?\n)??
+            {base_marker}  (?:\ (.*))? \r?\n
+            ((?s:.)*? \r?\n)??
+            {middle_marker}            \r?\n
+            ((?s:.)*? \r?\n)??
+            {right_marker} (?:\ (.*))? \r?\n
+            "
+        ))
+        .unwrap();
+
+        let diff3conflict_no_newline = Regex::new(&format!(
+            r"(?mx)
+            ^{left_marker} (?:\ (.*))? \r?\n
+            (?: ( (?s:.)*? )           \r?\n)?? # the newlines before the markers are
+            {base_marker}  (?:\ (.*))? \r?\n    # no longer part of conflicts sides themselves
+            (?: ( (?s:.)*? )           \r?\n)??
+            {middle_marker}            \r?\n
+            (?: ( (?s:.)*? )           \r?\n)??
+            {right_marker} (?:\ (.*))?     $    # no newline at the end
+            "
+        ))
+        .unwrap();
 
         let mut remaining_source = source;
         while !remaining_source.is_empty() {
-            let left_captures = &left_marker.captures(remaining_source);
-            let resolved_end = match left_captures {
-                None => remaining_source.len(),
-                Some(occurrence) => occurrence
+            let diff3_captures = diff3conflict.captures(remaining_source);
+            let diff3_no_newline_captures = diff3conflict_no_newline.captures(remaining_source);
+
+            // the 3 regexes each match more things than the last in this order:
+            // 1) diff2            -- by ignoring the base marker and base rev text
+            // 2) diff3_no_newline -- by, well, ignoring the final newline
+            // 3) diff3            -- only matches a diff3 conflict ending with a newline
+            //
+            // so we run them in the opposite order:
+            // 1) if diff3 matches, take that
+            // 2) if diff3_no_newline matches, take that
+            // 3) if diff2 matches, then we know that this isn't a misrecognized diff3, and bail out
+            let resolved_end = if let Some(occurrence) =
+                (diff3_captures.as_ref()).or(diff3_no_newline_captures.as_ref())
+            {
+                occurrence
                     .get(0)
                     .expect("whole match is guaranteed to exist")
-                    .start(),
+                    .start()
+            } else if diff2conflict.is_match(remaining_source) {
+                return Err(PARSED_MERGE_DIFF2_DETECTED.to_owned());
+            } else {
+                remaining_source.len()
             };
+
             if resolved_end > 0 {
                 // SAFETY: `remaining_source` is derived from `source`
                 let offset = unsafe { remaining_source.as_ptr().offset_from(source.as_ptr()) }
@@ -101,45 +158,22 @@ impl<'a> ParsedMerge<'a> {
                     contents: &remaining_source[..resolved_end],
                 });
             }
-            if let Some(left_captures) = left_captures {
-                let left_match = left_captures.get(0).unwrap();
-                let left_name = left_captures.get(1).map(|m| m.as_str());
-                remaining_source = &remaining_source[left_match.end()..];
 
-                let base_captures = base_marker.captures(remaining_source).ok_or_else(|| {
-                    if middle_marker.is_match(remaining_source) {
-                        PARSED_MERGE_DIFF2_DETECTED
-                    } else {
-                        "unexpected end of file before base conflict marker"
-                    }
-                })?;
-                let base_match = base_captures.get(0).unwrap();
-                let base_name = base_captures.get(1).map(|m| m.as_str());
-                let left = &remaining_source[..base_match.start()];
-                remaining_source = &remaining_source[base_match.end()..];
-
-                let middle_match = middle_marker
-                    .find(remaining_source)
-                    .ok_or("unexpected end of file before middle conflict marker")?;
-                let base = &remaining_source[..middle_match.start()];
-                remaining_source = &remaining_source[middle_match.end()..];
-
-                let right_captures = right_marker
-                    .captures(remaining_source)
-                    .ok_or("unexpected end of file before right conflict marker")?;
-                let right_match = right_captures.get(0).unwrap();
-                let right_name = right_captures.get(1).map(|m| m.as_str());
-                let right = &remaining_source[..right_match.start()];
-                remaining_source = &remaining_source[right_match.end()..];
-
+            if let Some(captures) = (diff3_captures.as_ref()).or(diff3_no_newline_captures.as_ref())
+            {
                 chunks.push(MergedChunk::Conflict {
-                    left,
-                    base,
-                    right,
-                    left_name,
-                    base_name,
-                    right_name,
+                    left_name: captures.get(1).map(|m| m.as_str()),
+                    left: captures.get(2).map(|m| m.as_str()),
+                    base_name: captures.get(3).map(|m| m.as_str()),
+                    base: captures.get(4).map(|m| m.as_str()),
+                    right: captures.get(5).map(|m| m.as_str()),
+                    right_name: captures.get(6).map(|m| m.as_str()),
                 });
+
+                remaining_source = &remaining_source[captures
+                    .get(0)
+                    .expect("whole match is guaranteed to exist")
+                    .end()..];
             } else {
                 remaining_source = &remaining_source[resolved_end..];
             }
@@ -181,9 +215,9 @@ impl<'a> ParsedMerge<'a> {
                 MergedChunk::Conflict {
                     left, base, right, ..
                 } => {
-                    left_offset += left.len();
-                    base_offset += base.len();
-                    right_offset += right.len();
+                    left_offset += left.map_or(0, str::len);
+                    base_offset += base.map_or(0, str::len);
+                    right_offset += right.map_or(0, str::len);
                 }
             }
         }
@@ -208,9 +242,9 @@ impl<'a> ParsedMerge<'a> {
                 MergedChunk::Conflict {
                     left, base, right, ..
                 } => match revision {
-                    Revision::Base => base,
-                    Revision::Left => left,
-                    Revision::Right => right,
+                    Revision::Base => base.unwrap_or_default(),
+                    Revision::Left => left.unwrap_or_default(),
+                    Revision::Right => right.unwrap_or_default(),
                 },
             })
             .collect()
@@ -292,19 +326,49 @@ impl<'a> ParsedMerge<'a> {
                 MergedChunk::Conflict {
                     left, base, right, ..
                 } => {
+                    // we check whether all 3 sides of the conflict[^1] used ot end with a newline.
+                    // If any of them didn't, then the conflict should be rendered in a special way:
+                    // - a newline is added to all three sides (even if the particular side used to
+                    //   have a newline already)
+                    // - *no* newline is added after the right marker, i.e. at the end of conflict
+                    //
+                    // [^1]: the ones that weren't empty, anyway
+                    let add_after_right_marker = if let (None, None, None) = (base, left, right) {
+                        unreachable!("wouldn't have been a conflict in the first place")
+                    } else {
+                        left.is_none_or(|l| l.ends_with('\n'))
+                            && base.is_none_or(|b| b.ends_with('\n'))
+                            && right.is_none_or(|r| r.ends_with('\n'))
+                    };
+                    let add_after_lines = !add_after_right_marker;
+
                     result.push_str(&settings.left_marker_or_default());
                     result.push('\n');
-                    result.push_str(left);
+                    result.push_str(left.unwrap_or_default());
+                    if add_after_lines {
+                        result.push('\n');
+                    }
+
                     if settings.diff3 {
                         result.push_str(&settings.base_marker_or_default());
                         result.push('\n');
-                        result.push_str(base);
+                        result.push_str(base.unwrap_or_default());
+                        if add_after_lines {
+                            result.push('\n');
+                        }
                     }
+
                     result.push_str(&settings.middle_marker());
                     result.push('\n');
-                    result.push_str(right);
+
+                    result.push_str(right.unwrap_or_default());
+                    if add_after_lines {
+                        result.push('\n');
+                    }
                     result.push_str(&settings.right_marker_or_default());
-                    result.push('\n');
+                    if add_after_right_marker {
+                        result.push('\n');
+                    }
                 }
             }
         }
@@ -351,7 +415,9 @@ impl<'a> ParsedMerge<'a> {
                 MergedChunk::Resolved { .. } => 0,
                 MergedChunk::Conflict {
                     base, left, right, ..
-                } => base.len() + left.len() + right.len(),
+                } => {
+                    base.map_or(0, str::len) + left.map_or(0, str::len) + right.map_or(0, str::len)
+                }
             })
             .sum()
     }
@@ -377,9 +443,9 @@ mod tests {
                 contents: "\nwe reached a junction.\n",
             },
             MergedChunk::Conflict {
-                left: "let's go to the left!\n",
-                base: "where should we go?\n",
-                right: "turn right please!\n",
+                left: Some("let's go to the left!\n"),
+                base: Some("where should we go?\n"),
+                right: Some("turn right please!\n"),
                 left_name: Some("left"),
                 base_name: Some("base"),
                 right_name: None,
@@ -480,9 +546,9 @@ mod tests {
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Conflict {
-                left: "let's go to the left!\n",
-                base: "where should we go?\n",
-                right: "turn right please!\n",
+                left: Some("let's go to the left!\n"),
+                base: Some("where should we go?\n"),
+                right: Some("turn right please!\n"),
                 left_name: Some("left"),
                 base_name: Some("base"),
                 right_name: None,
@@ -520,9 +586,9 @@ mod tests {
                 contents: "\nwe reached a junction.\n",
             },
             MergedChunk::Conflict {
-                left: "let's go to the left!\n",
-                base: "where should we go?\n",
-                right: "turn right please!\n",
+                left: Some("let's go to the left!\n"),
+                base: Some("where should we go?\n"),
+                right: Some("turn right please!\n"),
                 left_name: Some("left"),
                 base_name: Some("base"),
                 right_name: None,
@@ -556,9 +622,9 @@ mod tests {
                 contents: "my_struct_t instance = {\n",
             },
             MergedChunk::Conflict {
-                left: "    .foo = 3,\n    .bar = 2,\n",
-                base: "    .foo = 3,\n",
-                right: "",
+                left: Some("    .foo = 3,\n    .bar = 2,\n"),
+                base: Some("    .foo = 3,\n"),
+                right: None,
                 left_name: Some("LEFT"),
                 base_name: Some("BASE"),
                 right_name: Some("RIGHT"),
@@ -597,9 +663,9 @@ mod tests {
                 contents: "resolved line\n",
             },
             MergedChunk::Conflict {
-                left: "left line\n",
-                base: "base line\n",
-                right: "right line\n",
+                left: Some("left line\n"),
+                base: Some("base line\n"),
+                right: Some("right line\n"),
                 left_name: Some("LEFT"),
                 base_name: Some("BASE"),
                 right_name: Some("RIGHT"),
@@ -627,6 +693,153 @@ mod tests {
         )
         .expect("could not parse a conflict with `conflict_marker_size=9`");
         assert_eq!(parsed_with_9, parsed_expected);
+    }
+
+    #[test]
+    fn parse_left_marker_not_at_line_start() {
+        let source = "my_struct_t instance = {\n <<<<<<< LIAR LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n=======\n>>>>>>> RIGHT\n};\n";
+        let parsed = ParsedMerge::parse(source, &Default::default())
+            .expect("should just not see this conflict at all");
+
+        let expected_parse = ParsedMerge::new(vec![MergedChunk::Resolved {
+            offset: 0,
+            contents: source,
+        }]);
+
+        assert_eq!(parsed, expected_parse);
+    }
+
+    #[test]
+    fn parse_base_marker_not_at_line_start() {
+        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n ||||||| LIAR BASE\n    .foo = 3,\n=======\n>>>>>>> RIGHT\n};\n";
+        let parse_err = ParsedMerge::parse(source, &Default::default()).expect_err(
+            "because of the missing base marker, this should like a diff2-style conflict",
+        );
+
+        assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
+    }
+
+    #[test]
+    fn parse_middle_marker_not_at_line_start() {
+        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n =======\n>>>>>>> RIGHT\n};\n";
+        let parsed = ParsedMerge::parse(source, &Default::default())
+            .expect("should ignore the malformed conflict");
+
+        let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
+            offset: 0,
+            contents: source,
+        }]);
+
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn parse_right_marker_not_at_line_start() {
+        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n=======\n >>>>>>> LIAR RIGHT\n};\n";
+        let parsed = ParsedMerge::parse(source, &Default::default())
+            .expect("should ignore the malformed conflict");
+
+        let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
+            offset: 0,
+            contents: source,
+        }]);
+
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn parse_diff3_then_diff3_is_lazy() {
+        let source = "<<<<<<< LEFT\n// a comment\n||||||| BASE\n=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n=======\nuse os;\n>>>>>>> RIGHT\n";
+
+        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+
+        let unwanted_non_lazy = ParsedMerge::new(vec![MergedChunk::Conflict {
+            left_name: Some("LEFT"),
+            left: Some("// a comment\n"),
+            base_name: Some("BASE"),
+            base: Some(
+                "=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n",
+            ),
+            right: Some("use os;\n"),
+            right_name: Some("RIGHT"),
+        }]);
+
+        assert_ne!(
+            parsed, unwanted_non_lazy,
+            "the regex is greedy -- it should've stopped after the first 'RIGHT'!"
+        );
+
+        let expected = ParsedMerge::new(vec![
+            MergedChunk::Conflict {
+                left_name: Some("LEFT"),
+                left: Some("// a comment\n"),
+                base_name: Some("BASE"),
+                base: None,
+                right: Some("// hi\n"),
+                right_name: Some("RIGHT"),
+            },
+            MergedChunk::Conflict {
+                left_name: Some("LEFT"),
+                left: Some("use bytes;\n"),
+                base_name: Some("BASE"),
+                base: Some("use io;\n"),
+                right: Some("use os;\n"),
+                right_name: Some("RIGHT"),
+            },
+        ]);
+
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn parse_diff3_then_diff3_wo_newline() {
+        let source = "<<<<<<< LEFT\n// a comment\n||||||| BASE\n=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n=======\nuse os;\n>>>>>>> RIGHT";
+        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+
+        let expected = ParsedMerge::new(vec![
+            MergedChunk::Conflict {
+                left_name: Some("LEFT"),
+                left: Some("// a comment\n"),
+                base_name: Some("BASE"),
+                base: None,
+                right: Some("// hi\n"),
+                right_name: Some("RIGHT"),
+            },
+            MergedChunk::Conflict {
+                left_name: Some("LEFT"),
+                left: Some("use bytes;"),
+                base_name: Some("BASE"),
+                base: Some("use io;"),
+                right: Some("use os;"),
+                right_name: Some("RIGHT"),
+            },
+        ]);
+
+        assert_eq!(parsed, expected);
+    }
+
+    #[test]
+    fn parse_diff3_is_with_final_newline_when_possible() {
+        let source = "<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\n";
+
+        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+
+        let unwanted_wo_final_newline = ParsedMerge::new(vec![
+            MergedChunk::Conflict {
+                left_name: Some("left"),
+                left: Some("let's go to the left!"),
+                base_name: Some("base"),
+                base: Some("where should we go?"),
+                right: Some("turn right please!"),
+                right_name: None,
+            },
+            MergedChunk::Resolved {
+                offset: 102,
+                contents: "\n",
+            },
+        ]);
+
+        assert_ne!(parsed, unwanted_wo_final_newline);
     }
 
     #[test]
@@ -678,9 +891,9 @@ mod tests {
             },
             MergedChunk::Conflict {
                 left_name: None,
-                left: "left line\n",
-                base: "base line\n",
-                right: "right line\n",
+                left: Some("left line\n"),
+                base: Some("base line\n"),
+                right: Some("right line\n"),
                 right_name: None,
                 base_name: None,
             },
@@ -699,6 +912,64 @@ mod tests {
         });
         let expected_with_9 = "resolved line\n<<<<<<<<< LEFT\nleft line\n||||||||| BASE\nbase line\n=========\nright line\n>>>>>>>>> RIGHT\n";
         assert_eq!(rendered_with_9, expected_with_9);
+    }
+
+    #[test]
+    fn render_no_final_newline() {
+        // meanings of the used shortenings:
+        // - wo              - without final newline
+        // - w               - with final newline
+        // - expected_w_wo_w - expected from base_w, left_wo, right_w
+
+        let base_wo = "base";
+        let base_w = "base\n";
+
+        let left_wo = "left";
+        let left_w = "left\n";
+
+        let right_wo = "right";
+        let right_w = "right\n";
+
+        fn chunk(base: &str, left: &str, right: &str) -> String {
+            ParsedMerge::new(vec![MergedChunk::Conflict {
+                left: Some(left),
+                base: Some(base),
+                right: Some(right),
+                left_name: None,
+                base_name: None,
+                right_name: None,
+            }])
+            .render(&Default::default())
+        }
+
+        let expected_wo_wo_wo =
+            "<<<<<<< LEFT\nleft\n||||||| BASE\nbase\n=======\nright\n>>>>>>> RIGHT";
+        let rendered = chunk(base_wo, left_wo, right_wo);
+        assert_eq!(rendered, expected_wo_wo_wo);
+
+        let expected_wo_w_wo =
+            "<<<<<<< LEFT\nleft\n\n||||||| BASE\nbase\n=======\nright\n>>>>>>> RIGHT";
+        let rendered = chunk(base_wo, left_w, right_wo);
+        assert_eq!(rendered, expected_wo_w_wo);
+
+        // wo_wo_w case should be symmetrical to wo_w_wo
+
+        let expected_wo_w_w =
+            "<<<<<<< LEFT\nleft\n\n||||||| BASE\nbase\n=======\nright\n\n>>>>>>> RIGHT";
+        let rendered = chunk(base_wo, left_w, right_w);
+        assert_eq!(rendered, expected_wo_w_w);
+
+        let expected_w_wo_wo =
+            "<<<<<<< LEFT\nleft\n||||||| BASE\nbase\n\n=======\nright\n>>>>>>> RIGHT";
+        let rendered = chunk(base_w, left_wo, right_wo);
+        assert_eq!(rendered, expected_w_wo_wo);
+
+        let expected_w_w_wo =
+            "<<<<<<< LEFT\nleft\n\n||||||| BASE\nbase\n\n=======\nright\n>>>>>>> RIGHT";
+        let rendered_w_w_wo = chunk(base_w, left_w, right_wo);
+        assert_eq!(rendered_w_w_wo, expected_w_w_wo);
+
+        // w_wo_w should be symmetrical to w_w_wo
     }
 
     #[test]

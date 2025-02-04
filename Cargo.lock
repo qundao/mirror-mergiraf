@@ -254,9 +254,9 @@ dependencies = [
 
 [[package]]
 name = "diffy-imara"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8bb69403ccf9308fd0aaccfd0e524765a0ae94592c143ca4d3ad3ed386db1e0"
+checksum = "15914dd257a5903677b78b9b2691041e455f0a18642cef98df67b7e7bbcffcb2"
 dependencies = [
  "imara-diff",
  "nu-ansi-term",
