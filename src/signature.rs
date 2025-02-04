@@ -14,7 +14,8 @@ pub struct Signature<'a, 'b>(Vec<Vec<AstNodeEquiv<'a, 'b>>>);
 
 impl Display for Signature<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
+        write!(
+            f,
             "Signature [{}]",
             self.0
                 .iter()
@@ -28,7 +29,7 @@ impl Display for Signature<'_, '_> {
                         .join(", ")
                 ))
                 .join(", ")
-        ))
+        )
     }
 }
 
@@ -298,8 +299,7 @@ impl SignatureDefinition {
         node: &'a MergedTree<'b>,
         class_mapping: &ClassMapping<'b>,
     ) -> Signature<'a, 'b> {
-        let node_equiv = AstNodeEquiv::Merged(node);
-        self.extract_internal(node_equiv, class_mapping)
+        self.extract_internal(AstNodeEquiv::Merged(node), class_mapping)
     }
 
     /// Extracts a signature for the supplied node
@@ -364,21 +364,18 @@ impl AstPath {
         match path {
             [] => result.push(node),
             [step, rest @ ..] => {
-                match step {
+                let children = match step {
                     PathStep::Field(field_name) => {
                         // select children of the node which have a matching type
                         node.children_by_field_name(field_name, class_mapping)
-                            .into_iter()
-                            .for_each(|child| {
-                                Self::extract_internal(rest, child, result, class_mapping);
-                            });
                     }
-                    PathStep::ChildType(grammar_name) => node
-                        .children_by_grammar_name(grammar_name, class_mapping)
-                        .into_iter()
-                        .for_each(|child| {
-                            Self::extract_internal(rest, child, result, class_mapping);
-                        }),
+                    PathStep::ChildType(grammar_name) => {
+                        node.children_by_grammar_name(grammar_name, class_mapping)
+                    }
+                };
+
+                for child in children {
+                    Self::extract_internal(rest, child, result, class_mapping);
                 }
             }
         }
@@ -404,7 +401,7 @@ impl Display for PathStep {
 mod tests {
 
     use crate::{
-        class_mapping::{ClassMapping, RevNode, RevisionNESet},
+        class_mapping::{RevNode, RevisionNESet},
         pcs::Revision,
         test_utils::{ctx, hash},
     };

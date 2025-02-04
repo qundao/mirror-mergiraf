@@ -302,7 +302,7 @@ To run a test with a debugger, you can use the test defined in `tests/integratio
 // use this test to debug a specific test case by changing the path in it.
 #[rstest]
 fn debug_test() {
-    run_test_from_dir(&PathBuf::from("examples/go/working/remove_and_add_imports"))
+    run_test_from_dir(Path::new("examples/go/working/remove_and_add_imports"))
 }
 ```
 You can then use an IDE (such as Codium with Rust-analyzer) to set up breakpoints to inspect the execution of the test.

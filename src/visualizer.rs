@@ -117,6 +117,7 @@ fn add_node(
     } else {
         node.grammar_name
     };
+    let label = label.replace('\\', "\\\\").replace('"', "\\\"");
     let label_with_range = format!(
         "{}:{}_{}",
         label, node.byte_range.start, node.byte_range.end
@@ -126,8 +127,7 @@ fn add_node(
     } else {
         "oval"
     };
-    let final_label = label_with_range.replace('\\', "\\\\").replace('"', "\\\"");
-    attrs.push(("label", &final_label));
+    attrs.push(("label", &label_with_range));
     attrs.push(("shape", shape));
     let is_exact_match = exactly_matched.contains(&node.id);
     if is_exact_match {

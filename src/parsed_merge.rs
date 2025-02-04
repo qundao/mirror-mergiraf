@@ -149,10 +149,10 @@ impl<'a> ParsedMerge<'a> {
             };
 
             if resolved_end > 0 {
-                // SAFETY: `remaining_source` is derived from `source`
+                // SAFETY: `remaining_source` is derived from `source`, so `offset_from` makes sense
                 let offset = unsafe { remaining_source.as_ptr().offset_from(source.as_ptr()) }
                     .try_into()
-                    .expect("`remaining_source` points to the _remainder_ of `source`");
+                    .expect("`remaining_source` points to the _remainder_ of `source`, so `offset` is positive");
                 chunks.push(MergedChunk::Resolved {
                     offset,
                     contents: &remaining_source[..resolved_end],
