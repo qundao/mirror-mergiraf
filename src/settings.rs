@@ -12,10 +12,25 @@ pub struct DisplaySettings<'a> {
     /// The number of characters for conflict markers (7 by default)
     pub conflict_marker_size: Option<usize>,
     /// The string that identifies the left revision in conflict markers
+    ///
+    /// It can either:
+    /// - miss completely (`<<<<<<<(newline)`), in which case we use "LEFT" as a placeholder.
+    /// - be present but empty (`<<<<<<<(space)(newline`) -- a very unlikely case which we ignore.
+    /// - be present and non-empty (<<<<<<<(space)(revision name)(newline))
     pub left_revision_name: Option<Cow<'a, str>>,
     /// The string that identifies the base revision in conflict markers
+    ///
+    /// It can either:
+    /// - miss completely (`|||||||(newline)`), in which case we use "BASE" as a placeholder.
+    /// - be present but empty (`|||||||(space)(newline`) -- a very unlikely case which we ignore.
+    /// - be present and non-empty (|||||||(space)(revision name)(newline))
     pub base_revision_name: Option<Cow<'a, str>>,
     /// The string that identifies the right revision in conflict markers
+    ///
+    /// It can either:
+    /// - miss completely (`>>>>>>>(newline)`), in which case we use "RIGHT" as a placeholder.
+    /// - be present but empty (`>>>>>>>(space)(newline`) -- a very unlikely case which we ignore.
+    /// - be present and non-empty (>>>>>>>(space)(revision name)(newline))
     pub right_revision_name: Option<Cow<'a, str>>,
 }
 
@@ -94,23 +109,20 @@ impl<'a> DisplaySettings<'a> {
 
     /// Update display settings by taking revision names from merge (if there are any conflicts)
     pub fn add_revision_names(&mut self, parsed_merge: &ParsedMerge<'a>) {
-        match parsed_merge.chunks.iter().find_map(|chunk| match chunk {
-            MergedChunk::Resolved { .. } => None,
-            MergedChunk::Conflict {
-                left_name,
-                base_name,
-                right_name,
-                ..
-            } => Some((*left_name, *base_name, *right_name)),
-        }) {
-            Some((left_name, base_name, right_name))
-                if !left_name.is_empty() && !base_name.is_empty() && !right_name.is_empty() =>
-            {
-                self.left_revision_name = Some(Cow::Borrowed(left_name));
-                self.base_revision_name = Some(Cow::Borrowed(base_name));
-                self.right_revision_name = Some(Cow::Borrowed(right_name));
-            }
-            _ => {}
+        if let Some((left_name, base_name, right_name)) =
+            parsed_merge.chunks.iter().find_map(|chunk| match chunk {
+                MergedChunk::Resolved { .. } => None,
+                MergedChunk::Conflict {
+                    left_name,
+                    base_name,
+                    right_name,
+                    ..
+                } => Some((*left_name, *base_name, *right_name)),
+            })
+        {
+            self.left_revision_name = left_name.map(Cow::Borrowed);
+            self.base_revision_name = base_name.map(Cow::Borrowed);
+            self.right_revision_name = right_name.map(Cow::Borrowed);
         }
     }
 }

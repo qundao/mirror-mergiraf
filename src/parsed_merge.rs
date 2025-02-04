@@ -44,11 +44,11 @@ pub enum MergedChunk<'a> {
         /// The right part of the conflict, including the last newline before the next marker.
         right: &'a str,
         /// The name of the left revision (potentially empty)
-        left_name: &'a str,
+        left_name: Option<&'a str>,
         /// The name of the base revision (potentially empty)
-        base_name: &'a str,
+        base_name: Option<&'a str>,
         /// The name of the right revision (potentially empty)
-        right_name: &'a str,
+        right_name: Option<&'a str>,
     },
 }
 
@@ -103,7 +103,7 @@ impl<'a> ParsedMerge<'a> {
             }
             if let Some(left_captures) = left_captures {
                 let left_match = left_captures.get(0).unwrap();
-                let left_name = left_captures.get(1).map_or("", |m| m.as_str());
+                let left_name = left_captures.get(1).map(|m| m.as_str());
                 remaining_source = &remaining_source[left_match.end()..];
 
                 let base_captures = base_marker.captures(remaining_source).ok_or_else(|| {
@@ -114,7 +114,7 @@ impl<'a> ParsedMerge<'a> {
                     }
                 })?;
                 let base_match = base_captures.get(0).unwrap();
-                let base_name = base_captures.get(1).map_or("", |m| m.as_str());
+                let base_name = base_captures.get(1).map(|m| m.as_str());
                 let left = &remaining_source[..base_match.start()];
                 remaining_source = &remaining_source[base_match.end()..];
 
@@ -128,7 +128,7 @@ impl<'a> ParsedMerge<'a> {
                     .captures(remaining_source)
                     .ok_or("unexpected end of file before right conflict marker")?;
                 let right_match = right_captures.get(0).unwrap();
-                let right_name = right_captures.get(1).map_or("", |m| m.as_str());
+                let right_name = right_captures.get(1).map(|m| m.as_str());
                 let right = &remaining_source[..right_match.start()];
                 remaining_source = &remaining_source[right_match.end()..];
 
@@ -380,9 +380,9 @@ mod tests {
                 left: "let's go to the left!\n",
                 base: "where should we go?\n",
                 right: "turn right please!\n",
-                left_name: "left",
-                base_name: "base",
-                right_name: "",
+                left_name: Some("left"),
+                base_name: Some("base"),
+                right_name: None,
             },
             MergedChunk::Resolved {
                 offset: 127,
@@ -483,9 +483,9 @@ mod tests {
                 left: "let's go to the left!\n",
                 base: "where should we go?\n",
                 right: "turn right please!\n",
-                left_name: "left",
-                base_name: "base",
-                right_name: "",
+                left_name: Some("left"),
+                base_name: Some("base"),
+                right_name: None,
             },
             MergedChunk::Resolved {
                 offset: 103,
@@ -523,9 +523,9 @@ mod tests {
                 left: "let's go to the left!\n",
                 base: "where should we go?\n",
                 right: "turn right please!\n",
-                left_name: "left",
-                base_name: "base",
-                right_name: "",
+                left_name: Some("left"),
+                base_name: Some("base"),
+                right_name: None,
             },
         ]);
 
@@ -559,9 +559,9 @@ mod tests {
                 left: "    .foo = 3,\n    .bar = 2,\n",
                 base: "    .foo = 3,\n",
                 right: "",
-                left_name: "LEFT",
-                base_name: "BASE",
-                right_name: "RIGHT",
+                left_name: Some("LEFT"),
+                base_name: Some("BASE"),
+                right_name: Some("RIGHT"),
             },
             MergedChunk::Resolved {
                 offset: 115,
@@ -600,9 +600,9 @@ mod tests {
                 left: "left line\n",
                 base: "base line\n",
                 right: "right line\n",
-                left_name: "LEFT",
-                base_name: "BASE",
-                right_name: "RIGHT",
+                left_name: Some("LEFT"),
+                base_name: Some("BASE"),
+                right_name: Some("RIGHT"),
             },
         ]);
 
@@ -677,12 +677,12 @@ mod tests {
                 contents: "resolved line\n",
             },
             MergedChunk::Conflict {
-                left_name: "",
+                left_name: None,
                 left: "left line\n",
                 base: "base line\n",
                 right: "right line\n",
-                right_name: "",
-                base_name: "",
+                right_name: None,
+                base_name: None,
             },
         ]);
 
