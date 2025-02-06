@@ -54,6 +54,10 @@ nu-ansi-term = "0.50.1"
 oneshot = {version = "0.1.8", default-features = false, features = ["std"]}
 tree-sitter-devicetree = "0.12.1"
 
+# for transitive dependencies that incorrectly specify minimal required versions of their dependencies
+[target."cfg(any())".dependencies]
+cc = "1.2.12" # required for cross-compiling to MacOS X
+
 [dev-dependencies]
 rstest = "0.24.0"
 tempfile = "3"
