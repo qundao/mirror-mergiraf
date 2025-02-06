@@ -299,7 +299,15 @@ mod tests {
             merged_tree.pretty_print(&class_mapping, &DisplaySettings::default_compact());
         assert_eq!(
             pretty_printed,
-            "[1\n<<<<<<< LEFT\n, 3\n||||||| BASE\n=======\n, 4\n>>>>>>> RIGHT\n, 2]"
+            "\
+[1
+<<<<<<< LEFT
+, 3
+||||||| BASE
+=======
+, 4
+>>>>>>> RIGHT
+, 2]"
         );
     }
 
@@ -327,7 +335,15 @@ mod tests {
             result_tree.pretty_print(&class_mapping, &DisplaySettings::default_compact());
         assert_eq!(
             pretty_printed,
-            "<<<<<<< LEFT\n[1]\n||||||| BASE\n[1, 2]\n=======\n[2]\n>>>>>>> RIGHT\n"
+            "\
+<<<<<<< LEFT
+[1]
+||||||| BASE
+[1, 2]
+=======
+[2]
+>>>>>>> RIGHT
+"
         );
     }
 
@@ -355,7 +371,15 @@ mod tests {
             merged_tree.pretty_print(&class_mapping, &DisplaySettings::default_compact());
         assert_eq!(
             pretty_printed,
-            "<<<<<<< LEFT\n[1]\n||||||| BASE\n[1, 2]\n=======\n[1, 2, 3]\n>>>>>>> RIGHT\n"
+            "\
+<<<<<<< LEFT
+[1]
+||||||| BASE
+[1, 2]
+=======
+[1, 2, 3]
+>>>>>>> RIGHT
+"
         );
     }
 
@@ -380,7 +404,18 @@ mod tests {
         );
 
         let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
-        assert_eq!(pretty_printed, "<<<<<<< LEFT\n[1, {\"a\": 4}, 2]\n||||||| BASE\n[1, {\"a\": 3}, 2]\n=======\n[1, 2]\n>>>>>>> RIGHT\n");
+        assert_eq!(
+            pretty_printed,
+            "\
+<<<<<<< LEFT
+[1, {\"a\": 4}, 2]
+||||||| BASE
+[1, {\"a\": 3}, 2]
+=======
+[1, 2]
+>>>>>>> RIGHT
+"
+        );
     }
 
     #[test]

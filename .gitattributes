@@ -1,0 +1,7 @@
+# these files contain conflict examples -- set the conflict-marker-size
+# to a non-standard value so that Git doesn't mistake them for actual conflicts
+doc/src/usage.md
+examples/**/Expected.* conflict-marker-size=15
+src/merge_3dm.rs       conflict-marker-size=15
+src/merged_tree.rs     conflict-marker-size=15
+src/parsed_merge.rs    conflict-marker-size=15

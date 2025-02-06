@@ -433,7 +433,17 @@ mod tests {
 
     #[test]
     fn parse() {
-        let source = "\nwe reached a junction.\n<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
+        let source = "
+we reached a junction.
+<<<<<<< left
+let's go to the left!
+||||||| base
+where should we go?
+=======
+turn right please!
+>>>>>>>
+rest of file
+";
         let parsed =
             ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
 
@@ -540,7 +550,16 @@ mod tests {
 
     #[test]
     fn parse_start_with_conflict() {
-        let source = "<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
+        let source = "\
+<<<<<<< left
+let's go to the left!
+||||||| base
+where should we go?
+=======
+turn right please!
+>>>>>>>
+rest of file
+";
         let parsed =
             ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
 
@@ -576,7 +595,16 @@ mod tests {
 
     #[test]
     fn parse_end_with_conflict() {
-        let source = "\nwe reached a junction.\n<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\n";
+        let source = "
+we reached a junction.
+<<<<<<< left
+let's go to the left!
+||||||| base
+where should we go?
+=======
+turn right please!
+>>>>>>>
+";
         let parsed =
             ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
 
@@ -612,7 +640,17 @@ mod tests {
 
     #[test]
     fn parse_diffy_imara() {
-        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n=======\n>>>>>>> RIGHT\n};\n";
+        let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+=======
+>>>>>>> RIGHT
+};
+";
 
         let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
 
@@ -647,7 +685,15 @@ mod tests {
 
     #[test]
     fn parse_diff2() {
-        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n=======\n>>>>>>> RIGHT\n};\n";
+        let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+=======
+>>>>>>> RIGHT
+};
+";
 
         let parse_err = ParsedMerge::parse(source, &Default::default())
             .expect_err("expected a parse failure for diff2 conflicts");
@@ -672,7 +718,16 @@ mod tests {
             },
         ]);
 
-        let conflict_with_4 = "resolved line\n<<<< LEFT\nleft line\n|||| BASE\nbase line\n====\nright line\n>>>> RIGHT\n";
+        let conflict_with_4 = "\
+resolved line
+<<<< LEFT
+left line
+|||| BASE
+base line
+====
+right line
+>>>> RIGHT
+";
         let parsed_with_4 = ParsedMerge::parse(
             conflict_with_4,
             &DisplaySettings {
@@ -683,7 +738,16 @@ mod tests {
         .expect("could not parse a conflict with `conflict_marker_size=4`");
         assert_eq!(parsed_with_4, parsed_expected);
 
-        let conflict_with_9 = "resolved line\n<<<<<<<<< LEFT\nleft line\n||||||||| BASE\nbase line\n=========\nright line\n>>>>>>>>> RIGHT\n";
+        let conflict_with_9 = "\
+resolved line
+<<<<<<<<< LEFT
+left line
+||||||||| BASE
+base line
+=========
+right line
+>>>>>>>>> RIGHT
+";
         let parsed_with_9 = ParsedMerge::parse(
             conflict_with_9,
             &DisplaySettings {
@@ -697,7 +761,17 @@ mod tests {
 
     #[test]
     fn parse_left_marker_not_at_line_start() {
-        let source = "my_struct_t instance = {\n <<<<<<< LIAR LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n=======\n>>>>>>> RIGHT\n};\n";
+        let source = "\
+my_struct_t instance = {
+ <<<<<<< LIAR LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+=======
+>>>>>>> RIGHT
+};
+";
         let parsed = ParsedMerge::parse(source, &Default::default())
             .expect("should just not see this conflict at all");
 
@@ -711,7 +785,17 @@ mod tests {
 
     #[test]
     fn parse_base_marker_not_at_line_start() {
-        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n ||||||| LIAR BASE\n    .foo = 3,\n=======\n>>>>>>> RIGHT\n};\n";
+        let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+ ||||||| LIAR BASE
+    .foo = 3,
+=======
+>>>>>>> RIGHT
+};
+";
         let parse_err = ParsedMerge::parse(source, &Default::default()).expect_err(
             "because of the missing base marker, this should like a diff2-style conflict",
         );
@@ -721,7 +805,17 @@ mod tests {
 
     #[test]
     fn parse_middle_marker_not_at_line_start() {
-        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n =======\n>>>>>>> RIGHT\n};\n";
+        let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+ =======
+>>>>>>> RIGHT
+};
+";
         let parsed = ParsedMerge::parse(source, &Default::default())
             .expect("should ignore the malformed conflict");
 
@@ -735,7 +829,17 @@ mod tests {
 
     #[test]
     fn parse_right_marker_not_at_line_start() {
-        let source = "my_struct_t instance = {\n<<<<<<< LEFT\n    .foo = 3,\n    .bar = 2,\n||||||| BASE\n    .foo = 3,\n=======\n >>>>>>> LIAR RIGHT\n};\n";
+        let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+=======
+ >>>>>>> LIAR RIGHT
+};
+";
         let parsed = ParsedMerge::parse(source, &Default::default())
             .expect("should ignore the malformed conflict");
 
@@ -749,7 +853,21 @@ mod tests {
 
     #[test]
     fn parse_diff3_then_diff3_is_lazy() {
-        let source = "<<<<<<< LEFT\n// a comment\n||||||| BASE\n=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n=======\nuse os;\n>>>>>>> RIGHT\n";
+        let source = "\
+<<<<<<< LEFT
+// a comment
+||||||| BASE
+=======
+// hi
+>>>>>>> RIGHT
+<<<<<<< LEFT
+use bytes;
+||||||| BASE
+use io;
+=======
+use os;
+>>>>>>> RIGHT
+";
 
         let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
 
@@ -793,7 +911,20 @@ mod tests {
 
     #[test]
     fn parse_diff3_then_diff3_wo_newline() {
-        let source = "<<<<<<< LEFT\n// a comment\n||||||| BASE\n=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n=======\nuse os;\n>>>>>>> RIGHT";
+        let source = "\
+<<<<<<< LEFT
+// a comment
+||||||| BASE
+=======
+// hi
+>>>>>>> RIGHT
+<<<<<<< LEFT
+use bytes;
+||||||| BASE
+use io;
+=======
+use os;
+>>>>>>> RIGHT";
         let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
 
         let expected = ParsedMerge::new(vec![
@@ -820,7 +951,15 @@ mod tests {
 
     #[test]
     fn parse_diff3_is_with_final_newline_when_possible() {
-        let source = "<<<<<<< left\nlet's go to the left!\n||||||| base\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\n";
+        let source = "\
+<<<<<<< left
+let's go to the left!
+||||||| base
+where should we go?
+=======
+turn right please!
+>>>>>>>
+";
 
         let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
 
@@ -845,7 +984,18 @@ mod tests {
     #[test]
     fn matching() {
         let ctx = ctx();
-        let source = "struct MyType {\n    field: bool,\n<<<<<<< LEFT\n    foo: int,\n    bar: String,\n||||||| BASE\n    foo: String,\n=======\n>>>>>>> RIGHT\n};\n";
+        let source = "\
+struct MyType {
+    field: bool,
+<<<<<<< LEFT
+    foo: int,
+    bar: String,
+||||||| BASE
+    foo: String,
+=======
+>>>>>>> RIGHT
+};
+";
         let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
 
         let left_rev = parsed.reconstruct_revision(Revision::Left);
@@ -903,14 +1053,32 @@ mod tests {
             conflict_marker_size: Some(4),
             ..Default::default()
         });
-        let expected_with_4 = "resolved line\n<<<< LEFT\nleft line\n|||| BASE\nbase line\n====\nright line\n>>>> RIGHT\n";
+        let expected_with_4 = "\
+resolved line
+<<<< LEFT
+left line
+|||| BASE
+base line
+====
+right line
+>>>> RIGHT
+";
         assert_eq!(rendered_with_4, expected_with_4);
 
         let rendered_with_9 = merge.render(&DisplaySettings {
             conflict_marker_size: Some(9),
             ..Default::default()
         });
-        let expected_with_9 = "resolved line\n<<<<<<<<< LEFT\nleft line\n||||||||| BASE\nbase line\n=========\nright line\n>>>>>>>>> RIGHT\n";
+        let expected_with_9 = "\
+resolved line
+<<<<<<<<< LEFT
+left line
+||||||||| BASE
+base line
+=========
+right line
+>>>>>>>>> RIGHT
+";
         assert_eq!(rendered_with_9, expected_with_9);
     }
 
@@ -942,30 +1110,66 @@ mod tests {
             .render(&Default::default())
         }
 
-        let expected_wo_wo_wo =
-            "<<<<<<< LEFT\nleft\n||||||| BASE\nbase\n=======\nright\n>>>>>>> RIGHT";
+        let expected_wo_wo_wo = "\
+<<<<<<< LEFT
+left
+||||||| BASE
+base
+=======
+right
+>>>>>>> RIGHT";
         let rendered = chunk(base_wo, left_wo, right_wo);
         assert_eq!(rendered, expected_wo_wo_wo);
 
-        let expected_wo_w_wo =
-            "<<<<<<< LEFT\nleft\n\n||||||| BASE\nbase\n=======\nright\n>>>>>>> RIGHT";
+        let expected_wo_w_wo = "\
+<<<<<<< LEFT
+left
+
+||||||| BASE
+base
+=======
+right
+>>>>>>> RIGHT";
         let rendered = chunk(base_wo, left_w, right_wo);
         assert_eq!(rendered, expected_wo_w_wo);
 
         // wo_wo_w case should be symmetrical to wo_w_wo
 
-        let expected_wo_w_w =
-            "<<<<<<< LEFT\nleft\n\n||||||| BASE\nbase\n=======\nright\n\n>>>>>>> RIGHT";
+        let expected_wo_w_w = "\
+<<<<<<< LEFT
+left
+
+||||||| BASE
+base
+=======
+right
+
+>>>>>>> RIGHT";
         let rendered = chunk(base_wo, left_w, right_w);
         assert_eq!(rendered, expected_wo_w_w);
 
-        let expected_w_wo_wo =
-            "<<<<<<< LEFT\nleft\n||||||| BASE\nbase\n\n=======\nright\n>>>>>>> RIGHT";
+        let expected_w_wo_wo = "\
+<<<<<<< LEFT
+left
+||||||| BASE
+base
+
+=======
+right
+>>>>>>> RIGHT";
         let rendered = chunk(base_w, left_wo, right_wo);
         assert_eq!(rendered, expected_w_wo_wo);
 
-        let expected_w_w_wo =
-            "<<<<<<< LEFT\nleft\n\n||||||| BASE\nbase\n\n=======\nright\n>>>>>>> RIGHT";
+        let expected_w_w_wo = "\
+<<<<<<< LEFT
+left
+
+||||||| BASE
+base
+
+=======
+right
+>>>>>>> RIGHT";
         let rendered_w_w_wo = chunk(base_w, left_w, right_wo);
         assert_eq!(rendered_w_w_wo, expected_w_w_wo);
 
@@ -974,7 +1178,16 @@ mod tests {
 
     #[test]
     fn add_revision_names_to_settings() {
-        let source = "<<<<<<< my_left\nlet's go to the left!\n||||||| my_base\nwhere should we go?\n=======\nturn right please!\n>>>>>>> my_right\nrest of file\n";
+        let source = "\
+<<<<<<< my_left
+let's go to the left!
+||||||| my_base
+where should we go?
+=======
+turn right please!
+>>>>>>> my_right
+rest of file
+";
         let parsed =
             ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
 
@@ -996,7 +1209,16 @@ mod tests {
 
     #[test]
     fn add_revision_names_to_settings_no_names() {
-        let source = "<<<<<<<\nlet's go to the left!\n|||||||\nwhere should we go?\n=======\nturn right please!\n>>>>>>>\nrest of file\n";
+        let source = "\
+<<<<<<<
+let's go to the left!
+|||||||
+where should we go?
+=======
+turn right please!
+>>>>>>>
+rest of file
+";
         let parsed =
             ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
 
@@ -1010,7 +1232,10 @@ mod tests {
 
     #[test]
     fn add_revision_names_to_settings_no_conflict() {
-        let source = "start of file\nrest of file\n";
+        let source = "\
+start of file
+rest of file
+";
         let parsed =
             ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
 

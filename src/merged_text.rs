@@ -347,13 +347,33 @@ mod tests {
             ],
         };
 
-        let expected_compact = "hello world\nhi\n<<<<<<< LEFT\n ho left\n||||||| BASE\n ho base\n=======\n ho right\n>>>>>>> RIGHT\n  test\n";
+        let expected_compact = "\
+hello world
+hi
+<<<<<<< LEFT
+ ho left
+||||||| BASE
+ ho base
+=======
+ ho right
+>>>>>>> RIGHT
+  test
+";
         assert_eq!(
             merged_text.render(&DisplaySettings::default_compact()),
             expected_compact
         );
 
-        let expected_full_line = "hello world\n<<<<<<< LEFT\nhi ho left  test\n||||||| BASE\nhi ho base  test\n=======\nhi ho right  test\n>>>>>>> RIGHT\n";
+        let expected_full_line = "\
+hello world
+<<<<<<< LEFT
+hi ho left  test
+||||||| BASE
+hi ho base  test
+=======
+hi ho right  test
+>>>>>>> RIGHT
+";
         assert_eq!(
             merged_text.render(&DisplaySettings::default()),
             expected_full_line
@@ -371,7 +391,15 @@ mod tests {
                 merged("!"),
             ],
         };
-        let expected_full_line = "<<<<<<< LEFT\nlet's start hi to everyone!\n||||||| BASE\nlet's start ho to you!\n=======\nlet's start ha to me!\n>>>>>>> RIGHT\n";
+        let expected_full_line = "\
+<<<<<<< LEFT
+let's start hi to everyone!
+||||||| BASE
+let's start ho to you!
+=======
+let's start ha to me!
+>>>>>>> RIGHT
+";
         assert_eq!(
             merged_text.render(&DisplaySettings::default()),
             expected_full_line
