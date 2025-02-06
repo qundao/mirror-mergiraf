@@ -10,7 +10,6 @@ use mergiraf::newline::normalize_to_lf;
 use mergiraf::settings::DisplaySettings;
 use mergiraf::{
     line_merge_and_structured_resolution, resolve_merge_cascading, PathBufExt, DISABLING_ENV_VAR,
-    DISABLING_ENV_VAR_LEGACY,
 };
 use rstest::rstest;
 
@@ -130,9 +129,7 @@ fn solve_command(#[case] conflict_style: &str) {
         .into_iter(),
     );
     // in case Git is configured to use Mergiraf
-    command
-        .env(DISABLING_ENV_VAR, "0")
-        .env(DISABLING_ENV_VAR_LEGACY, "1");
+    command.env(DISABLING_ENV_VAR, "0");
     let output = command.output().expect("Failed to execute git command");
     assert!(!output.status.success(), "expected a rebase conflict");
 
