@@ -54,7 +54,7 @@ enum CliCommand {
         #[clap(long)]
         fast: bool,
         /// Display compact conflicts, breaking down lines
-        #[arg(short, long)]
+        #[arg(short, long, default_missing_value = "true", num_args = 0..=1, require_equals = true)]
         compact: Option<bool>,
         #[arg(short = 'l', long)]
         /// the choice of 'l' is inherited from Git's merge driver interface
@@ -90,7 +90,7 @@ enum CliCommand {
         /// Path to a file containing merge conflicts
         conflicts: PathBuf,
         /// Display compact conflicts, breaking down lines
-        #[clap(short, long)]
+        #[clap(short, long, default_missing_value = "true", num_args = 0..=1, require_equals = true)]
         compact: Option<bool>,
         #[arg(short = 'l', long)]
         /// the choice of 'l' is inherited from Git's merge driver interface
@@ -406,12 +406,38 @@ mod test {
     }
 
     #[test]
+    fn compact_flag() {
+        // works on `merge`:
+
+        // `true` when passed without value
+        // (and doesn't try to parse `foo.c` as value because of `require_equals`)
+        let CliCommand::Merge { compact, .. } =
+            CliArgs::parse_from(["mergiraf", "merge", "--compact", "foo.c", "bar.c", "baz.c"])
+                .command
+        else {
+            unreachable!("`mergiraf merge` should invoke the `Merge` subcommand")
+        };
+        assert_eq!(compact, Some(true));
+
+        // works on `solve`:
+
+        // `true` when passed without value
+        // (and doesn't try to parse `foo.c` as value because of `require_equals`)
+        let CliCommand::Solve { compact, .. } =
+            CliArgs::parse_from(["mergiraf", "solve", "--compact", "foo.c"]).command
+        else {
+            unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
+        };
+        assert_eq!(compact, Some(true));
+    }
+
+    #[test]
     fn keep_backup_flag() {
         // `true` when nothing passed
         let CliCommand::Solve { keep_backup, .. } =
             CliArgs::parse_from(["mergiraf", "solve", "foo.c"]).command
         else {
-            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+            unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
         };
         assert!(keep_backup);
 
@@ -420,7 +446,7 @@ mod test {
         let CliCommand::Solve { keep_backup, .. } =
             CliArgs::parse_from(["mergiraf", "solve", "--keep-backup", "foo.c"]).command
         else {
-            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+            unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
         };
         assert!(keep_backup);
 
@@ -428,7 +454,7 @@ mod test {
         let CliCommand::Solve { keep_backup, .. } =
             CliArgs::parse_from(["mergiraf", "solve", "--keep-backup=true", "foo.c"]).command
         else {
-            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+            unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
         };
         assert!(keep_backup);
 
@@ -436,7 +462,7 @@ mod test {
         let CliCommand::Solve { keep_backup, .. } =
             CliArgs::parse_from(["mergiraf", "solve", "--keep-backup=false", "foo.c"]).command
         else {
-            unreachable!("`mergiraf solve` should invoke the `Solve` submcommand")
+            unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
         };
         assert!(!keep_backup);
     }
