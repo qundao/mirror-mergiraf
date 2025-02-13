@@ -158,6 +158,11 @@ impl<'a> MergedTree<'a> {
                 RevisionNESet::singleton(Revision::Base),
                 class_mapping,
             ),
+            (_, Some(left), Some(right)) if left.isomorphic_to(right) => MergedTree::new_exact(
+                node,
+                RevisionNESet::singleton(Revision::Left).with(Revision::Right),
+                class_mapping,
+            ),
             (base, Some(left), Some(right)) => {
                 let base_src = base.map_or(Cow::from(""), |base| base.unindented_source());
                 let left_src = left.unindented_source();
