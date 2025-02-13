@@ -450,8 +450,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         }
     }
 
-    /// Extract one side of a conflict by iteratively following the successor
-    /// from the given starting node.
+    /// Extract one side of a conflict by iteratively following `successors` from
+    /// the given `starting_node` until we either:
+    /// - find a node present in the other conflict side
+    /// - reach the last child of `starting_node`'s parent ([`PCSNode::RightMarker`])
+    ///
+    /// When either of those (end node) is found, return:
+    /// - the successors of end node
+    /// - the path from `starting_node` to end node
     fn extract_conflict_side(
         &self,
         starting_node: PCSNode<'a>,
@@ -475,17 +481,26 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     format!("no candidate successor found for {cursor} at {revision}")
                 })?;
 
-            if candidate == PCSNode::RightMarker || other_successors.contains_key(&candidate) {
+            if other_successors.contains_key(&candidate) {
                 // we found the merging point of the conflict branches
                 return Ok((all_successors, result));
-            } else if let PCSNode::Node { node, .. } = candidate {
-                let _representative = self.class_mapping.node_at_rev(node, revision)
-                    .expect("extract_conflict_side: gathering a class leader which doesn't have a representative in the revision");
-                result.push(node.as_representative().node); // TODO should we not pick the representative in the revision instead?
-                if seen_nodes.contains(&candidate) {
-                    return Err("PCS successor loop detected".to_string());
-                } else {
-                    seen_nodes.insert(candidate);
+            }
+
+            match candidate {
+                PCSNode::VirtualRoot | PCSNode::LeftMarker => {
+                    unreachable!("those can't be successors")
+                }
+                PCSNode::RightMarker => {
+                    // `starting_node`'s parent has no more children - we can end the search here
+                    return Ok((all_successors, result));
+                }
+                PCSNode::Node { node, .. } => {
+                    let _representative = self.class_mapping.node_at_rev(node, revision)
+                        .expect("extract_conflict_side: gathering a class leader which doesn't have a representative in the revision");
+                    result.push(node.as_representative().node); // TODO should we not pick the representative in the revision instead?
+                    if !seen_nodes.insert(candidate) {
+                        return Err("PCS successor loop detected".to_string());
+                    }
                     cursor = candidate;
                 }
             }
