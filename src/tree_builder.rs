@@ -240,9 +240,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     };
 
                     let MergedTree::Conflict {
+                        ref base,
                         ref left,
                         ref right,
-                        ..
                     } = conflict
                     else {
                         unreachable!("`build_conflict` should return a conflict")
@@ -278,8 +278,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                                 .lang_profile
                                 .get_commutative_parent(leader.grammar_name())
                             {
-                                let solved_conflict = self.resolve_commutative_conflict(
-                                    conflict,
+                                // knowing that the order of all elements of the conflict does not matter, solve the conflict
+                                let solved_conflict = self.commutatively_merge_lists(
+                                    base,
+                                    left,
+                                    right,
                                     commutative_parent,
                                     visiting_state,
                                 )?;
@@ -567,25 +570,6 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             node,
             self.class_mapping,
         ))
-    }
-
-    /// knowing that the order of all elements of the conflict does not matter, solve the conflict
-    fn resolve_commutative_conflict(
-        &self,
-        conflict: MergedTree<'a>,
-        commutative_parent: &CommutativeParent,
-        visiting_state: &mut VisitingState<'a>,
-    ) -> Result<Vec<MergedTree<'a>>, String> {
-        match conflict {
-            MergedTree::Conflict { base, left, right } => self.commutatively_merge_lists(
-                &base,
-                &left,
-                &right,
-                commutative_parent,
-                visiting_state,
-            ),
-            _ => Err("not actually a conflict we can solve!".to_string()),
-        }
     }
 
     /// From a list of children of a commutative node, filter out separators
