@@ -513,4 +513,49 @@ mod tests {
         let _pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
         // assert_eq!(pretty_printed, "{}"); // TODO there should be a delete/modify conflict here!
     }
+
+    fn rust_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
+        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let primary_matcher = TreeMatcher {
+            min_height: 0,
+            sim_threshold: 0.5,
+            max_recovery_size: 100,
+            use_rted: true,
+            lang_profile,
+        };
+        let auxiliary_matcher = TreeMatcher {
+            min_height: 1,
+            sim_threshold: 0.5,
+            max_recovery_size: 100,
+            use_rted: false,
+            lang_profile,
+        };
+        (primary_matcher, auxiliary_matcher)
+    }
+
+    #[test]
+    fn insert_insert_not_really_a_conflict() {
+        let ctx = ctx();
+
+        // both `left` and `right` add the `'s` to `&self`, so this would-be-conflict should be
+        // resolved during the construction of the tree. NB: The `<'s>` is added just so that
+        // `left` and `right` are not completely identical (which would've made the resolution trivial)
+        let base = ctx.parse_rust("fn foo(&self) {}");
+        let left = ctx.parse_rust("fn foo(&'s self) {}");
+        let right = ctx.parse_rust("fn foo<'s>(&'s self) {}");
+
+        let (primary_matcher, auxiliary_matcher) = rust_matchers();
+        let (merged_tree, class_mapping) = three_way_merge(
+            &base,
+            &left,
+            &right,
+            None,
+            &primary_matcher,
+            &auxiliary_matcher,
+            None,
+        );
+
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        assert_eq!(pretty_printed, "fn foo<'s>(&'s self) {}");
+    }
 }

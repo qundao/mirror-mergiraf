@@ -227,40 +227,71 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     cursor = children_map.get(&predecessor);
                 }
                 2 => {
-                    let conflict = self.build_conflict(
+                    let Ok((next_cursor, conflict)) = self.build_conflict(
                         predecessor,
                         children_map,
                         base_children_map,
                         &mut seen_nodes,
                         visiting_state,
-                    );
-                    match conflict {
-                        Err(_) => {
-                            let line_based =
-                                self.commutative_or_line_based_local_fallback(node, visiting_state);
-                            return line_based;
-                        }
-                        Ok((next_cursor, conflict)) => {
-                            if let PCSNode::Node { node: leader, .. } = node {
-                                if let Some(commutative_parent) = self
-                                    .lang_profile
-                                    .get_commutative_parent(leader.grammar_name())
-                                {
-                                    let solved_conflict = self.resolve_commutative_conflict(
-                                        conflict,
-                                        commutative_parent,
-                                        visiting_state,
-                                    )?;
-                                    children.extend(solved_conflict);
-                                } else {
-                                    children.push(conflict);
-                                }
+                    ) else {
+                        let line_based =
+                            self.commutative_or_line_based_local_fallback(node, visiting_state);
+                        return line_based;
+                    };
+
+                    let MergedTree::Conflict {
+                        ref left,
+                        ref right,
+                        ..
+                    } = conflict
+                    else {
+                        unreachable!("`build_conflict` should return a conflict")
+                    };
+
+                    if left.len() == right.len()
+                        && std::iter::zip(left, right).all(|(l, r)| l.isomorphic_to(r))
+                    {
+                        // both sides of the "conflict" consist of nodes that are pairwise isomorphic.
+                        // This means that both sides actually agree in how they change the base.
+                        // Therefore, we resolve the conflict trivially by picking the left side (WLOG)
+                        let not_really_a_conflict: Vec<_> = left
+                            .iter()
+                            .copied()
+                            .map(|l| {
+                                MergedTree::new_exact(
+                                    self.class_mapping
+                                        .map_to_leader(RevNode::new(Revision::Left, l)),
+                                    RevisionNESet::singleton(Revision::Left).with(Revision::Right),
+                                    self.class_mapping,
+                                )
+                            })
+                            .collect();
+
+                        children.extend(not_really_a_conflict);
+                    } else {
+                        // reason: the following two `if`s should really be `&&`-ed,
+                        // but https://github.com/rust-lang/rust/issues/53667
+                        // until then, collapsing one but not the other looks misleading
+                        #[allow(clippy::collapsible_if)]
+                        if let PCSNode::Node { node: leader, .. } = node {
+                            if let Some(commutative_parent) = self
+                                .lang_profile
+                                .get_commutative_parent(leader.grammar_name())
+                            {
+                                let solved_conflict = self.resolve_commutative_conflict(
+                                    conflict,
+                                    commutative_parent,
+                                    visiting_state,
+                                )?;
+                                children.extend(solved_conflict);
                             } else {
                                 children.push(conflict);
                             }
-                            cursor = next_cursor;
+                        } else {
+                            children.push(conflict);
                         }
                     }
+                    cursor = next_cursor;
                 }
                 _ => unreachable!("unexpected conflict size: more than two diverging sides!"),
             }
