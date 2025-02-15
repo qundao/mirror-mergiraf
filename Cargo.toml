@@ -38,6 +38,7 @@ tree-sitter-lua = "0.2.0"
 tree-sitter-ruby = "0.23.1"
 regex = "1.11.1"
 itertools = "0.14.0"
+tree-sitter-nix = "0.0.2"
 typed-arena = "2"
 tree-edit-distance = "0.4"
 clap = { version = "4.5.26", features = ["derive"] }
