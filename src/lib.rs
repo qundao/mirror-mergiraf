@@ -85,7 +85,7 @@ pub const DISABLING_ENV_VAR: &str = "mergiraf";
 pub(crate) const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
 
 /// Helper to parse a source text with a given tree-sitter parser.
-pub(crate) fn parse<'a>(
+pub fn parse<'a>(
     parser: &mut TSParser,
     contents: &'a str,
     lang_profile: &LangProfile,
