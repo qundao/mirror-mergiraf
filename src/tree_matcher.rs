@@ -453,8 +453,8 @@ impl<'a> tree_edit_distance::Node for TEDTree<'a> {
         (
             self.node.grammar_name,
             maybe_source, // ensures that if the node is a leaf, it is only matched to a leaf with the same textual content
-            self.matched_to_id,
-        ) // ensures that if the node is matched, it can only be equated to its match on the other side
+            self.matched_to_id, // ensures that if the node is matched, it can only be equated to its match on the other side
+        )
     }
 
     type Weight = u64;

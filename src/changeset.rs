@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fmt::Write, fs, path::Path};
 
 use itertools::Itertools;
 
@@ -159,10 +159,10 @@ impl<'a> ChangeSet<'a> {
 
     /// Save to file, for debugging purposes
     pub fn save(&self, fname: impl AsRef<Path>) {
-        let mut result = String::new();
-        for pcs in self.iter().sorted().map(|pcs| format!("{pcs}\n")) {
-            result.push_str(&pcs);
-        }
+        let result = self.iter().sorted().fold(String::new(), |mut result, pcs| {
+            let _ = writeln!(result, "{pcs}");
+            result
+        });
         fs::write(fname, result).expect("Unable to write changeset file");
     }
 }

@@ -31,7 +31,7 @@ impl<'a> RevNode<'a> {
         RevNode { rev, node }
     }
 
-    /// Whether the subtree rooted at this node contains contains another node (up to class mapping).
+    /// Whether the subtree rooted at this node contains another node (up to class mapping).
     pub fn contains(&self, other: &Leader<'a>, class_mapping: &ClassMapping<'a>) -> bool {
         self.node.dfs().any(|descendant| {
             class_mapping.map_to_leader(RevNode::new(self.rev, descendant)) == *other

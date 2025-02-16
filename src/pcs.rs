@@ -35,7 +35,7 @@ pub enum PCSNode<'a> {
 ///
 /// The PCS triple also records in which revision this fact holds.
 /// To encode that a given node is the first child of its parent, we use [`PCSNode::LeftMarker`] as
-/// predecessor, and similarly [`PCSNode::RightMarker`] is used as successor to encod the last child.
+/// predecessor, and similarly [`PCSNode::RightMarker`] is used as successor to encode the last child.
 /// The actual root of the tree is encoded by marking it as root of the [`PCSNode::VirtualRoot`].
 #[derive(Debug, Copy, Clone, PartialOrd, Ord)]
 #[allow(clippy::upper_case_acronyms)]

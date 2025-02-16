@@ -204,7 +204,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             };
 
             {
-                let mergiraf_disabled = env::var(DISABLING_ENV_VAR).is_ok_and(|v| v == "0");
+                let mergiraf_disabled = env::var(DISABLING_ENV_VAR).as_deref() == Ok("0");
 
                 if mergiraf_disabled {
                     return fallback_to_git_merge_file(base, left, right, git, &settings);

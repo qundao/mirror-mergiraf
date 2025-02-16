@@ -43,7 +43,7 @@ pub fn normalize_to_lf<'a>(contents: impl Into<Cow<'a, str>>) -> Cow<'a, str> {
 
 #[cfg(test)]
 mod tests {
-    use super::imitate_cr_lf_from_input;
+    use super::*;
 
     #[test]
     fn normalize_cr_lf_to_lf() {

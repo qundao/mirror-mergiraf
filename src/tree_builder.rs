@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
+use either::Either;
 use itertools::Itertools;
 use log::debug;
 
@@ -106,12 +107,12 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .collect();
         debug!("really deleted children: {}", deleted.iter().join(", "));
 
-        let parents_to_recompute: HashSet<Leader<'a>> = deleted_and_modified.iter()
-            .filter(|deleted| !merged_tree.contains(**deleted, self.class_mapping))
+        let parents_to_recompute: HashSet<Leader<'a>> = deleted_and_modified.into_iter()
+            .filter(|deleted| !merged_tree.contains(*deleted, self.class_mapping))
             .map(|deleted| {
-                let revnode = deleted.as_representative();
+                let RevNode{rev,node} = deleted.as_representative();
                 self.class_mapping.map_to_leader(
-                    RevNode::new(revnode.rev, revnode.node.parent().expect("the root node is marked as deleted and modified, but all roots should be mapped together"))
+                    RevNode::new(rev, node.parent().expect("the root node is marked as deleted and modified, but all roots should be mapped together"))
                 )
             })
             .collect();
@@ -202,18 +203,19 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     let (_, current_child) = cursor
                         .iter()
                         .next()
+                        .copied()
                         .expect("cursor.len() == 1 but it is actually empty?!");
-                    if *current_child == PCSNode::RightMarker {
+                    if current_child == PCSNode::RightMarker {
                         break;
                     }
-                    if seen_nodes.contains(current_child) {
+                    if seen_nodes.contains(&current_child) {
                         // there is a loop of children: abort and fall back on line diffing
                         let line_diff =
                             self.commutative_or_line_based_local_fallback(node, visiting_state);
                         return line_diff;
                     }
 
-                    let subtree = self.build_subtree(*current_child, visiting_state);
+                    let subtree = self.build_subtree(current_child, visiting_state);
                     let Ok(child_result_tree) = subtree else {
                         // we failed to build the result tree for a child of this node, because of a nasty conflict.
                         // We fall back on line diffing
@@ -222,7 +224,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         return line_diff;
                     };
                     children.push(child_result_tree);
-                    predecessor = *current_child;
+                    predecessor = current_child;
                     seen_nodes.insert(predecessor);
                     cursor = children_map.get(&predecessor);
                 }
@@ -239,12 +241,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         return line_based;
                     };
 
-                    let MergedTree::Conflict {
-                        ref base,
-                        ref left,
-                        ref right,
-                    } = conflict
-                    else {
+                    let MergedTree::Conflict { base, left, right } = &conflict else {
                         unreachable!("`build_conflict` should return a conflict")
                     };
 
@@ -254,18 +251,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         // both sides of the "conflict" consist of nodes that are pairwise isomorphic.
                         // This means that both sides actually agree in how they change the base.
                         // Therefore, we resolve the conflict trivially by picking the left side (WLOG)
-                        let not_really_a_conflict: Vec<_> = left
-                            .iter()
-                            .copied()
-                            .map(|l| {
-                                MergedTree::new_exact(
-                                    self.class_mapping
-                                        .map_to_leader(RevNode::new(Revision::Left, l)),
-                                    RevisionNESet::singleton(Revision::Left).with(Revision::Right),
-                                    self.class_mapping,
-                                )
-                            })
-                            .collect();
+                        let not_really_a_conflict = left.iter().copied().map(|l| {
+                            MergedTree::new_exact(
+                                self.class_mapping
+                                    .map_to_leader(RevNode::new(Revision::Left, l)),
+                                RevisionNESet::singleton(Revision::Left).with(Revision::Right),
+                                self.class_mapping,
+                            )
+                        });
 
                         children.extend(not_really_a_conflict);
                     } else {
@@ -598,9 +591,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     fn find_separators_with_whitespace<'s>(
         slice: &'s [&'a AstNode<'a>],
         trimmed_sep: &'s str,
-    ) -> Box<dyn Iterator<Item = &'a str> + 's> {
+    ) -> impl Iterator<Item = &'a str> + use<'a, 's> {
         if trimmed_sep.is_empty() {
-            Box::new(
+            Either::Left(
                 slice
                     .iter()
                     .skip(1)
@@ -608,7 +601,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     .filter(|s| !s.is_empty()),
             )
         } else {
-            Box::new(
+            Either::Right(
                 slice
                     .iter()
                     .filter(move |n| n.source.trim() == trimmed_sep)
@@ -744,15 +737,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         ]
         .into_iter()
         .find_map(|(nodes, revision)| {
-            nodes.iter().next().and_then(|first| {
-                if first.source.trim() == trimmed_left_delim {
-                    Some(
-                        self.class_mapping
-                            .map_to_leader(RevNode::new(revision, first)),
-                    )
-                } else {
-                    None
-                }
+            nodes.first().and_then(|first| {
+                (first.source.trim() == trimmed_left_delim).then_some(
+                    self.class_mapping
+                        .map_to_leader(RevNode::new(revision, first)),
+                )
             })
         });
         let right_delim = [
@@ -762,15 +751,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         ]
         .into_iter()
         .find_map(|(nodes, revision)| {
-            nodes.iter().last().and_then(|last| {
-                if last.source.trim() == trimmed_right_delim {
-                    Some(
-                        self.class_mapping
-                            .map_to_leader(RevNode::new(revision, last)),
-                    )
-                } else {
-                    None
-                }
+            nodes.last().and_then(|last| {
+                (last.source.trim() == trimmed_right_delim).then_some(
+                    self.class_mapping
+                        .map_to_leader(RevNode::new(revision, last)),
+                )
             })
         });
         let starts_with_separator = [&base, &left, &right].into_iter().any(|rev| {
@@ -782,8 +767,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let ends_with_separator = [&base, &left, &right].into_iter().any(|rev| {
             rev.iter()
                 .map(|n| n.source.trim())
-                .filter(|s| *s != trimmed_right_delim)
-                .last()
+                .rfind(|s| *s != trimmed_right_delim)
                 .is_some_and(|s| s == trimmed_sep)
         });
 
@@ -1053,7 +1037,7 @@ fn fmt_set(s: &HashSet<(Revision, PCSNode<'_>)>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{class_mapping::ClassMapping, test_utils::ctx, tree_builder::TreeBuilder};
+    use crate::test_utils::ctx;
 
     use super::*;
 

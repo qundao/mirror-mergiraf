@@ -141,7 +141,7 @@ pub struct CommutativeParent {
 impl CommutativeParent {
     /// Short-hand function to declare a commutative parent without any delimiters.
     pub(crate) fn without_delimiters(root_type: &'static str, separator: &'static str) -> Self {
-        CommutativeParent {
+        Self {
             parent_type: root_type,
             separator,
             left_delim: None,
@@ -157,7 +157,7 @@ impl CommutativeParent {
         separator: &'static str,
         right_delim: &'static str,
     ) -> Self {
-        CommutativeParent {
+        Self {
             parent_type,
             separator,
             left_delim: Some(left_delim),
@@ -172,7 +172,7 @@ impl CommutativeParent {
         left_delim: &'static str,
         separator: &'static str,
     ) -> Self {
-        CommutativeParent {
+        Self {
             parent_type,
             separator,
             left_delim: Some(left_delim),
@@ -182,7 +182,7 @@ impl CommutativeParent {
     }
 
     /// Short-hand to restrict a commutative parent to some children groups
-    pub(crate) fn restricted_to_groups(mut self, groups: &[&[&'static str]]) -> CommutativeParent {
+    pub(crate) fn restricted_to_groups(mut self, groups: &[&[&'static str]]) -> Self {
         let children_groups = groups
             .iter()
             .map(|types| ChildrenGroup::new(types))
@@ -218,27 +218,16 @@ impl ChildrenGroup {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        lang_profile::{CommutativeParent, LangProfile},
-        signature::{signature, PathStep::Field},
-        test_utils::ctx,
-    };
+    use super::*;
+
+    use crate::test_utils::ctx;
 
     #[test]
     fn has_signature_conflicts() {
         let ctx = ctx();
 
-        let lang_profile = LangProfile {
-            name: "JSON",
-            extensions: vec![".json"],
-            language: tree_sitter_json::LANGUAGE.into(),
-            atomic_nodes: vec![],
-            commutative_parents: vec![
-                // the order of keys is deemed irrelevant
-                CommutativeParent::new("object", "{", ", ", "}"),
-            ],
-            signatures: vec![signature("pair", vec![vec![Field("key")]])],
-        };
+        let lang_profile =
+            LangProfile::detect_from_filename("foo.json").expect("no `lang_profile` for JSON");
 
         let with_conflicts = ctx.parse_json("[{\"a\":1, \"b\":2, \"a\":3}]").root();
         let without_conflicts = ctx.parse_json("{\"a\": [4], \"b\": [4]}").root();

@@ -229,13 +229,7 @@ impl AttemptsCache {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::Path};
-
-    use itertools::Itertools;
-
-    use crate::attempts::{BEST_MERGE_FILENAME, DEFAULT_FILE_EXTENSION};
-
-    use super::AttemptsCache;
+    use super::*;
 
     #[test]
     fn lifecycle() {

@@ -70,50 +70,49 @@ impl<'a> MergedText<'a> {
         let parsed = ParsedMerge::parse(line_based_merge, settings)
             .expect("Parsing the line-based merge failed");
         let mut newline_found = false;
-        for section in parsed.chunks {
-            self.sections.push(match section {
-                crate::parsed_merge::MergedChunk::Resolved { contents, .. } => {
-                    let result = MergeSection::Merged(
-                        Self::reindent_line_based_merge(contents, indentation, newline_found, true)
-                            .into(),
-                    );
-                    newline_found = newline_found || contents.contains('\n');
-                    result
-                }
-                crate::parsed_merge::MergedChunk::Conflict {
-                    left, base, right, ..
-                } => {
-                    let result = MergeSection::Conflict {
-                        left: Self::reindent_line_based_merge(
-                            left.unwrap_or_default(),
-                            indentation,
-                            false,
-                            false,
-                        )
+        let sections = parsed.chunks.into_iter().map(|section| match section {
+            crate::parsed_merge::MergedChunk::Resolved { contents, .. } => {
+                let result = MergeSection::Merged(
+                    Self::reindent_line_based_merge(contents, indentation, newline_found, true)
                         .into(),
-                        base: Self::reindent_line_based_merge(
-                            base.unwrap_or_default(),
-                            indentation,
-                            false,
-                            false,
-                        )
-                        .into(),
-                        right: Self::reindent_line_based_merge(
-                            right.unwrap_or_default(),
-                            indentation,
-                            false,
-                            false,
-                        )
-                        .into(),
-                    };
-                    newline_found = newline_found
-                        || left.unwrap_or_default().contains('\n')
-                        || right.unwrap_or_default().contains('\n')
-                        || base.unwrap_or_default().contains('\n');
-                    result
-                }
-            });
-        }
+                );
+                newline_found = newline_found || contents.contains('\n');
+                result
+            }
+            crate::parsed_merge::MergedChunk::Conflict {
+                left, base, right, ..
+            } => {
+                let result = MergeSection::Conflict {
+                    left: Self::reindent_line_based_merge(
+                        left.unwrap_or_default(),
+                        indentation,
+                        false,
+                        false,
+                    )
+                    .into(),
+                    base: Self::reindent_line_based_merge(
+                        base.unwrap_or_default(),
+                        indentation,
+                        false,
+                        false,
+                    )
+                    .into(),
+                    right: Self::reindent_line_based_merge(
+                        right.unwrap_or_default(),
+                        indentation,
+                        false,
+                        false,
+                    )
+                    .into(),
+                };
+                newline_found = newline_found
+                    || left.unwrap_or_default().contains('\n')
+                    || right.unwrap_or_default().contains('\n')
+                    || base.unwrap_or_default().contains('\n');
+                result
+            }
+        });
+        self.sections.extend(sections);
     }
 
     /// Reindents the contents of a line-based merge

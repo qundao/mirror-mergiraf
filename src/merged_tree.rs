@@ -183,6 +183,11 @@ impl<'a> MergedTree<'a> {
         nodes: &HashSet<Leader<'a>>,
         class_mapping: &ClassMapping<'a>,
     ) -> MergedTree<'a> {
+        if nodes.is_empty() {
+            // no nodes to force line-based fallback on
+            return self;
+        }
+
         match self {
             MergedTree::ExactTree {
                 node, revisions, ..

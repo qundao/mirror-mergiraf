@@ -631,7 +631,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
 
 #[cfg(test)]
 mod test {
-    use super::SUPPORTED_LANGUAGES;
+    use super::*;
 
     #[test]
     fn extensions_do_not_start_with_a_dot() {

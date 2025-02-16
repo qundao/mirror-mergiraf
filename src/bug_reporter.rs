@@ -30,7 +30,7 @@ pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
         .map_err(|err| format!("error while creating report archive: {err}"))?
     } else {
         // it could be a file with conflicts
-        let path = Path::new(&attempt_id_or_path);
+        let path = Path::new(attempt_id_or_path);
         if !path.is_file() {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
@@ -52,11 +52,14 @@ pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
         .map_err(|err| format!("error while creating report archive: {err}"))?
     };
 
-    println!("Bug report archive created:\n");
-    println!("{archive_name}");
-    println!("\nPlease submit it to https://codeberg.org/mergiraf/mergiraf/issues if you are happy with its contents being published,");
-    println!("or reach out privately to a contributor if not.");
-    println!("Thank you for helping Mergiraf improve!");
+    println!("\
+Bug report archive created:
+
+{archive_name}
+
+Please submit it to https://codeberg.org/mergiraf/mergiraf/issues if you are happy with its contents being published,
+or reach out privately to a contributor if not.
+Thank you for helping Mergiraf improve!");
     Ok(())
 }
 

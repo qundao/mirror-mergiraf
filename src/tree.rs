@@ -740,8 +740,6 @@ impl<'a> Iterator for AncestorsIterator<'a> {
 #[cfg(test)]
 mod tests {
 
-    use itertools::Itertools;
-
     use crate::test_utils::ctx;
 
     use super::*;

@@ -106,8 +106,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
-
     use itertools::Itertools;
 
     use super::*;
