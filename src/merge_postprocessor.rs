@@ -280,7 +280,7 @@ fn merge_same_sigs<'a>(
             .zip(right.iter())
             .all(|(elem_left, elem_right)| elem_left.isomorphic_to(elem_right))
     {
-        let v = add_separators(&left, separator, add_separator)
+        let v = add_separators(left, separator, add_separator)
             .iter()
             .map(|ast_node| {
                 MergedTree::new_exact(
@@ -294,9 +294,9 @@ fn merge_same_sigs<'a>(
     } else {
         (
             vec![MergedTree::Conflict {
-                base: add_separators(&base, separator, add_separator),
-                left: add_separators(&left, separator, add_separator),
-                right: add_separators(&right, separator, add_separator),
+                base: add_separators(base, separator, add_separator),
+                left: add_separators(left, separator, add_separator),
+                right: add_separators(right, separator, add_separator),
             }],
             false,
         )
@@ -323,29 +323,28 @@ fn filter_by_revision<'a>(
 
 /// Insert separators between a list of merged elements
 fn add_separators<'a>(
-    elements: &[&'a AstNode<'a>],
+    elements: Vec<&'a AstNode<'a>>,
     separator: Option<&'a AstNode<'a>>,
     add_separator: AddSeparator,
 ) -> Vec<&'a AstNode<'a>> {
-    let mut first = true;
-    let mut result = Vec::new();
-    if let Some(separator) = separator {
-        if !elements.is_empty() && add_separator == AddSeparator::AtBeginning {
-            result.push(separator);
-        }
+    if elements.is_empty() {
+        return vec![];
     }
-    for element in elements {
-        if first {
-            first = false;
-        } else if let Some(separator) = separator {
-            result.push(separator);
-        }
-        result.push(element);
+
+    let Some(separator) = separator else {
+        // no separators to insert -- the result is identical to the input
+        return elements;
+    };
+
+    let mut result = Vec::with_capacity(elements.len() * 2); // 1 separator per element
+    if add_separator == AddSeparator::AtBeginning {
+        result.push(separator);
     }
-    if let Some(separator) = separator {
-        if !elements.is_empty() && add_separator == AddSeparator::AtEnd {
-            result.push(separator);
-        }
+    // The method is stuck in stabilization limbo, see its issue
+    #[allow(unstable_name_collisions)]
+    result.extend(elements.into_iter().intersperse(separator));
+    if add_separator == AddSeparator::AtEnd {
+        result.push(separator);
     }
     result
 }
