@@ -1,5 +1,5 @@
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
-    collections::{HashMap, HashSet},
     hash::Hash,
     iter::{FromIterator, FusedIterator},
 };
@@ -7,8 +7,8 @@ use std::{
 /// A map which associates a set of values to each key.
 #[derive(Debug)]
 pub struct MultiMap<K, V> {
-    map: HashMap<K, HashSet<V>>,
-    empty: HashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
+    map: FxHashMap<K, FxHashSet<V>>,
+    empty: FxHashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
 }
 
 impl<K, V> MultiMap<K, V>
@@ -19,13 +19,13 @@ where
     /// Creates an empty multimap
     pub fn new() -> MultiMap<K, V> {
         MultiMap {
-            map: HashMap::new(),
-            empty: HashSet::new(),
+            map: FxHashMap::default(),
+            empty: FxHashSet::default(),
         }
     }
 
     /// Gets the set of values associated to the key (which might be empty)
-    pub fn get<Q>(&self, key: &Q) -> &HashSet<V>
+    pub fn get<Q>(&self, key: &Q) -> &FxHashSet<V>
     where
         K: std::borrow::Borrow<Q>,
         Q: Eq + Hash,
@@ -59,7 +59,7 @@ where
     }
 
     /// An iterator which groups pairs by key
-    pub fn iter(&self) -> impl Iterator<Item = (&K, &HashSet<V>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&K, &FxHashSet<V>)> {
         self.map.iter()
     }
 
@@ -107,6 +107,7 @@ where
 #[cfg(test)]
 mod tests {
     use itertools::Itertools;
+    use std::collections::HashSet;
 
     use super::*;
 

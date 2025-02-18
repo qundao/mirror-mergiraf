@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use either::Either;
 use itertools::Itertools;
 use log::debug;
+use rustc_hash::FxHashSet;
 
 use crate::{
     changeset::ChangeSet,
@@ -63,7 +64,7 @@ impl VisitingState<'_> {
     }
 }
 
-type SuccessorsCursor<'a> = HashSet<(Revision, PCSNode<'a>)>;
+type SuccessorsCursor<'a> = FxHashSet<(Revision, PCSNode<'a>)>;
 
 impl<'a, 'b> TreeBuilder<'a, 'b> {
     /// Create a tree builder from PCS triples, the class mapping and language-specific settings
@@ -451,7 +452,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             visiting_state,
         )?;
 
-        fn strip_revs<'a>(end: &HashSet<(Revision, PCSNode<'a>)>) -> HashSet<PCSNode<'a>> {
+        fn strip_revs<'a, S>(end: &HashSet<(Revision, PCSNode<'a>), S>) -> HashSet<PCSNode<'a>> {
             end.iter().map(|(_, node)| *node).collect()
         }
 
@@ -1031,7 +1032,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     }
 }
 
-fn fmt_set(s: &HashSet<(Revision, PCSNode<'_>)>) -> String {
+fn fmt_set<S>(s: &HashSet<(Revision, PCSNode<'_>), S>) -> String {
     s.iter().map(|(r, n)| format!("({r},{n})")).join(", ")
 }
 

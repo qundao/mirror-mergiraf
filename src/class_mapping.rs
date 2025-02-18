@@ -1,6 +1,7 @@
-use std::{collections::HashMap, fmt::Display, hash::Hash};
+use std::{fmt::Display, hash::Hash};
 
 use itertools::Itertools;
+use rustc_hash::FxHashMap;
 
 use crate::{matching::Matching, pcs::Revision, tree::AstNode};
 
@@ -83,10 +84,10 @@ impl Hash for RevNode<'_> {
 /// to PCS, following the 3DM-Merge algorithm from Spork
 #[derive(Debug, Default)]
 pub struct ClassMapping<'a> {
-    map: HashMap<RevNode<'a>, Leader<'a>>,
-    representatives: HashMap<Leader<'a>, HashMap<Revision, RevNode<'a>>>,
-    exact_matchings: HashMap<Leader<'a>, i8>,
-    empty_repr: HashMap<Revision, RevNode<'a>>, // stays empty (only there for ownership purposes)
+    map: FxHashMap<RevNode<'a>, Leader<'a>>,
+    representatives: FxHashMap<Leader<'a>, FxHashMap<Revision, RevNode<'a>>>,
+    exact_matchings: FxHashMap<Leader<'a>, i8>,
+    empty_repr: FxHashMap<Revision, RevNode<'a>>, // stays empty (only there for ownership purposes)
 }
 
 impl<'a> ClassMapping<'a> {
@@ -140,7 +141,7 @@ impl<'a> ClassMapping<'a> {
 
     /// Finds all the representatives in a cluster designated by its leader.
     /// This can return an empty map if the cluster only contains this node!
-    fn internal_representatives(&self, leader: Leader<'a>) -> &HashMap<Revision, RevNode<'a>> {
+    fn internal_representatives(&self, leader: Leader<'a>) -> &FxHashMap<Revision, RevNode<'a>> {
         self.representatives
             .get(&leader)
             .unwrap_or(&self.empty_repr)

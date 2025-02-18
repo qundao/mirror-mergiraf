@@ -2,7 +2,6 @@ use std::{
     borrow::Cow,
     cell::UnsafeCell,
     cmp::{max, min},
-    collections::HashMap,
     fmt::Display,
     hash::{Hash, Hasher},
     ops::Range,
@@ -11,6 +10,7 @@ use std::{
 use either::Either;
 use itertools::Itertools;
 use nu_ansi_term::Color;
+use rustc_hash::FxHashMap;
 use tree_sitter::{Tree, TreeCursor};
 use typed_arena::Arena;
 
@@ -41,7 +41,7 @@ pub struct AstNode<'a> {
     /// The children of this node (empty if this is a leaf)
     pub children: Vec<&'a AstNode<'a>>,
     /// The children indexed by field name
-    field_to_children: HashMap<&'a str, Vec<&'a AstNode<'a>>>,
+    field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>>,
     /// The portion of the source code which corresponds to this node
     pub source: &'a str,
     /// The type of node as returned by tree-sitter
@@ -117,7 +117,7 @@ impl<'a> AstNode<'a> {
         arena: &'a Arena<AstNode<'a>>,
     ) -> Result<&'a AstNode<'a>, String> {
         let mut children = Vec::new();
-        let mut field_to_children: HashMap<&'a str, Vec<&'a AstNode<'a>>> = HashMap::new();
+        let mut field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>> = FxHashMap::default();
         let field_name = cursor.field_name();
         let atomic = lang_profile.is_atomic_node_type(cursor.node().grammar_name());
         if !atomic && cursor.goto_first_child() {
@@ -157,7 +157,7 @@ impl<'a> AstNode<'a> {
                 children.push(arena.alloc(AstNode {
                     hash: hasher.finish(),
                     children: Vec::new(),
-                    field_to_children: HashMap::new(),
+                    field_to_children: FxHashMap::default(),
                     source: trimmed,
                     grammar_name: "@virtual_line@",
                     field_name: None,
@@ -410,9 +410,9 @@ impl<'a> AstNode<'a> {
                 .collect()
         };
         let field_to_children = if truncate {
-            HashMap::new()
+            FxHashMap::default()
         } else {
-            let child_id_map: HashMap<usize, &'b AstNode<'b>> =
+            let child_id_map: FxHashMap<usize, &'b AstNode<'b>> =
                 children.iter().map(|child| (child.id, *child)).collect();
             self.field_to_children
                 .iter()
@@ -840,7 +840,7 @@ mod tests {
             parent: UnsafeCell::new(None),
             dfs: UnsafeCell::new(None),
             children: node_2.children.to_owned(),
-            field_to_children: HashMap::new(),
+            field_to_children: FxHashMap::default(),
             byte_range: node_2.byte_range.to_owned(),
             ..*node_2
         };

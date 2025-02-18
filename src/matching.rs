@@ -1,4 +1,4 @@
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::HashSet;
 
 use crate::tree::AstNode;
@@ -128,7 +128,7 @@ impl<'tree> Matching<'tree> {
         let size_left = left.size();
         let size_right = right.size();
 
-        let right_descendants: HashSet<&AstNode<'_>> = right.dfs().collect();
+        let right_descendants: FxHashSet<&AstNode<'_>> = right.dfs().collect();
         let mapped = left
             .dfs()
             .flat_map(|left_descendant| self.get_from_left(left_descendant).into_iter())
