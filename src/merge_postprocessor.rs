@@ -175,7 +175,6 @@ fn highlight_duplicate_signatures<'a>(
                             AddSeparator::OnlyInside => AddSeparator::OnlyInside,
                             AddSeparator::AtBeginning => {
                                 if latest_element_is_separator {
-                                    result.pop();
                                     AddSeparator::AtBeginning
                                 } else {
                                     AddSeparator::OnlyInside
@@ -184,14 +183,13 @@ fn highlight_duplicate_signatures<'a>(
                             AddSeparator::AtEnd => {
                                 if let Some((_, true, _)) = filtered_elements.get(filtered_idx - 1)
                                 {
-                                    skip_next_separator = true;
                                     AddSeparator::AtEnd
                                 } else {
                                     AddSeparator::OnlyInside
                                 }
                             } /* TODO set to OnlyInside if we are the last content node */
                         };
-                        let mut merged = merge_same_sigs(
+                        let (mut merged, happy_path) = merge_same_sigs(
                             &cluster
                                 .iter()
                                 .map(|idx| {
@@ -204,6 +202,24 @@ fn highlight_duplicate_signatures<'a>(
                             separator_node,
                             conflict_add_separator,
                         );
+
+                        if !happy_path {
+                            match add_separator {
+                                AddSeparator::OnlyInside => {}
+                                AddSeparator::AtBeginning => {
+                                    if latest_element_is_separator {
+                                        result.pop();
+                                    }
+                                }
+                                AddSeparator::AtEnd => {
+                                    if let Some((_, true, _)) =
+                                        filtered_elements.get(filtered_idx - 1)
+                                    {
+                                        skip_next_separator = true;
+                                    }
+                                }
+                            };
+                        }
                         result.append(&mut merged);
                     } else {
                         skip_next_separator = true;
@@ -239,17 +255,19 @@ enum AddSeparator {
 
 /// Given a list of elements having the same signature, create a conflict highlighting this fact,
 /// or if they happen to be isomorphic in the left/right revisions, output them as-is.
+///
+/// Also return a `bool` indicating whether the latter was the case.
 fn merge_same_sigs<'a>(
     elements: &[&MergedTree<'a>],
     class_mapping: &ClassMapping<'a>,
     separator: Option<&'a AstNode<'a>>,
     add_separator: AddSeparator,
-) -> Vec<MergedTree<'a>> {
+) -> (Vec<MergedTree<'a>>, bool) {
     if let &[first, second] = elements {
         if isomorphic_merged_trees(first, second, class_mapping) {
             // The two elements don't just have the same signature, they are actually isomorphic!
             // So let's just deduplicate them.
-            return vec![first.clone()];
+            return (vec![first.clone()], true);
         }
     }
     let base = filter_by_revision(elements, Revision::Base, class_mapping);
@@ -262,7 +280,7 @@ fn merge_same_sigs<'a>(
             .zip(right.iter())
             .all(|(elem_left, elem_right)| elem_left.isomorphic_to(elem_right))
     {
-        add_separators(&left, separator, add_separator)
+        let v = add_separators(&left, separator, add_separator)
             .iter()
             .map(|ast_node| {
                 MergedTree::new_exact(
@@ -271,13 +289,17 @@ fn merge_same_sigs<'a>(
                     class_mapping,
                 )
             })
-            .collect()
+            .collect();
+        (v, false)
     } else {
-        vec![MergedTree::Conflict {
-            base: add_separators(&base, separator, add_separator),
-            left: add_separators(&left, separator, add_separator),
-            right: add_separators(&right, separator, add_separator),
-        }]
+        (
+            vec![MergedTree::Conflict {
+                base: add_separators(&base, separator, add_separator),
+                left: add_separators(&left, separator, add_separator),
+                right: add_separators(&right, separator, add_separator),
+            }],
+            false,
+        )
     }
 }
 
