@@ -557,14 +557,17 @@ impl<'a> MergedTree<'a> {
     }
 
     /// The number of conflicts in this merge
-    pub fn count_conflicts(&self) -> usize {
+    pub fn count_conflicts(&self, settings: &DisplaySettings) -> usize {
         match self {
             MergedTree::ExactTree { .. } | MergedTree::CommutativeChildSeparator { .. } => 0,
             MergedTree::MixedTree { children, .. } => {
-                children.iter().map(MergedTree::count_conflicts).sum()
+                children.iter().map(|c| c.count_conflicts(settings)).sum()
             }
             MergedTree::Conflict { .. } => 1,
-            MergedTree::LineBasedMerge { contents, .. } => contents.matches(">>>>>>>").count(),
+            MergedTree::LineBasedMerge { contents, .. } => {
+                let left_marker = ">".repeat(settings.conflict_marker_size_or_default());
+                contents.matches(&left_marker).count()
+            }
         }
     }
 
