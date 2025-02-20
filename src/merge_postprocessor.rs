@@ -90,16 +90,13 @@ fn highlight_duplicate_signatures<'a>(
     let separator_example = find_separator(parent, trimmed_separator, class_mapping);
     let separator_node = separator_example.map(|revnode| revnode.node);
 
-    // determine whether the separator should be added at the beginning of a line or rather at the end
+    // determine whether the separator should be added at the end of a line
     // TODO this could probably be simplified now that we have line-based conflict printing
-    let start_regex = Regex::new("^[ \t]*\n").unwrap();
     let end_regex = Regex::new("\n[ \t]*$").unwrap();
     let add_separator = {
         if let Some(node) = separator_example {
             let full_source = node.node.source_with_surrounding_whitespace();
-            if start_regex.is_match(full_source) {
-                AddSeparator::AtBeginning
-            } else if end_regex.is_match(full_source) {
+            if end_regex.is_match(full_source) {
                 AddSeparator::AtEnd
             } else {
                 AddSeparator::OnlyInside
@@ -144,7 +141,6 @@ fn highlight_duplicate_signatures<'a>(
     // finally build the merged output
     let mut result = Vec::new();
     skip_next_separator = true;
-    let mut latest_element_is_separator = false;
     for (filtered_idx, (idx, is_separator, element)) in
         filtered_elements.iter().copied().enumerate().rev()
     {
@@ -159,7 +155,6 @@ fn highlight_duplicate_signatures<'a>(
                     result.push(element.clone());
                 }
                 skip_next_separator = false;
-                latest_element_is_separator = is_separator;
             }
             Some(signature) => {
                 let cluster = sig_to_indices
@@ -173,13 +168,6 @@ fn highlight_duplicate_signatures<'a>(
                     if Some(&idx) == cluster.iter().min() {
                         let conflict_add_separator = match add_separator {
                             AddSeparator::OnlyInside => AddSeparator::OnlyInside,
-                            AddSeparator::AtBeginning => {
-                                if latest_element_is_separator {
-                                    AddSeparator::AtBeginning
-                                } else {
-                                    AddSeparator::OnlyInside
-                                }
-                            }
                             AddSeparator::AtEnd => {
                                 if let Some((_, true, _)) = filtered_elements.get(filtered_idx - 1)
                                 {
@@ -206,11 +194,6 @@ fn highlight_duplicate_signatures<'a>(
                         if !happy_path {
                             match add_separator {
                                 AddSeparator::OnlyInside => {}
-                                AddSeparator::AtBeginning => {
-                                    if latest_element_is_separator {
-                                        result.pop();
-                                    }
-                                }
                                 AddSeparator::AtEnd => {
                                     if let Some((_, true, _)) =
                                         filtered_elements.get(filtered_idx - 1)
@@ -225,7 +208,6 @@ fn highlight_duplicate_signatures<'a>(
                         skip_next_separator = true;
                     }
                 }
-                latest_element_is_separator = false;
             }
         }
     }
@@ -248,8 +230,9 @@ fn is_separator(element: &MergedTree, trimmed_separator: &'static str) -> bool {
 /// or only between each element
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum AddSeparator {
+    /// A,B,C
     OnlyInside,
-    AtBeginning,
+    /// A,B,C,
     AtEnd,
 }
 
@@ -337,11 +320,8 @@ fn add_separators<'a>(
     };
 
     let mut result = Vec::with_capacity(elements.len() * 2); // 1 separator per element
-    if add_separator == AddSeparator::AtBeginning {
-        result.push(separator);
-    }
-    // The method is stuck in stabilization limbo, see its issue
-    #[allow(unstable_name_collisions)]
+
+    #[allow(unstable_name_collisions)] // The method is stuck in stabilization limbo, see its issue
     result.extend(elements.into_iter().intersperse(separator));
     if add_separator == AddSeparator::AtEnd {
         result.push(separator);
