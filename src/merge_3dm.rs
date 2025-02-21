@@ -11,7 +11,7 @@ use crate::{
     pcs::Revision,
     tree::Ast,
     tree_builder::TreeBuilder,
-    tree_matcher::TreeMatcher,
+    tree_matcher::{DetailedMatching, TreeMatcher},
     visualizer::write_matching_to_dotty_file,
 };
 
@@ -23,6 +23,7 @@ use crate::{
 /// * converts the trees to [`ChangeSet`]s
 /// * cleans up the union of the changesets
 /// * converts back the union of changesets to a [`MergedTree`]
+/// * finds and removes duplicated signatures
 ///
 /// A good overview of this algorithm can be found in
 /// [Spork: Structured Merge for Java with Formatting Preservation](https://arxiv.org/abs/2202.05329)
@@ -37,6 +38,60 @@ pub fn three_way_merge<'a>(
     debug_dir: Option<&Path>,
 ) -> (MergedTree<'a>, ClassMapping<'a>) {
     // match all pairs of revisions
+    let (base_left_matching, base_right_matching, left_right_matching) = generate_matchings(
+        base,
+        left,
+        right,
+        initial_matchings,
+        primary_matcher,
+        auxiliary_matcher,
+        debug_dir,
+    );
+
+    // create a classmapping
+    let class_mapping = create_class_mapping(
+        &base_left_matching,
+        &base_right_matching,
+        &left_right_matching,
+    );
+
+    // convert all the trees to PCS triples
+    let (changeset, base_changeset) =
+        generate_pcs_triples(base, left, right, &class_mapping, debug_dir);
+
+    // try to fix all inconsistencies in the merged changeset
+    let cleaned_changeset = fix_pcs_inconsistencies(&changeset, debug_dir);
+
+    // construct the merged tree!
+    let merged_tree = build_tree(
+        base,
+        left,
+        right,
+        primary_matcher,
+        &class_mapping,
+        &base_changeset,
+        &cleaned_changeset,
+    );
+
+    // post-process to highlight signature conflicts
+    let postprocessed_tree = postprocess_tree(merged_tree, primary_matcher, &class_mapping);
+
+    (postprocessed_tree, class_mapping)
+}
+
+fn generate_matchings<'a>(
+    base: &'a Ast<'a>,
+    left: &'a Ast<'a>,
+    right: &'a Ast<'a>,
+    initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
+    primary_matcher: &TreeMatcher,
+    auxiliary_matcher: &TreeMatcher,
+    debug_dir: Option<&Path>,
+) -> (
+    DetailedMatching<'a>,
+    DetailedMatching<'a>,
+    DetailedMatching<'a>,
+) {
     let start = Instant::now();
     let (base_left_matching, base_right_matching) = thread::scope(|scope| {
         let base_left = scope.spawn(|| {
@@ -103,7 +158,14 @@ pub fn three_way_merge<'a>(
         });
     }
 
-    // create a classmapping
+    (base_left_matching, base_right_matching, left_right_matching)
+}
+
+fn create_class_mapping<'a>(
+    base_left_matching: &DetailedMatching<'a>,
+    base_right_matching: &DetailedMatching<'a>,
+    left_right_matching: &DetailedMatching<'a>,
+) -> ClassMapping<'a> {
     let start = Instant::now();
     let mut class_mapping = ClassMapping::new();
     class_mapping.add_matching(
@@ -144,14 +206,22 @@ pub fn three_way_merge<'a>(
         false,
     );
     debug!("constructing the classmapping took {:?}", start.elapsed());
+    class_mapping
+}
 
-    // convert all the trees to PCS triples
+fn generate_pcs_triples<'a>(
+    base: &'a Ast<'a>,
+    left: &'a Ast<'a>,
+    right: &'a Ast<'a>,
+    class_mapping: &ClassMapping<'a>,
+    debug_dir: Option<&Path>,
+) -> (ChangeSet<'a>, ChangeSet<'a>) {
     let start: Instant = Instant::now();
     debug!("generating PCS triples");
     let mut changeset = ChangeSet::new();
-    changeset.add_tree(base, Revision::Base, &class_mapping);
-    changeset.add_tree(left, Revision::Left, &class_mapping);
-    changeset.add_tree(right, Revision::Right, &class_mapping);
+    changeset.add_tree(base, Revision::Base, class_mapping);
+    changeset.add_tree(left, Revision::Left, class_mapping);
+    changeset.add_tree(right, Revision::Right, class_mapping);
 
     if let Some(debug_dir) = debug_dir {
         changeset.save(debug_dir.join("changeset.txt"));
@@ -159,14 +229,20 @@ pub fn three_way_merge<'a>(
 
     // also generate a base changeset
     let mut base_changeset = ChangeSet::new();
-    base_changeset.add_tree(base, Revision::Base, &class_mapping);
+    base_changeset.add_tree(base, Revision::Base, class_mapping);
 
     if let Some(debug_dir) = debug_dir {
         base_changeset.save(debug_dir.join("base_changeset.txt"));
     }
     debug!("generating PCS triples took {:?}", start.elapsed());
 
-    // try to fix all inconsistencies in the merged changeset
+    (changeset, base_changeset)
+}
+
+fn fix_pcs_inconsistencies<'a>(
+    changeset: &ChangeSet<'a>,
+    debug_dir: Option<&Path>,
+) -> ChangeSet<'a> {
     let start: Instant = Instant::now();
     let mut cleaned_changeset = ChangeSet::new();
     debug!("number of triples: {}", changeset.len());
@@ -195,12 +271,23 @@ pub fn three_way_merge<'a>(
         cleaned_changeset.save(debug_dir.join("cleaned.txt"));
     }
 
-    // construct the merged tree!
+    cleaned_changeset
+}
+
+fn build_tree<'a>(
+    base: &Ast<'a>,
+    left: &Ast<'a>,
+    right: &Ast<'a>,
+    primary_matcher: &TreeMatcher<'_>,
+    class_mapping: &ClassMapping<'a>,
+    base_changeset: &ChangeSet<'a>,
+    cleaned_changeset: &ChangeSet<'a>,
+) -> MergedTree<'a> {
     let start: Instant = Instant::now();
     let tree_builder = TreeBuilder::new(
-        &cleaned_changeset,
-        &base_changeset,
-        &class_mapping,
+        cleaned_changeset,
+        base_changeset,
+        class_mapping,
         primary_matcher.lang_profile,
     );
     let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
@@ -213,16 +300,23 @@ pub fn three_way_merge<'a>(
     });
     debug!("constructing the merged tree took {:?}", start.elapsed());
 
-    // post-process to highlight signature conflicts
+    merged_tree
+}
+
+fn postprocess_tree<'a>(
+    merged_tree: MergedTree<'a>,
+    primary_matcher: &TreeMatcher<'_>,
+    class_mapping: &ClassMapping<'a>,
+) -> MergedTree<'a> {
     let start: Instant = Instant::now();
     let postprocessed_tree = merged_tree
-        .post_process_for_duplicate_signatures(primary_matcher.lang_profile, &class_mapping);
+        .post_process_for_duplicate_signatures(primary_matcher.lang_profile, class_mapping);
     debug!(
         "post-processing the merged tree for signature conflicts took {:?}",
         start.elapsed()
     );
 
-    (postprocessed_tree, class_mapping)
+    postprocessed_tree
 }
 
 #[cfg(test)]
