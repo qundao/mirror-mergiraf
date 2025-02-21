@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::Path};
+use std::{collections::HashSet, ffi::OsStr, path::Path};
 
 use itertools::Itertools;
 use tree_sitter::Language;
@@ -43,13 +43,15 @@ impl LangProfile {
     fn _detect_from_filename(filename: &Path) -> Option<&LangProfile> {
         // TODO make something more advanced like in difftastic
         // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
-        let extension = filename.extension()?.to_str()?;
+        let extension = filename.extension()?;
         SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
             lang_profile
                 .extensions
                 .iter()
                 .copied()
-                .any(|ext| extension == ext)
+                // NOTE: the comparison should be case-insensitive, see
+                // https://rust-lang.github.io/rust-clippy/master/index.html#case_sensitive_file_extension_comparisons
+                .any(|ext| extension.eq_ignore_ascii_case(OsStr::new(ext)))
         })
     }
 

@@ -74,6 +74,7 @@ lto = true
 debug = false
 
 [lints.clippy]
+case_sensitive_file_extension_comparisons = "warn"
 explicit_into_iter_loop = "warn"
 explicit_iter_loop = "warn"
 needless_pass_by_value = "warn"
