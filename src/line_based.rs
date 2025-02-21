@@ -19,16 +19,15 @@ pub fn line_based_merge(
     } else {
         &DisplaySettings::default()
     };
-    let merge_options = MergeOptions {
-        conflict_marker_length: settings.conflict_marker_size_or_default(),
-        style: if settings.diff3 {
+    let merged = MergeOptions::new()
+        .set_conflict_marker_length(settings.conflict_marker_size_or_default())
+        .set_conflict_style(if settings.diff3 {
             ConflictStyle::Diff3
         } else {
             ConflictStyle::Merge
-        },
-        algorithm: Algorithm::Histogram,
-    };
-    let merged = merge_options.merge(contents_base, contents_left, contents_right);
+        })
+        .set_algorithm(Algorithm::Histogram)
+        .merge(contents_base, contents_left, contents_right);
     let merged_contents = match merged {
         Ok(contents) | Err(contents) => contents,
     };
