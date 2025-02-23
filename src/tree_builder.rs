@@ -12,6 +12,7 @@ use crate::{
     merged_tree::MergedTree,
     multimap::MultiMap,
     pcs::{PCSNode, Revision},
+    settings::DisplaySettings,
     tree::AstNode,
 };
 
@@ -49,6 +50,7 @@ pub struct TreeBuilder<'a, 'b> {
     base_successors: SuccessorMap<'a>,
     class_mapping: &'b ClassMapping<'a>,
     lang_profile: &'b LangProfile,
+    settings: &'b DisplaySettings<'a>,
 }
 
 /// Variable state, keeping track of visited nodes to avoid looping
@@ -73,12 +75,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         base_changeset: &ChangeSet<'a>,
         class_mapping: &'b ClassMapping<'a>,
         lang_profile: &'b LangProfile,
+        settings: &'b DisplaySettings<'a>,
     ) -> Self {
         TreeBuilder {
             merged_successors: SuccessorMap::new(merged_changeset),
             base_successors: SuccessorMap::new(base_changeset),
             class_mapping,
             lang_profile,
+            settings,
         }
     }
 
@@ -122,8 +126,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             parents_to_recompute.iter().join(", ")
         );
 
-        Ok(merged_tree
-            .force_line_based_fallback_on_specific_nodes(&parents_to_recompute, self.class_mapping))
+        Ok(merged_tree.force_line_based_fallback_on_specific_nodes(
+            &parents_to_recompute,
+            self.class_mapping,
+            self.settings,
+        ))
     }
 
     /// Recursive function to build the merged subtree rooted in a node,
@@ -563,6 +570,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         Ok(MergedTree::line_based_local_fallback_for_revnode(
             node,
             self.class_mapping,
+            self.settings,
         ))
     }
 
@@ -1053,6 +1061,8 @@ mod tests {
         let mut changeset = ChangeSet::new();
         changeset.add_tree(&tree, Revision::Base, &class_mapping);
 
+        let settings = DisplaySettings::default();
+
         let result_tree = {
             let merged_changeset = &changeset;
             let base_changeset = &changeset;
@@ -1064,6 +1074,7 @@ mod tests {
                 base_changeset,
                 class_mapping,
                 lang_profile,
+                &settings,
             );
             tree_gatherer.build_tree()
         };
@@ -1089,6 +1100,8 @@ mod tests {
         let mut changeset = ChangeSet::new();
         changeset.add_tree(&tree, Revision::Base, &class_mapping);
 
+        let settings = DisplaySettings::default();
+
         let result_tree = {
             let merged_changeset = &changeset;
             let base_changeset = &changeset;
@@ -1100,6 +1113,7 @@ mod tests {
                 base_changeset,
                 class_mapping,
                 lang_profile,
+                &settings,
             );
             tree_gatherer.build_tree()
         }

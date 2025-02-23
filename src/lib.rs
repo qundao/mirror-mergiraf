@@ -119,12 +119,7 @@ pub fn line_merge_and_structured_resolution(
             "Could not find a supported language for {}. Falling back to a line-based merge.",
             fname_base.display()
         );
-        return line_based_merge(
-            contents_base,
-            contents_left,
-            contents_right,
-            Some(&settings),
-        );
+        return line_based_merge(contents_base, contents_left, contents_right, &settings);
     };
 
     let merges = cascading_merge(

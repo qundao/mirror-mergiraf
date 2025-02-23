@@ -80,6 +80,7 @@ pub fn structured_merge(
         initial_matchings.as_ref(),
         &primary_matcher,
         &auxiliary_matcher,
+        settings,
         debug_dir,
     );
     debug!("{result_tree}");

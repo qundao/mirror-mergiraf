@@ -135,6 +135,7 @@ impl<'a> MergedTree<'a> {
     pub(crate) fn line_based_local_fallback_for_revnode(
         node: Leader<'a>,
         class_mapping: &ClassMapping<'a>,
+        settings: &DisplaySettings,
     ) -> MergedTree<'a> {
         let base_src = class_mapping.node_at_rev(node, Revision::Base);
         let left_src = class_mapping.node_at_rev(node, Revision::Left);
@@ -167,7 +168,7 @@ impl<'a> MergedTree<'a> {
                 let base_src = base.map_or(Cow::from(""), |base| base.unindented_source());
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
-                let line_based_merge = line_based_merge(&base_src, &left_src, &right_src, None);
+                let line_based_merge = line_based_merge(&base_src, &left_src, &right_src, settings);
                 MergedTree::LineBasedMerge {
                     node,
                     contents: line_based_merge.contents,
@@ -182,6 +183,7 @@ impl<'a> MergedTree<'a> {
         self,
         nodes: &HashSet<Leader<'a>>,
         class_mapping: &ClassMapping<'a>,
+        settings: &DisplaySettings,
     ) -> MergedTree<'a> {
         if nodes.is_empty() {
             // no nodes to force line-based fallback on
@@ -193,7 +195,7 @@ impl<'a> MergedTree<'a> {
                 node, revisions, ..
             } => {
                 if nodes.contains(&node) {
-                    Self::line_based_local_fallback_for_revnode(node, class_mapping)
+                    Self::line_based_local_fallback_for_revnode(node, class_mapping, settings)
                 } else {
                     let picked_revision = revisions.any();
                     let children = class_mapping
@@ -203,7 +205,11 @@ impl<'a> MergedTree<'a> {
                         .into_iter()
                         .map(|c| {
                             MergedTree::new_exact(c, revisions, class_mapping)
-                                .force_line_based_fallback_on_specific_nodes(nodes, class_mapping)
+                                .force_line_based_fallback_on_specific_nodes(
+                                    nodes,
+                                    class_mapping,
+                                    settings,
+                                )
                         })
                         .collect();
                     if cloned_children
@@ -218,12 +224,16 @@ impl<'a> MergedTree<'a> {
             }
             MergedTree::MixedTree { node, children, .. } => {
                 if nodes.contains(&node) {
-                    Self::line_based_local_fallback_for_revnode(node, class_mapping)
+                    Self::line_based_local_fallback_for_revnode(node, class_mapping, settings)
                 } else {
                     let cloned_children = children
                         .into_iter()
                         .map(|c| {
-                            c.force_line_based_fallback_on_specific_nodes(nodes, class_mapping)
+                            c.force_line_based_fallback_on_specific_nodes(
+                                nodes,
+                                class_mapping,
+                                settings,
+                            )
                         })
                         .collect();
                     MergedTree::new_mixed(node, cloned_children)

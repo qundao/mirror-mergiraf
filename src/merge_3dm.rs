@@ -9,6 +9,7 @@ use crate::{
     matching::Matching,
     merged_tree::MergedTree,
     pcs::Revision,
+    settings::DisplaySettings,
     tree::Ast,
     tree_builder::TreeBuilder,
     tree_matcher::{DetailedMatching, TreeMatcher},
@@ -28,6 +29,7 @@ use crate::{
 /// A good overview of this algorithm can be found in
 /// [Spork: Structured Merge for Java with Formatting Preservation](https://arxiv.org/abs/2202.05329)
 /// by Simon Larsén, Jean-Rémy Falleri, Benoit Baudry and Martin Monperrus
+#[allow(clippy::too_many_arguments)]
 pub fn three_way_merge<'a>(
     base: &'a Ast<'a>,
     left: &'a Ast<'a>,
@@ -35,6 +37,7 @@ pub fn three_way_merge<'a>(
     initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
+    settings: &DisplaySettings<'a>,
     debug_dir: Option<&Path>,
 ) -> (MergedTree<'a>, ClassMapping<'a>) {
     // match all pairs of revisions
@@ -71,6 +74,7 @@ pub fn three_way_merge<'a>(
         &class_mapping,
         &base_changeset,
         &cleaned_changeset,
+        settings,
     );
 
     // post-process to highlight signature conflicts
@@ -274,6 +278,7 @@ fn fix_pcs_inconsistencies<'a>(
     cleaned_changeset
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_tree<'a>(
     base: &Ast<'a>,
     left: &Ast<'a>,
@@ -282,6 +287,7 @@ fn build_tree<'a>(
     class_mapping: &ClassMapping<'a>,
     base_changeset: &ChangeSet<'a>,
     cleaned_changeset: &ChangeSet<'a>,
+    settings: &DisplaySettings<'a>,
 ) -> MergedTree<'a> {
     let start: Instant = Instant::now();
     let tree_builder = TreeBuilder::new(
@@ -289,9 +295,10 @@ fn build_tree<'a>(
         base_changeset,
         class_mapping,
         primary_matcher.lang_profile,
+        settings,
     );
     let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
-        let line_based = line_based_merge(base.source(), left.source(), right.source(), None);
+        let line_based = line_based_merge(base.source(), left.source(), right.source(), settings);
         MergedTree::LineBasedMerge {
             node: class_mapping.map_to_leader(RevNode::new(Revision::Base, base.root())),
             contents: line_based.contents,
@@ -354,6 +361,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default();
+
         let (merged_tree, classmapping) = three_way_merge(
             &base,
             &left,
@@ -361,11 +370,12 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
         debug!("{merged_tree}");
-        let pretty_printed = merged_tree.pretty_print(&classmapping, &DisplaySettings::default());
+        let pretty_printed = merged_tree.pretty_print(&classmapping, &settings);
         assert_eq!(pretty_printed, "[0, 1, {\"a\":2}, 3]");
     }
 
@@ -379,6 +389,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default_compact();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -386,11 +398,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed =
-            merged_tree.pretty_print(&class_mapping, &DisplaySettings::default_compact());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(
             pretty_printed,
             "\
@@ -415,6 +427,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default_compact();
+
         let (result_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -422,11 +436,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed =
-            result_tree.pretty_print(&class_mapping, &DisplaySettings::default_compact());
+        let pretty_printed = result_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(
             pretty_printed,
             "\
@@ -451,6 +465,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default_compact();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -458,11 +474,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed =
-            merged_tree.pretty_print(&class_mapping, &DisplaySettings::default_compact());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(
             pretty_printed,
             "\
@@ -487,6 +503,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -494,10 +512,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(
             pretty_printed,
             "\
@@ -522,6 +541,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -529,10 +550,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(pretty_printed, "{\"a\": 1, \"b\": 2, \"x\": 0}");
     }
 
@@ -546,6 +568,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -553,10 +577,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(pretty_printed, "{\"a\": 1, \"b\": 2}");
     }
 
@@ -570,6 +595,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -577,10 +604,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(pretty_printed, "{}");
     }
 
@@ -594,6 +622,8 @@ mod tests {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
+        let settings = DisplaySettings::default();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -601,10 +631,11 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let _pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        let _pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         // assert_eq!(pretty_printed, "{}"); // TODO there should be a delete/modify conflict here!
     }
 
@@ -639,6 +670,9 @@ mod tests {
         let right = ctx.parse_rust("fn foo<'s>(&'s self) {}");
 
         let (primary_matcher, auxiliary_matcher) = rust_matchers();
+
+        let settings = DisplaySettings::default();
+
         let (merged_tree, class_mapping) = three_way_merge(
             &base,
             &left,
@@ -646,10 +680,97 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
+            &settings,
             None,
         );
 
-        let pretty_printed = merged_tree.pretty_print(&class_mapping, &DisplaySettings::default());
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
         assert_eq!(pretty_printed, "fn foo<'s>(&'s self) {}");
+    }
+
+    #[test]
+    /// The following (admittedly very bizarre-looking) inputs guarantee a line-based fallback on a
+    /// node during merge. We then check whether the resulting line-based merge has the correct
+    /// conflict marker size
+    fn line_based_local_fallback_for_revnode_respects_conflict_marker_size() {
+        let ctx = ctx();
+
+        let base = "\
+fn foo() {
+    let start = Instant::now();
+    let start;
+    eprintln!();
+}";
+
+        let left = "\
+fn foo() {
+    let bar;
+    let baz = baz();
+}
+fn baz() {
+    let start;
+    eprintln!();
+}";
+
+        let right = "\
+fn foo() {
+    let bar;
+    let start;
+    eprintln!();
+}";
+
+        let expected = "\
+fn foo() {
+    let bar;
+    let baz = baz();
+}
+fn baz() {
+<<<<<<<<< LEFT
+||||||||| BASE
+    let start = Instant::now();
+=========
+    let bar;
+>>>>>>>>> RIGHT
+    let start;
+    eprintln!();
+}";
+
+        let base = ctx.parse_rust(base);
+        let left = ctx.parse_rust(left);
+        let right = ctx.parse_rust(right);
+
+        let (primary_matcher, auxiliary_matcher) = rust_matchers();
+
+        let settings = DisplaySettings {
+            conflict_marker_size: Some(9),
+            ..DisplaySettings::default_compact()
+        };
+
+        let (merged_tree, class_mapping) = three_way_merge(
+            &base,
+            &left,
+            &right,
+            None,
+            &primary_matcher,
+            &auxiliary_matcher,
+            &settings,
+            None,
+        );
+
+        /// Whether line-based fallback was performed on any node in this tree
+        fn contains_line_based_merge(tree: &MergedTree) -> bool {
+            match tree {
+                MergedTree::LineBasedMerge { .. } => true,
+                MergedTree::MixedTree { children, .. } => {
+                    children.iter().any(contains_line_based_merge)
+                }
+                _ => false,
+            }
+        }
+
+        assert!(contains_line_based_merge(&merged_tree));
+
+        let pretty_printed = merged_tree.pretty_print(&class_mapping, &settings);
+        assert_eq!(pretty_printed, expected);
     }
 }

@@ -169,15 +169,16 @@ fn timeout_support() {
     let contents_right = fs::read_to_string(fname_right)
         .expect("Unable to read right file")
         .leak();
+    let settings = DisplaySettings::default();
     let contents_expected =
-        line_based_merge(contents_base, contents_left, contents_right, None).contents;
+        line_based_merge(contents_base, contents_left, contents_right, &settings).contents;
 
     let merge_result = line_merge_and_structured_resolution(
         contents_base,
         contents_left,
         contents_right,
         fname_base,
-        DisplaySettings::default(),
+        settings,
         true,
         None,
         None,
