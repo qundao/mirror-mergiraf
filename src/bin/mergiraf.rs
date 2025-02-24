@@ -30,10 +30,10 @@ use mergiraf::{
 struct CliArgs {
     /// Write debug files to a particular directory to analyze
     /// the internal aspects of the merge
-    #[clap(short, long = "debug", global = true)]
+    #[arg(short, long = "debug", global = true)]
     debug_dir: Option<PathBuf>,
     /// Verbosity
-    #[clap(short, long, global = true)]
+    #[arg(short, long, global = true)]
     verbose: bool,
     #[command(subcommand)]
     command: CliCommand,
@@ -43,15 +43,15 @@ struct CliArgs {
 enum CliCommand {
     /// Do a three-way merge
     Merge {
-        /// The path to the file containing the base revision
+        /// Path to the file containing the base revision
         base: PathBuf,
-        /// The path to the file containing the left revision
+        /// Path to the file containing the left revision
         left: PathBuf,
-        /// The path to the file containing the right revision
+        /// Path to the file containing the right revision
         right: PathBuf,
         /// Only attempt to merge the files by solving textual conflicts,
         /// without doing a full structured merge from the ground up.
-        #[clap(long)]
+        #[arg(long)]
         fast: bool,
         /// Display compact conflicts, breaking down lines
         #[arg(short, long, default_missing_value = "true", num_args = 0..=1, require_equals = true)]
@@ -61,47 +61,47 @@ enum CliCommand {
         // the choice of 'l' is inherited from Git's merge driver interface
         conflict_marker_size: Option<usize>,
         /// Behave as a git merge driver: overwrite the left revision
-        #[clap(short, long)]
+        #[arg(short, long)]
         git: bool,
         /// The path to the file to write the merge result to
-        #[clap(short, long, conflicts_with = "git")]
+        #[arg(short, long, conflicts_with = "git")]
         output: Option<PathBuf>,
         /// Final path in which the merged result will be stored.
         /// It is used to detect the language of the files using the file extension.
-        #[clap(short, long)]
+        #[arg(short, long)]
         path_name: Option<PathBuf>,
         /// Name to use for the base revision in conflict markers
-        #[clap(short = 's', long)]
+        #[arg(short = 's', long)]
         // the choice of 's' is inherited from Git's merge driver interface
         base_name: Option<String>,
         /// Name to use for the left revision in conflict markers
-        #[clap(short = 'x', long)]
+        #[arg(short = 'x', long)]
         // the choice of 'x' is inherited from Git's merge driver interface
         left_name: Option<String>,
         /// Name to use for the right revision in conflict markers
-        #[clap(short = 'y', long)]
+        #[arg(short = 'y', long)]
         // the choice of 'y' is inherited from Git's merge driver interface
         right_name: Option<String>,
         /// Maximum number of milliseconds to try doing the merging for, after which we fall back on git's own algorithm. Set to 0 to disable this limit.
-        #[clap(short, long)]
+        #[arg(short, long)]
         timeout: Option<u64>,
     },
     /// Solve the conflicts in a merged file
     Solve {
-        /// Path to a file containing merge conflicts
+        /// Path to the file containing merge conflicts
         conflicts: PathBuf,
         /// Display compact conflicts, breaking down lines
-        #[clap(short, long, default_missing_value = "true", num_args = 0..=1, require_equals = true)]
+        #[arg(short, long, default_missing_value = "true", num_args = 0..=1, require_equals = true)]
         compact: Option<bool>,
         /// Length of conflict markers
         #[arg(short = 'l', long)]
         // the choice of 'l' is inherited from Git's merge driver interface
         conflict_marker_size: Option<usize>,
         /// Keep file untouched and show the results of resolution on standard output instead
-        #[clap(short, long)]
+        #[arg(short, long)]
         keep: bool,
         /// Create a copy of the original file by adding the `.orig` suffix to it (`true` by default)
-        #[clap(
+        #[arg(
             long,
             default_missing_value = "true",
             default_value_t = true,
