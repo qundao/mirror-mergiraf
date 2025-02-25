@@ -3,6 +3,8 @@ public class Adder {
         return a +
 <<<<<<< LEFT
 1
+||||||| BASE
+b
 =======
 2
 >>>>>>> RIGHT

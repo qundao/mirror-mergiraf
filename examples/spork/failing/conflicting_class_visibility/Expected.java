@@ -1,5 +1,6 @@
 <<<<<<< LEFT
 public
+||||||| BASE
 =======
 private
 >>>>>>> RIGHT

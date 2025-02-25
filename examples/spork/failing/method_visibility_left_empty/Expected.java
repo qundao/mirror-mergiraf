@@ -1,5 +1,7 @@
 class Cls {
 <<<<<<< LEFT
+||||||| BASE
+public
 =======
 protected
 >>>>>>> RIGHT

@@ -1,6 +1,7 @@
 class Cls {
 <<<<<<< LEFT
 public
+||||||| BASE
 =======
 private
 >>>>>>> RIGHT

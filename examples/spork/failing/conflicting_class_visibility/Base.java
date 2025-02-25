@@ -1,1 +1,1 @@
-static class cls {}
+static class Cls {}
