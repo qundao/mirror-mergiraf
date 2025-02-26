@@ -17,6 +17,7 @@ Mergiraf currently supports the following programming languages:
 * Kotlin (*.kt)
 * Ruby (*.rb)
 * Nix (*.nix)
+* SystemVerilog (*.sv, *.svh)
 
 and the following declarative file formats:
 * JSON (*.json)

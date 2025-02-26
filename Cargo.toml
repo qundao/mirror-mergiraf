@@ -54,6 +54,7 @@ diffy-imara = "0.3.1"
 nu-ansi-term = "0.50.1"
 oneshot = {version = "0.1.8", default-features = false, features = ["std"]}
 tree-sitter-devicetree = "0.12.1"
+tree-sitter-verilog = "1.0.3"
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]

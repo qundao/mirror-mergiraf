@@ -65,6 +65,8 @@ Then, you also need to specify for which sorts of files this merge driver should
 *.kt merge=mergiraf
 *.rb merge=mergiraf
 *.nix merge=mergiraf
+*.sv merge=mergiraf
+*.svh merge=mergiraf
 ```
 
 Or run:
