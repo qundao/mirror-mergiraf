@@ -324,7 +324,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             for lang_profile in &*SUPPORTED_LANGUAGES {
                 if gitattributes {
                     for extension in &lang_profile.extensions {
-                        println!("*{extension} merge=mergiraf");
+                        println!("*.{extension} merge=mergiraf");
                     }
                 } else {
                     println!(
@@ -333,7 +333,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                         lang_profile
                             .extensions
                             .iter()
-                            .map(|ext| format!("*{ext}"))
+                            .map(|ext| format!("*.{ext}"))
                             .join(", ")
                     );
                 }
