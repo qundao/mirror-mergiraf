@@ -1,6 +1,6 @@
 [package]
 name = "mergiraf"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 license = "GPL-3.0-only"
 repository = "https://codeberg.org/mergiraf/mergiraf"
