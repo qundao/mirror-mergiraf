@@ -105,7 +105,10 @@
         packages =
           nativeBuildInputs
           ++ nativeCheckInputs
-          ++ (with pkgs; [graphviz]);
+          ++ (with pkgs; [
+            graphviz
+            mdbook # for building `mergiraf.org`
+          ]);
       };
     });
 }
