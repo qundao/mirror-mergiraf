@@ -11,11 +11,14 @@ use log::warn;
 use mergiraf::{
     attempts::AttemptsCache,
     bug_reporter::report_bug,
-    languages, line_merge_and_structured_resolution,
+    languages,
+    line_merge_and_structured_resolution,
+    // XXX: move the uses to lib to avoid making these public?
     newline::{imitate_cr_lf_from_input, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
-    PathBufExt, DISABLING_ENV_VAR,
+    PathBufExt,
+    DISABLING_ENV_VAR,
 };
 
 /// Syntax-aware merge driver for Git.
