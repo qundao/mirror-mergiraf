@@ -33,40 +33,7 @@ $ git config --global core.attributesfile ~/.gitattributes
 
 Then, you also need to specify for which sorts of files this merge driver should be used. Add the following lines to your global `~/.gitattributes` file:
 ```
-*.java merge=mergiraf
-*.rs merge=mergiraf
-*.go merge=mergiraf
-*.js merge=mergiraf
-*.jsx merge=mergiraf
-*.json merge=mergiraf
-*.yml merge=mergiraf
-*.yaml merge=mergiraf
-*.toml merge=mergiraf
-*.html merge=mergiraf
-*.htm merge=mergiraf
-*.xhtml merge=mergiraf
-*.xml merge=mergiraf
-*.c merge=mergiraf
-*.cc merge=mergiraf
-*.h merge=mergiraf
-*.cpp merge=mergiraf
-*.hpp merge=mergiraf
-*.cs merge=mergiraf
-*.dart merge=mergiraf
-*.dts merge=mergiraf
-*.scala merge=mergiraf
-*.sbt merge=mergiraf
-*.ts merge=mergiraf
-*.tsx merge=mergiraf
-*.py merge=mergiraf
-*.php merge=mergiraf
-*.sol merge=mergiraf
-*.lua merge=mergiraf
-*.kt merge=mergiraf
-*.rb merge=mergiraf
-*.nix merge=mergiraf
-*.sv merge=mergiraf
-*.svh merge=mergiraf
+{{#include supported_langs.txt}}
 ```
 
 Or run:

@@ -7,19 +7,15 @@ use std::{
 };
 
 use clap::{ArgAction, Parser, Subcommand};
-use itertools::Itertools;
 use log::warn;
 use mergiraf::{
     attempts::AttemptsCache,
     bug_reporter::report_bug,
-    line_merge_and_structured_resolution,
-    // XXX: move the uses to lib to avoid making these public?
+    languages, line_merge_and_structured_resolution,
     newline::{imitate_cr_lf_from_input, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
-    supported_langs::SUPPORTED_LANGUAGES,
-    PathBufExt,
-    DISABLING_ENV_VAR,
+    PathBufExt, DISABLING_ENV_VAR,
 };
 
 /// Syntax-aware merge driver for Git.
@@ -321,23 +317,8 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             0
         }
         CliCommand::Languages { gitattributes } => {
-            for lang_profile in &*SUPPORTED_LANGUAGES {
-                if gitattributes {
-                    for extension in &lang_profile.extensions {
-                        println!("*.{extension} merge=mergiraf");
-                    }
-                } else {
-                    println!(
-                        "{} ({})",
-                        lang_profile.name,
-                        lang_profile
-                            .extensions
-                            .iter()
-                            .map(|ext| format!("*.{ext}"))
-                            .join(", ")
-                    );
-                }
-            }
+            let res = languages(gitattributes);
+            println!("{res}");
             0
         }
         CliCommand::Report { merge_id_or_file } => {

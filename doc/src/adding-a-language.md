@@ -309,6 +309,6 @@ You can then use an IDE (such as Codium with Rust-analyzer) to set up breakpoint
 
 ## Add documentation
 
-The list of supported languages can be updated in `doc/src/languages.md` and at the end of `doc/src/usage.md`.
+The list of supported languages can be updated in `doc/src/languages.md` and `doc/src/supported_langs.txt`.
 
 Mergiraf excitedly awaits your pull request!

@@ -45,7 +45,7 @@ pub(crate) mod tree_builder;
 pub(crate) mod tree_matcher;
 pub(crate) mod visualizer;
 
-use core::cmp::Ordering;
+use core::{cmp::Ordering, fmt::Write};
 use std::{
     fs,
     path::Path,
@@ -68,6 +68,7 @@ use parsed_merge::{ParsedMerge, PARSED_MERGE_DIFF2_DETECTED};
 use pcs::Revision;
 use settings::DisplaySettings;
 use structured::structured_merge;
+use supported_langs::SUPPORTED_LANGUAGES;
 use tree::{Ast, AstNode};
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
@@ -481,4 +482,58 @@ fn extract_revision(working_dir: &Path, path: &Path, revision: Revision) -> Resu
 fn fxhasher() -> rustc_hash::FxHasher {
     use std::hash::BuildHasher;
     rustc_hash::FxBuildHasher.build_hasher()
+}
+
+/// The implementation of `mergiraf languages`.
+///
+/// Prints the list of supported languages,
+/// either in the format understood by `.gitattributes`,
+/// or in a more human-readable format.
+pub fn languages(gitattributes: bool) -> String {
+    let mut res = String::new();
+    for lang_profile in &*SUPPORTED_LANGUAGES {
+        if gitattributes {
+            for extension in &lang_profile.extensions {
+                let _ = writeln!(res, "*.{extension} merge=mergiraf");
+            }
+        } else {
+            let _ = writeln!(
+                res,
+                "{} ({})",
+                lang_profile.name,
+                lang_profile
+                    .extensions
+                    .iter()
+                    .map(|ext| format!("*.{ext}"))
+                    .join(", ")
+            );
+        }
+    }
+    res
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use std::collections::HashSet;
+
+    #[test]
+    fn languages_gitattributes() {
+        let supported_langs = languages(true);
+        // put both into sets to ignore ordering
+        let supported_langs: HashSet<_> = supported_langs.lines().collect();
+        let expected: HashSet<_> = include_str!("../doc/src/supported_langs.txt")
+            .lines()
+            .collect();
+        assert_eq!(
+            supported_langs,
+            expected,
+            "\
+You were probably adding a language to Mergiraf (thanks!), but forgot to update the documentation.
+Please update `doc/src/languages.md` and `doc/src/supported_langs.txt`.
+The following extensions are missing from the documentation: {:?}",
+            supported_langs.difference(&expected)
+        );
+    }
 }
