@@ -532,8 +532,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             language: tree_sitter_python::LANGUAGE.into(),
             atomic_nodes: vec!["string", "dotted_name"],
             commutative_parents: vec![
-                CommutativeParent::without_delimiters("module", "\n")
-                    .restricted_to_groups(&[&["import_statement"], &["class_definition"]]),
+                CommutativeParent::without_delimiters("module", "\n").restricted_to_groups(&[
+                    &["import_statement", "import_from_statement"],
+                    &["class_definition"],
+                ]),
                 CommutativeParent::without_delimiters("block", "\n\n")
                     .restricted_to_groups(&[&["function_definition"]]),
                 CommutativeParent::without_delimiters("import_from_statement", ", ")
