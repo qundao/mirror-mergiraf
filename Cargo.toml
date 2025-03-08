@@ -16,7 +16,7 @@ description = "A syntax-aware merge driver for Git"
 cc=">=1.1"
 
 [dependencies]
-tree-sitter = "0.24"
+tree-sitter = "0.25"
 tree-sitter-rust = "0.23"
 tree-sitter-json = "0.24"
 tree-sitter-yaml = "0.7.0"
@@ -33,7 +33,7 @@ tree-sitter-dart = "0.0.4"
 tree-sitter-typescript = "0.23.2"
 tree-sitter-python = "0.23.6"
 tree-sitter-php = "0.23"
-tree-sitter-solidity = "1.2.10"
+tree-sitter-solidity = "1.2.11"
 tree-sitter-lua = "0.2.0"
 tree-sitter-ruby = "0.23.1"
 regex = "1.11.1"
@@ -41,27 +41,27 @@ itertools = "0.14.0"
 tree-sitter-nix = "0.0.2"
 typed-arena = "2"
 tree-edit-distance = "0.4"
-clap = { version = "4.5.26", features = ["derive"] }
+clap = { version = "4.5.31", features = ["derive"] }
 stderrlog = "0.6"
 log = "0.4"
-rand = "0.8.5"
-etcetera = "0.8.0"
-zip = { version = "2.2.2", features = ["deflate"], default-features = false }
+rand = "0.9.0"
+etcetera = "0.10.0"
+zip = { version = "2.2.3", features = ["deflate"], default-features = false }
 tree-sitter-scala = "0.23.4"
-either = "1.13.0"
-rustc-hash = "2.1.0"
-diffy-imara = "0.3.1"
+either = "1.15.0"
+rustc-hash = "2.1.1"
+diffy-imara = "0.3.2"
 nu-ansi-term = "0.50.1"
-oneshot = {version = "0.1.8", default-features = false, features = ["std"]}
-tree-sitter-devicetree = "0.12.1"
+oneshot = {version = "0.1.11", default-features = false, features = ["std"]}
+tree-sitter-devicetree = "0.14.1"
 tree-sitter-verilog = "1.0.3"
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]
-cc = "1.2.12" # required for cross-compiling to MacOS X
+cc = "1.2.16" # required for cross-compiling to MacOS X
 
 [dev-dependencies]
-rstest = "0.24.0"
+rstest = "0.25.0"
 tempfile = "3"
 
 [profile.dev]

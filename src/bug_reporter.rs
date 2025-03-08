@@ -6,7 +6,7 @@ use std::{
     path::Path,
 };
 
-use rand::distributions::{Alphanumeric, DistString};
+use rand::distr::{Alphanumeric, SampleString};
 use zip::{write::SimpleFileOptions, ZipWriter};
 
 use crate::{attempts::AttemptsCache, git::extract_revision_from_git, pcs::Revision};
@@ -73,7 +73,7 @@ fn create_archive(
     let extension = filename.split('.').last().unwrap_or("no_ext");
     let archive_base_name = format!(
         "mergiraf_report_{}",
-        Alphanumeric.sample_string(&mut rand::thread_rng(), 8)
+        Alphanumeric.sample_string(&mut rand::rng(), 8)
     );
     let archive_name = format!("{archive_base_name}.zip");
     let file_desc = File::create(archive_name.clone())?;

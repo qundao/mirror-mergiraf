@@ -10,7 +10,7 @@ use std::{
 use etcetera::{choose_app_strategy, AppStrategy, AppStrategyArgs};
 use itertools::Itertools;
 use log::warn;
-use rand::distributions::{Alphanumeric, DistString};
+use rand::distr::{Alphanumeric, SampleString};
 
 use crate::line_based::LINE_BASED_METHOD;
 
@@ -118,7 +118,7 @@ impl AttemptsCache {
             .and_then(|ext| ext.to_str())
             .unwrap_or(DEFAULT_FILE_EXTENSION);
 
-        let uid = Alphanumeric.sample_string(&mut rand::thread_rng(), 8);
+        let uid = Alphanumeric.sample_string(&mut rand::rng(), 8);
         let dir_name = format!("{file_name}_{uid}");
         let dir = self.base_dir.join(dir_name);
         fs::create_dir_all(&dir).map_err(|err| {
