@@ -85,6 +85,18 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         ],
                     ],
                 ),
+                CommutativeParent::new("interface_body", " {\n", "\n", "\n}\n")
+                    .restricted_to_groups(&[
+                        &["field_declaration"],
+                        &[
+                            "record_declaration",
+                            "class_declaration",
+                            "interface_declaration",
+                            "annotation_type_declaration",
+                            "enum_declaration",
+                        ],
+                        &["method_declaration"],
+                    ]),
                 CommutativeParent::without_delimiters("modifiers", " ").restricted_to_groups(&[
                     &[
                         "public",
