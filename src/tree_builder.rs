@@ -1053,7 +1053,7 @@ mod tests {
     #[test]
     fn recover_exact_tree() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.json").unwrap();
+        let lang_profile = LangProfile::json();
 
         let tree = ctx.parse_json("[1, [2, 3]]");
 
@@ -1092,7 +1092,7 @@ mod tests {
     #[test]
     fn contains() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.json").unwrap();
+        let lang_profile = LangProfile::json();
 
         let tree = ctx.parse_json("[1, [2, 3]]");
 

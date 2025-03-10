@@ -333,7 +333,7 @@ mod tests {
     use super::*;
 
     fn json_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
-        let lang_profile = LangProfile::detect_from_filename("test.json").unwrap();
+        let lang_profile = LangProfile::json();
         let primary_matcher = TreeMatcher {
             min_height: 0,
             sim_threshold: 0.5,
@@ -640,7 +640,7 @@ mod tests {
     }
 
     fn rust_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
-        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let lang_profile = LangProfile::rust();
         let primary_matcher = TreeMatcher {
             min_height: 0,
             sim_threshold: 0.5,

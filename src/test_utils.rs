@@ -60,6 +60,21 @@ impl<'a> TestContext<'a> {
     }
 }
 
+impl LangProfile {
+    pub fn rust() -> &'static Self {
+        Self::detect_from_filename("a.rs").unwrap()
+    }
+    pub fn json() -> &'static Self {
+        Self::detect_from_filename("a.json").unwrap()
+    }
+    pub fn java() -> &'static Self {
+        Self::detect_from_filename("a.java").unwrap()
+    }
+    pub fn go() -> &'static Self {
+        Self::detect_from_filename("a.go").unwrap()
+    }
+}
+
 pub fn hash<T: Hash>(node: &T) -> u64 {
     let mut hasher = crate::fxhasher();
     node.hash(&mut hasher);

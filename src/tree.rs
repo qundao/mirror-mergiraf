@@ -1178,8 +1178,7 @@ mod tests {
     fn print_as_ascii_art() {
         let ctx = ctx();
         let tree = ctx.parse_json("{\"foo\": 3, \"bar\": 4}");
-        let lang_profile = LangProfile::detect_from_filename("file.json")
-            .expect("Could not find JSON language profile");
+        let lang_profile = LangProfile::json();
 
         let ascii_tree = tree.root().ascii_tree(lang_profile);
 

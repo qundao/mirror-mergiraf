@@ -228,8 +228,7 @@ mod tests {
     fn has_signature_conflicts() {
         let ctx = ctx();
 
-        let lang_profile =
-            LangProfile::detect_from_filename("foo.json").expect("no `lang_profile` for JSON");
+        let lang_profile = LangProfile::json();
 
         let with_conflicts = ctx.parse_json("[{\"a\":1, \"b\":2, \"a\":3}]").root();
         let without_conflicts = ctx.parse_json("{\"a\": [4], \"b\": [4]}").root();

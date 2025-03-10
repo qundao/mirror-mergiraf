@@ -122,8 +122,7 @@ import (
 // a comment to split hunks
 func foo(){}"#;
 
-        let lang_profile =
-            LangProfile::detect_from_filename("foo.go").expect("no `lang_profile` for Go");
+        let lang_profile = LangProfile::go();
 
         let merge = line_based_merge_with_duplicate_signature_detection(
             contents_base,

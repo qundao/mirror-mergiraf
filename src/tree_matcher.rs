@@ -518,7 +518,7 @@ mod tests {
     #[test]
     fn small_sample() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let lang_profile = LangProfile::rust();
 
         let t1 = ctx.parse_rust("fn my_func() -> i32 { 1 + (3 + (5 - 1)) }");
         let t2 = ctx.parse_rust("fn other_func() { (3 + (5 - 1)) * 2 }");
@@ -542,7 +542,7 @@ mod tests {
     #[test]
     fn example_from_the_paper() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let lang_profile = LangProfile::rust();
 
         let t1 = ctx.parse_java(
             "public class Test { public String foo(int i) { if (i == 0) return \"Foo!\"; } }",
@@ -568,7 +568,7 @@ mod tests {
     #[test]
     fn without_rted() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let lang_profile = LangProfile::rust();
 
         let t1 = ctx.parse_java(
             "public class Test { public String foo(int i) { if (i == 0) return \"Foo!\"; } }",
@@ -594,7 +594,7 @@ mod tests {
     #[test]
     fn matching_very_shallow_structures() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let lang_profile = LangProfile::rust();
 
         let left = ctx.parse_json("[1, 2]");
         let right = ctx.parse_json("[0, 1, 2]");
@@ -618,7 +618,7 @@ mod tests {
     #[test]
     fn matching_rust_types() {
         let ctx = ctx();
-        let lang_profile = LangProfile::detect_from_filename("test.rs").unwrap();
+        let lang_profile = LangProfile::rust();
 
         let left = ctx.parse_rust("use std::collections::{HashMap};");
         let right = ctx.parse_rust("use std::collections::{HashMap, HashSet};");
