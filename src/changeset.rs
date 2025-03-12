@@ -20,7 +20,7 @@ pub struct ChangeSet<'a> {
 
 impl<'a> ChangeSet<'a> {
     /// Constructs an empty instance
-    pub fn new() -> ChangeSet<'a> {
+    pub fn new() -> Self {
         Self::default()
     }
 
@@ -73,24 +73,27 @@ impl<'a> ChangeSet<'a> {
 
         // If the node happens to be a cluster where all three revisions are present and isomorphic,
         // then no need to do convert its subtree into PCS triples, we can just pretend it's a leaf
-        if !classmapping.is_isomorphic_in_all_revisions(leader) {
-            let mut current_predecessor = PCSNode::LeftMarker;
-            for child in &node.children {
-                current_predecessor = self.add_node_recursively(
-                    child,
-                    wrapped,
-                    current_predecessor,
-                    revision,
-                    classmapping,
-                );
-            }
-            self.add(PCS {
-                parent: wrapped,
-                predecessor: current_predecessor,
-                successor: PCSNode::RightMarker,
-                revision,
-            });
+        if classmapping.is_isomorphic_in_all_revisions(leader) {
+            return wrapped;
         }
+
+        let mut current_predecessor = PCSNode::LeftMarker;
+        for child in &node.children {
+            current_predecessor = self.add_node_recursively(
+                child,
+                wrapped,
+                current_predecessor,
+                revision,
+                classmapping,
+            );
+        }
+        self.add(PCS {
+            parent: wrapped,
+            predecessor: current_predecessor,
+            successor: PCSNode::RightMarker,
+            revision,
+        });
+
         wrapped
     }
 

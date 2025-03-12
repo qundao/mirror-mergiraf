@@ -118,9 +118,9 @@ impl PartialOrd for PCSNode<'_> {
 impl Display for Revision {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
-            Revision::Base => "Base",
-            Revision::Left => "Left",
-            Revision::Right => "Right",
+            Self::Base => "Base",
+            Self::Left => "Left",
+            Self::Right => "Right",
         })
     }
 }

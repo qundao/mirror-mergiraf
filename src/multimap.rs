@@ -17,8 +17,8 @@ where
     V: Eq + PartialEq + Hash,
 {
     /// Creates an empty multimap
-    pub fn new() -> MultiMap<K, V> {
-        MultiMap {
+    pub fn new() -> Self {
+        Self {
             map: FxHashMap::default(),
             empty: FxHashSet::default(),
         }
@@ -65,7 +65,7 @@ where
 
     /// Iterates over all values stored in this container
     pub fn iter_values(&self) -> impl Iterator<Item = &V> {
-        self.map.iter().flat_map(|(_k, v_set)| v_set.iter())
+        self.map.values().flatten()
     }
 
     pub fn contains_key<Q>(&self, k: &Q) -> bool

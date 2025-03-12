@@ -75,7 +75,7 @@ impl AttemptsCache {
     /// Returns an error when that fails or the directory cannot be recursively created.
     pub fn new(base_dir: Option<&Path>, max_size: Option<usize>) -> Result<Self, String> {
         let cache_dir = base_dir
-            .map(|p| p.to_path_buf())
+            .map(Path::to_path_buf)
             .or_else(|| {
                 let strategy = choose_app_strategy(AppStrategyArgs {
                     top_level_domain: "org".to_owned(),

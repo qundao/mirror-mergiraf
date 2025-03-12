@@ -72,10 +72,10 @@ impl<'a> Ast<'a> {
         lang_profile: &LangProfile,
         arena: &'a Arena<AstNode<'a>>,
         ref_arena: &'a Arena<&'a AstNode<'a>>,
-    ) -> Result<Ast<'a>, String> {
+    ) -> Result<Self, String> {
         let root = AstNode::internal_new(&mut tree.walk(), source, lang_profile, arena)?;
         root.internal_precompute_root_dfs(ref_arena);
-        Ok(Ast { source, root })
+        Ok(Self { source, root })
     }
 
     /// The height of the tree
@@ -114,8 +114,8 @@ impl<'a> AstNode<'a> {
         cursor: &mut TreeCursor<'b>,
         global_source: &'a str,
         lang_profile: &LangProfile,
-        arena: &'a Arena<AstNode<'a>>,
-    ) -> Result<&'a AstNode<'a>, String> {
+        arena: &'a Arena<Self>,
+    ) -> Result<&'a Self, String> {
         let mut children = Vec::new();
         let mut field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>> = FxHashMap::default();
         let field_name = cursor.field_name();
@@ -214,7 +214,7 @@ impl<'a> AstNode<'a> {
         }
     }
 
-    fn internal_precompute_root_dfs(&'a self, ref_arena: &'a Arena<&'a AstNode<'a>>) {
+    fn internal_precompute_root_dfs(&'a self, ref_arena: &'a Arena<&'a Self>) {
         let mut result = vec![];
 
         let mut worklist = vec![self];
@@ -270,13 +270,13 @@ impl<'a> AstNode<'a> {
     }
 
     /// Convenience accessor for children
-    pub fn child(&self, index: usize) -> Option<&'a AstNode<'a>> {
+    pub fn child(&self, index: usize) -> Option<&'a Self> {
         self.children.get(index).copied()
     }
 
     /// Get children by field name (children do not need to be associated to a field name,
     /// those are set in the grammar in particular rules)
-    pub fn children_by_field_name(&self, field_name: &str) -> Option<&Vec<&'a AstNode<'a>>> {
+    pub fn children_by_field_name(&self, field_name: &str) -> Option<&Vec<&'a Self>> {
         self.field_to_children.get(field_name)
     }
 
@@ -315,16 +315,16 @@ impl<'a> AstNode<'a> {
     }
 
     /// The root of the tree this node is part of
-    pub fn root(&'a self) -> &'a AstNode<'a> {
+    pub fn root(&'a self) -> &'a Self {
         self.ancestors()
             .last()
             .expect("There must be at least one ancestor of any node: the node itself")
     }
 
     /// Whether this node is isomorphic to another
-    pub fn isomorphic_to(&'a self, t2: &'a AstNode<'a>) -> bool {
-        let mut zipped = self.dfs().zip(t2.dfs());
-        self.hash == t2.hash
+    pub fn isomorphic_to(&'a self, other: &'a Self) -> bool {
+        let mut zipped = self.dfs().zip(other.dfs());
+        self.hash == other.hash
             && zipped.all(|(n1, n2)| {
                 n1.grammar_name == n2.grammar_name
                     && n1.children.len() == n2.children.len()
@@ -333,7 +333,7 @@ impl<'a> AstNode<'a> {
     }
 
     /// Get the parent of this node, if any
-    pub fn parent(&'a self) -> Option<&'a AstNode<'a>> {
+    pub fn parent(&'a self) -> Option<&'a Self> {
         unsafe { *self.parent.get() }
     }
 
@@ -365,7 +365,7 @@ impl<'a> AstNode<'a> {
 
     /// The node that comes just before this node in the list of children
     /// of its parent (if any).
-    pub fn predecessor(&'a self) -> Option<&'a AstNode<'a>> {
+    pub fn predecessor(&'a self) -> Option<&'a Self> {
         let parent = self.parent()?;
         let mut previous = None;
         for sibling in &parent.children {
@@ -379,7 +379,7 @@ impl<'a> AstNode<'a> {
 
     /// The node that comes just after this node in the list of children
     /// of its parent (if any).
-    pub fn successor(&'a self) -> Option<&'a AstNode<'a>> {
+    pub fn successor(&'a self) -> Option<&'a Self> {
         let parent = self.parent()?;
         parent
             .children
@@ -397,7 +397,7 @@ impl<'a> AstNode<'a> {
         arena: &'b Arena<AstNode<'b>>,
     ) -> &'b AstNode<'b>
     where
-        F: Fn(&'a AstNode<'a>) -> bool,
+        F: Fn(&'a Self) -> bool,
         'a: 'b,
     {
         let truncate = predicate(self);
@@ -472,7 +472,7 @@ impl<'a> AstNode<'a> {
     pub fn ancestor_indentation(&'a self) -> Option<&'a str> {
         self.ancestors()
             .skip(1)
-            .find_map(|ancestor| ancestor.preceding_indentation())
+            .find_map(AstNode::preceding_indentation)
     }
 
     /// The difference between this node's preceding indentation and

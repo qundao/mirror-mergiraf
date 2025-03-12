@@ -76,6 +76,7 @@ debug = false
 
 [lints.clippy]
 case_sensitive_file_extension_comparisons = "warn"
+flat_map_option = "warn"
 explicit_into_iter_loop = "warn"
 explicit_iter_loop = "warn"
 needless_pass_by_value = "warn"
@@ -84,3 +85,5 @@ single_char_pattern = "warn"
 single_match_else = "warn"
 trivially_copy_pass_by_ref = "warn"
 uninlined_format_args = "warn"
+use_self = "warn"
+redundant_closure_for_method_calls = "warn"

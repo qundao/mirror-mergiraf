@@ -131,7 +131,7 @@ impl<'a> ClassMapping<'a> {
     pub fn is_isomorphic_in_all_revisions(&self, leader: Leader<'a>) -> bool {
         // if we know that at least two isomorphisms exist in the cluster, then by transitivity there are three of them
         // and all revisions are isomorphic for this node
-        *self.exact_matchings.get(&leader).unwrap_or(&0) >= 2
+        self.exact_matchings.get(&leader).is_some_and(|n| *n >= 2)
     }
 
     /// Maps a node from some revision to its class representative
@@ -226,7 +226,7 @@ impl<'a> ClassMapping<'a> {
         leader.as_representative().node.field_name.or_else(|| {
             self.internal_representatives(leader)
                 .iter()
-                .flat_map(|(_, node)| node.node.field_name.into_iter())
+                .filter_map(|(_, node)| node.node.field_name)
                 .next()
         })
     }
@@ -243,7 +243,7 @@ pub struct RevisionSet {
 impl RevisionSet {
     /// A set containing no revision
     pub fn new() -> Self {
-        RevisionSet {
+        Self {
             base: false,
             left: false,
             right: false,
@@ -256,7 +256,7 @@ impl RevisionSet {
     }
 
     /// Adds a revision to the set by taking ownership
-    pub fn with(mut self, revision: Revision) -> RevisionSet {
+    pub fn with(mut self, revision: Revision) -> Self {
         self.add(revision);
         self
     }
@@ -285,8 +285,8 @@ impl RevisionSet {
     }
 
     /// Set intersection
-    pub fn intersection(self, other: RevisionSet) -> RevisionSet {
-        RevisionSet {
+    pub fn intersection(self, other: Self) -> Self {
+        Self {
             base: self.base && other.base,
             left: self.left && other.left,
             right: self.right && other.right,
@@ -372,7 +372,7 @@ impl RevisionNESet {
     pub fn singleton(revision: Revision) -> Self {
         let mut revisions = RevisionSet::new();
         revisions.add(revision);
-        RevisionNESet(revisions)
+        Self(revisions)
     }
 
     /// Adds a revision to the set by modifying it
@@ -381,8 +381,8 @@ impl RevisionNESet {
     }
 
     /// Adds a revision to the set by taking ownership
-    pub fn with(self, revision: Revision) -> RevisionNESet {
-        RevisionNESet(self.0.with(revision))
+    pub fn with(self, revision: Revision) -> Self {
+        Self(self.0.with(revision))
     }
 
     /// Does this set of revisions contain the given revision?

@@ -38,18 +38,18 @@ impl Display for Signature<'_, '_> {
 /// Only "quasi" because this equality doesn't have access to the class mapping
 /// so has to resort to hash equality in some sub-cases.
 #[derive(Debug, Clone, Copy, Eq)]
-enum AstNodeEquiv<'a, 'b: 'a> {
+enum AstNodeEquiv<'a, 'b> {
     Original(&'b AstNode<'b>),
     Merged(&'a MergedTree<'b>),
 }
 
-impl<'a, 'b> AstNodeEquiv<'a, 'b> {
+impl<'b> AstNodeEquiv<'_, 'b> {
     /// Unified interface to fetch children by field name on either an original tree or a merged one
     fn children_by_field_name(
         &self,
         field_name: &str,
         class_mapping: &ClassMapping<'b>,
-    ) -> Vec<AstNodeEquiv<'a, 'b>> {
+    ) -> Vec<Self> {
         match self {
             Self::Original(ast_node) => ast_node
                 .children_by_field_name(field_name)
@@ -82,7 +82,7 @@ impl<'a, 'b> AstNodeEquiv<'a, 'b> {
         &self,
         grammar_name: &str,
         class_mapping: &ClassMapping<'b>,
-    ) -> Vec<AstNodeEquiv<'a, 'b>> {
+    ) -> Vec<Self> {
         match self {
             Self::Original(ast_node) => ast_node
                 .children
@@ -338,7 +338,7 @@ pub enum PathStep {
 
 impl AstPath {
     pub fn new(steps: Vec<&'static str>) -> Self {
-        AstPath {
+        Self {
             steps: steps.into_iter().map(PathStep::Field).collect(),
         }
     }
@@ -391,8 +391,8 @@ impl Display for AstPath {
 impl Display for PathStep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PathStep::Field(field_name) => write!(f, "field({field_name})"),
-            PathStep::ChildType(child_type) => write!(f, "child_type({child_type})"),
+            Self::Field(field_name) => write!(f, "field({field_name})"),
+            Self::ChildType(child_type) => write!(f, "child_type({child_type})"),
         }
     }
 }

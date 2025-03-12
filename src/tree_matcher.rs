@@ -231,7 +231,7 @@ impl TreeMatcher<'_> {
     ) -> Vec<&'src AstNode<'src>> {
         let seeds = left_node
             .dfs()
-            .flat_map(|descendant| matching.get_from_left(descendant));
+            .filter_map(|descendant| matching.get_from_left(descendant));
         let mut seen_ancestors = HashSet::new();
         let mut candidates = Vec::new();
         for seed in seeds {
@@ -463,14 +463,14 @@ impl<'a> tree_edit_distance::Node for TEDTree<'a> {
     }
 }
 
-impl<'a> tree_edit_distance::Tree for TEDTree<'a> {
+impl tree_edit_distance::Tree for TEDTree<'_> {
     type Children<'c>
-        = Box<dyn Iterator<Item = &'c TEDTree<'a>> + 'c>
+        = std::slice::Iter<'c, Self>
     where
         Self: 'c;
 
     fn children(&self) -> Self::Children<'_> {
-        Box::new(self.children.iter())
+        self.children.iter()
     }
 }
 

@@ -50,7 +50,7 @@ fn detect_extension(test_dir: &Path) -> String {
                 .into_string()
                 .expect("Unable to read filename in test directory")
                 .strip_prefix("Base.")
-                .map(|s| s.to_owned())
+                .map(String::from)
         })
         .expect("Could not find a Base.* file in the test directory")
 }
@@ -118,16 +118,13 @@ fn solve_command(#[case] conflict_style: &str) {
     // do a rebase
     let mut command = Command::new("git");
     command.current_dir(repo_dir);
-    command.args(
-        [
-            "-c",
-            &format!("merge.conflictstyle={conflict_style}"),
-            "rebase",
-            "first_branch",
-            "--no-gpg-sign",
-        ]
-        .into_iter(),
-    );
+    command.args([
+        "-c",
+        &format!("merge.conflictstyle={conflict_style}"),
+        "rebase",
+        "first_branch",
+        "--no-gpg-sign",
+    ]);
     // in case Git is configured to use Mergiraf
     command.env(DISABLING_ENV_VAR, "0");
     let output = command.output().expect("Failed to execute git command");

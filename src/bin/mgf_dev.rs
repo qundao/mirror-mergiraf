@@ -135,7 +135,7 @@ mod tests {
     }
 
     #[test]
-    fn test_isomorphism_identical_files() {
+    fn isomorphism_identical_files() {
         assert_eq!(
             real_main(&CliArgs::parse_from([
                 "mgf_dev",
@@ -148,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_isomorphism_isomorphic_trees() {
+    fn isomorphism_isomorphic_trees() {
         assert_eq!(
             real_main(&CliArgs::parse_from([
                 "mgf_dev",
@@ -161,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    fn test_isomorphism_different_trees() {
+    fn isomorphism_different_trees() {
         assert_eq!(
             real_main(&CliArgs::parse_from([
                 "mgf_dev",

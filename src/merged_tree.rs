@@ -82,7 +82,7 @@ impl<'a> MergedTree<'a> {
         let representative = class_mapping
             .node_at_rev(node, revisions.any())
             .expect("Revision set for ExactTree inconsistent with class mapping");
-        MergedTree::ExactTree {
+        Self::ExactTree {
             node,
             revisions,
             hash: representative.hash,
@@ -90,17 +90,17 @@ impl<'a> MergedTree<'a> {
     }
 
     /// Creates a new mixed tree, taking care of the pre-computation of the hash
-    pub(crate) fn new_mixed(node: Leader<'a>, children: Vec<MergedTree<'a>>) -> Self {
+    pub(crate) fn new_mixed(node: Leader<'a>, children: Vec<Self>) -> Self {
         // TODO we could refuse to create a new mixed tree with no children
         let mut hasher = crate::fxhasher();
         node.grammar_name().hash(&mut hasher);
         children
             .iter()
             .map(|child| match child {
-                MergedTree::ExactTree { hash, .. } | MergedTree::MixedTree { hash, .. } => *hash,
-                MergedTree::Conflict { .. } => 1,
-                MergedTree::LineBasedMerge { .. } => 2,
-                MergedTree::CommutativeChildSeparator { .. } => 3,
+                Self::ExactTree { hash, .. } | Self::MixedTree { hash, .. } => *hash,
+                Self::Conflict { .. } => 1,
+                Self::LineBasedMerge { .. } => 2,
+                Self::CommutativeChildSeparator { .. } => 3,
             })
             .collect_vec()
             .hash(&mut hasher);
@@ -114,20 +114,20 @@ impl<'a> MergedTree<'a> {
     /// Determines with which field of its parent this node is associated
     pub(crate) fn field_name(&self, class_mapping: &ClassMapping<'a>) -> Option<&'static str> {
         match self {
-            MergedTree::ExactTree { node, .. }
-            | MergedTree::LineBasedMerge { node, .. }
-            | MergedTree::MixedTree { node, .. } => class_mapping.field_name(*node),
-            MergedTree::Conflict { .. } | MergedTree::CommutativeChildSeparator { .. } => None,
+            Self::ExactTree { node, .. }
+            | Self::LineBasedMerge { node, .. }
+            | Self::MixedTree { node, .. } => class_mapping.field_name(*node),
+            Self::Conflict { .. } | Self::CommutativeChildSeparator { .. } => None,
         }
     }
 
     /// The `grammar_name` of the underlying AST node, if any.
     pub(crate) fn grammar_name(&self) -> Option<&'static str> {
         match self {
-            MergedTree::ExactTree { node, .. }
-            | MergedTree::LineBasedMerge { node, .. }
-            | MergedTree::MixedTree { node, .. } => Some(node.grammar_name()),
-            MergedTree::Conflict { .. } | MergedTree::CommutativeChildSeparator { .. } => None,
+            Self::ExactTree { node, .. }
+            | Self::LineBasedMerge { node, .. }
+            | Self::MixedTree { node, .. } => Some(node.grammar_name()),
+            Self::Conflict { .. } | Self::CommutativeChildSeparator { .. } => None,
         }
     }
 
@@ -136,7 +136,7 @@ impl<'a> MergedTree<'a> {
         node: Leader<'a>,
         class_mapping: &ClassMapping<'a>,
         settings: &DisplaySettings,
-    ) -> MergedTree<'a> {
+    ) -> Self {
         let base_src = class_mapping.node_at_rev(node, Revision::Base);
         let left_src = class_mapping.node_at_rev(node, Revision::Left);
         let right_src = class_mapping.node_at_rev(node, Revision::Right);
@@ -144,32 +144,33 @@ impl<'a> MergedTree<'a> {
             (None, None, None) => {
                 unreachable!("A node that does not belong to any revision, how curious!")
             }
-            (_, Some(_), None) => MergedTree::new_exact(
+            (_, Some(_), None) => Self::new_exact(
                 node,
                 RevisionNESet::singleton(Revision::Left),
                 class_mapping,
             ),
-            (_, None, Some(_)) => MergedTree::new_exact(
+            (_, None, Some(_)) => Self::new_exact(
                 node,
                 RevisionNESet::singleton(Revision::Right),
                 class_mapping,
             ),
-            (Some(_), None, None) => MergedTree::new_exact(
+            (Some(_), None, None) => Self::new_exact(
                 node,
                 RevisionNESet::singleton(Revision::Base),
                 class_mapping,
             ),
-            (_, Some(left), Some(right)) if left.isomorphic_to(right) => MergedTree::new_exact(
+            (_, Some(left), Some(right)) if left.isomorphic_to(right) => Self::new_exact(
                 node,
                 RevisionNESet::singleton(Revision::Left).with(Revision::Right),
                 class_mapping,
             ),
             (base, Some(left), Some(right)) => {
+                #[allow(clippy::redundant_closure_for_method_calls)] // for symmetry with next lines
                 let base_src = base.map_or(Cow::from(""), |base| base.unindented_source());
                 let left_src = left.unindented_source();
                 let right_src = right.unindented_source();
                 let line_based_merge = line_based_merge(&base_src, &left_src, &right_src, settings);
-                MergedTree::LineBasedMerge {
+                Self::LineBasedMerge {
                     node,
                     contents: line_based_merge.contents,
                     conflict_mass: line_based_merge.conflict_mass,
@@ -184,14 +185,14 @@ impl<'a> MergedTree<'a> {
         nodes: &HashSet<Leader<'a>>,
         class_mapping: &ClassMapping<'a>,
         settings: &DisplaySettings,
-    ) -> MergedTree<'a> {
+    ) -> Self {
         if nodes.is_empty() {
             // no nodes to force line-based fallback on
             return self;
         }
 
         match self {
-            MergedTree::ExactTree {
+            Self::ExactTree {
                 node, revisions, ..
             } => {
                 if nodes.contains(&node) {
@@ -204,7 +205,7 @@ impl<'a> MergedTree<'a> {
                     let cloned_children: Vec<MergedTree<'a>> = children
                         .into_iter()
                         .map(|c| {
-                            MergedTree::new_exact(c, revisions, class_mapping)
+                            Self::new_exact(c, revisions, class_mapping)
                                 .force_line_based_fallback_on_specific_nodes(
                                     nodes,
                                     class_mapping,
@@ -214,15 +215,15 @@ impl<'a> MergedTree<'a> {
                         .collect();
                     if cloned_children
                         .iter()
-                        .all(|child| matches!(child, MergedTree::ExactTree { .. }))
+                        .all(|child| matches!(child, Self::ExactTree { .. }))
                     {
                         self
                     } else {
-                        MergedTree::new_mixed(node, cloned_children)
+                        Self::new_mixed(node, cloned_children)
                     }
                 }
             }
-            MergedTree::MixedTree { node, children, .. } => {
+            Self::MixedTree { node, children, .. } => {
                 if nodes.contains(&node) {
                     Self::line_based_local_fallback_for_revnode(node, class_mapping, settings)
                 } else {
@@ -236,7 +237,7 @@ impl<'a> MergedTree<'a> {
                             )
                         })
                         .collect();
-                    MergedTree::new_mixed(node, cloned_children)
+                    Self::new_mixed(node, cloned_children)
                 }
             }
             _ => self,
@@ -246,7 +247,7 @@ impl<'a> MergedTree<'a> {
     /// Checks if a particular node is contained in the result tree
     pub fn contains(&self, leader: Leader<'a>, class_mapping: &ClassMapping<'a>) -> bool {
         match self {
-            MergedTree::ExactTree {
+            Self::ExactTree {
                 node, revisions, ..
             } => {
                 let picked_revision = revisions.any();
@@ -256,11 +257,11 @@ impl<'a> MergedTree<'a> {
                 let chosen_revnode = RevNode::new(picked_revision, ast_node);
                 chosen_revnode.contains(&leader, class_mapping)
             }
-            MergedTree::MixedTree { node, children, .. } => {
+            Self::MixedTree { node, children, .. } => {
                 *node == leader || children.iter().any(|c| c.contains(leader, class_mapping))
             }
             // TODO here we could look for all representatives in their corresponding conflict side, that would be more accurate.
-            MergedTree::Conflict { base, left, right } => match leader.as_representative().rev {
+            Self::Conflict { base, left, right } => match leader.as_representative().rev {
                 Revision::Base => base
                     .iter()
                     .any(|n| RevNode::new(Revision::Base, n).contains(&leader, class_mapping)),
@@ -271,8 +272,8 @@ impl<'a> MergedTree<'a> {
                     .iter()
                     .any(|n| RevNode::new(Revision::Right, n).contains(&leader, class_mapping)),
             },
-            MergedTree::LineBasedMerge { node, .. } => *node == leader,
-            MergedTree::CommutativeChildSeparator { .. } => false,
+            Self::LineBasedMerge { node, .. } => *node == leader,
+            Self::CommutativeChildSeparator { .. } => false,
         }
     }
 
@@ -297,7 +298,7 @@ impl<'a> MergedTree<'a> {
         settings: &DisplaySettings,
     ) {
         match self {
-            MergedTree::ExactTree {
+            Self::ExactTree {
                 node, revisions, ..
             } => {
                 let picked_revision = revisions.any();
@@ -313,7 +314,7 @@ impl<'a> MergedTree<'a> {
                 );
                 output.push_merged(tree_at_rev.reindented_source(&new_indentation).into());
             }
-            MergedTree::MixedTree {
+            Self::MixedTree {
                 node: leader,
                 children,
                 ..
@@ -335,13 +336,13 @@ impl<'a> MergedTree<'a> {
                         settings,
                     );
                     previous_sibling = match *c {
-                        MergedTree::ExactTree { node, .. }
-                        | MergedTree::MixedTree { node, .. }
-                        | MergedTree::LineBasedMerge { node, .. } => {
+                        Self::ExactTree { node, .. }
+                        | Self::MixedTree { node, .. }
+                        | Self::LineBasedMerge { node, .. } => {
                             Some(PreviousSibling::RealNode(node))
                         }
-                        MergedTree::Conflict { .. } => None,
-                        MergedTree::CommutativeChildSeparator { separator } => {
+                        Self::Conflict { .. } => None,
+                        Self::CommutativeChildSeparator { separator } => {
                             Some(PreviousSibling::CommutativeSeparator(separator))
                         }
                     };
@@ -351,7 +352,7 @@ impl<'a> MergedTree<'a> {
                     output.push_merged(Cow::from(whitespace));
                 }
             }
-            MergedTree::Conflict { base, left, right } => {
+            Self::Conflict { base, left, right } => {
                 if base.is_empty() && left.is_empty() && right.is_empty() {
                     return;
                 }
@@ -379,7 +380,7 @@ impl<'a> MergedTree<'a> {
                     Self::pretty_print_astnode_list(Revision::Right, right).into(),
                 );
             }
-            MergedTree::LineBasedMerge { contents, node, .. } => {
+            Self::LineBasedMerge { contents, node, .. } => {
                 if contents.is_empty() {
                     return;
                 }
@@ -400,7 +401,7 @@ impl<'a> MergedTree<'a> {
                 );
                 output.push_line_based_merge(contents, &full_indentation, settings);
             }
-            MergedTree::CommutativeChildSeparator { separator, .. } => {
+            Self::CommutativeChildSeparator { separator, .. } => {
                 output.push_merged(Cow::from(*separator));
             }
         }
@@ -569,12 +570,12 @@ impl<'a> MergedTree<'a> {
     /// The number of conflicts in this merge
     pub fn count_conflicts(&self, settings: &DisplaySettings) -> usize {
         match self {
-            MergedTree::ExactTree { .. } | MergedTree::CommutativeChildSeparator { .. } => 0,
-            MergedTree::MixedTree { children, .. } => {
+            Self::ExactTree { .. } | Self::CommutativeChildSeparator { .. } => 0,
+            Self::MixedTree { children, .. } => {
                 children.iter().map(|c| c.count_conflicts(settings)).sum()
             }
-            MergedTree::Conflict { .. } => 1,
-            MergedTree::LineBasedMerge { contents, .. } => {
+            Self::Conflict { .. } => 1,
+            Self::LineBasedMerge { contents, .. } => {
                 let left_marker = ">".repeat(settings.conflict_marker_size_or_default());
                 contents.matches(&left_marker).count()
             }
@@ -585,16 +586,14 @@ impl<'a> MergedTree<'a> {
     /// required to solve them.
     pub fn conflict_mass(&self) -> usize {
         match self {
-            MergedTree::ExactTree { .. } | MergedTree::CommutativeChildSeparator { .. } => 0,
-            MergedTree::MixedTree { children, .. } => {
-                children.iter().map(MergedTree::conflict_mass).sum()
-            }
-            MergedTree::Conflict { base, left, right } => {
+            Self::ExactTree { .. } | Self::CommutativeChildSeparator { .. } => 0,
+            Self::MixedTree { children, .. } => children.iter().map(Self::conflict_mass).sum(),
+            Self::Conflict { base, left, right } => {
                 Self::pretty_print_astnode_list(Revision::Left, left).len()
                     + Self::pretty_print_astnode_list(Revision::Base, base).len()
                     + Self::pretty_print_astnode_list(Revision::Right, right).len()
             }
-            MergedTree::LineBasedMerge { conflict_mass, .. } => *conflict_mass,
+            Self::LineBasedMerge { conflict_mass, .. } => *conflict_mass,
         }
     }
 
@@ -617,19 +616,19 @@ impl<'a> MergedTree<'a> {
     fn debug_print(&self, indentation: usize) -> String {
         let mut result = " ".repeat(indentation);
         let c = match self {
-            MergedTree::ExactTree {
+            Self::ExactTree {
                 node, revisions, ..
             } => format!("Exact({node}{revisions})"),
-            MergedTree::MixedTree { node, children, .. } => {
+            Self::MixedTree { node, children, .. } => {
                 let children_printed = children
                     .iter()
                     .map(|c| c.debug_print(indentation + 2))
                     .join("\n");
                 format!("Mixed({node}\n{children_printed}{result})")
             }
-            MergedTree::Conflict { .. } => "Conflict()".to_string(),
-            MergedTree::LineBasedMerge { .. } => "LineBasedConflict()".to_string(),
-            MergedTree::CommutativeChildSeparator { separator } => {
+            Self::Conflict { .. } => "Conflict()".to_string(),
+            Self::LineBasedMerge { .. } => "LineBasedConflict()".to_string(),
+            Self::CommutativeChildSeparator { separator } => {
                 format!("CommutativeChildSeparator({})", separator.escape_debug())
             }
         };

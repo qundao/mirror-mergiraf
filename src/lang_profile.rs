@@ -32,7 +32,7 @@ pub struct LangProfile {
 
 impl LangProfile {
     /// Detects the language of a file based on its filename
-    pub fn detect_from_filename<P>(filename: &P) -> Option<&LangProfile>
+    pub fn detect_from_filename<P>(filename: &P) -> Option<&Self>
     where
         P: AsRef<Path> + ?Sized,
     {
@@ -40,7 +40,7 @@ impl LangProfile {
         Self::_detect_from_filename(filename)
     }
 
-    fn _detect_from_filename(filename: &Path) -> Option<&LangProfile> {
+    fn _detect_from_filename(filename: &Path) -> Option<&Self> {
         // TODO make something more advanced like in difftastic
         // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
         let extension = filename.extension()?;
@@ -184,13 +184,11 @@ impl CommutativeParent {
     }
 
     /// Short-hand to restrict a commutative parent to some children groups
-    pub(crate) fn restricted_to_groups(mut self, groups: &[&[&'static str]]) -> Self {
-        let children_groups = groups
-            .iter()
-            .map(|types| ChildrenGroup::new(types))
-            .collect();
-        self.children_groups = children_groups;
-        self
+    pub(crate) fn restricted_to_groups(self, groups: &[&[&'static str]]) -> Self {
+        Self {
+            children_groups: groups.iter().copied().map(ChildrenGroup::new).collect(),
+            ..self
+        }
     }
 
     /// Can children with the supplied types commute together?
@@ -206,13 +204,13 @@ impl CommutativeParent {
 /// A group of children of a commutative node which are allowed to commute together
 #[derive(Debug, Clone)]
 pub struct ChildrenGroup {
-    /// The types of nodes, as gramman names
+    /// The types of nodes, as grammar names
     pub node_types: HashSet<&'static str>,
 }
 
 impl ChildrenGroup {
-    pub(crate) fn new(types: &[&'static str]) -> ChildrenGroup {
-        ChildrenGroup {
+    pub(crate) fn new(types: &[&'static str]) -> Self {
+        Self {
             node_types: types.iter().copied().collect(),
         }
     }
