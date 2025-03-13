@@ -37,6 +37,9 @@ enum Command {
         first: PathBuf,
         /// Path to the second file
         second: PathBuf,
+        /// Enable commutative isomorphism checking, disregarding the order of nodes where it's not significant.
+        #[arg(short, long)]
+        commutative: bool,
     },
 }
 
@@ -92,7 +95,11 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             print!("{}", tree.root().ascii_tree(lang_profile));
             Ok(0)
         }
-        Command::Compare { first, second } => {
+        Command::Compare {
+            first,
+            second,
+            commutative,
+        } => {
             let contents_first = contents(first)?;
 
             let tree_first = mergiraf::parse(
@@ -115,11 +122,18 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             )
             .map_err(|err| format!("File has parse errors: {err}"))?;
 
-            Ok(if tree_first.root().isomorphic_to(tree_second.root()) {
-                0
-            } else {
-                1
-            })
+            let first_root = tree_first.root();
+            let second_root = tree_second.root();
+            Ok(
+                if first_root.isomorphic_to(second_root)
+                    || (*commutative
+                        && first_root.commutatively_isomorphic_to(second_root, lang_profile))
+                {
+                    0
+                } else {
+                    1
+                },
+            )
         }
     }
 }
@@ -170,6 +184,33 @@ mod tests {
                 "examples/java/working/demo/Left.java",
             ])),
             Ok(1)
+        );
+    }
+
+    #[test]
+    fn disabled_commutative_isomorphism() {
+        assert_eq!(
+            real_main(&CliArgs::parse_from([
+                "mgf_dev",
+                "compare",
+                "examples/rust/working/reordering_use_statements/Base.rs",
+                "examples/rust/working/reordering_use_statements/Left.rs",
+            ])),
+            Ok(1)
+        );
+    }
+
+    #[test]
+    fn enabled_commutative_isomorphism() {
+        assert_eq!(
+            real_main(&CliArgs::parse_from([
+                "mgf_dev",
+                "compare",
+                "--commutative",
+                "examples/rust/working/reordering_use_statements/Base.rs",
+                "examples/rust/working/reordering_use_statements/Left.rs",
+            ])),
+            Ok(0)
         );
     }
 }
