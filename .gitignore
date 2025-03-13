@@ -11,6 +11,9 @@ media/
 evaluation/
 
 # profiling
+perf.data
+perf.data.old
+flamegraph*.svg
 profile.json
 
 # other tools

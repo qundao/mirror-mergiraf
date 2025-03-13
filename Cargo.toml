@@ -68,11 +68,16 @@ tempfile = "3"
 # to conform to Git's protocol for merge drivers, which requires
 # a return code > 128 when an error occurs. This sets return code 134.
 panic = "abort"
+
 [profile.release]
 panic = "abort"
 strip = true
 lto = true
 debug = false
+
+[profile.bench]
+strip = false
+debug = true
 
 [lints.clippy]
 case_sensitive_file_extension_comparisons = "warn"
