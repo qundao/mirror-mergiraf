@@ -1,5 +1,5 @@
-use rustc_hash::{FxHashMap, FxHashSet};
-use std::collections::HashSet;
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use std::collections::{HashMap, HashSet};
 
 use crate::tree::AstNode;
 
@@ -80,24 +80,22 @@ impl<'tree> Matching<'tree> {
         self.left_to_right.len()
     }
 
-    /// Reverse the direction of the matching
-    pub fn into_reversed(self) -> Self {
-        Matching {
-            left_to_right: self.right_to_left,
-            right_to_left: self.left_to_right,
-        }
-    }
+    /// Given base-left and base-right matchings, calculate the composed left-base matching:
+    /// 1. reverse the first one to get a left-base matching
+    /// 2. compose that with the second one: (left -> base), (base -> right) => (left -> right)
+    pub fn compose_base_left_and_base_right(base_left: &Self, base_right: &Self) -> Self {
+        let mut left_to_right =
+            HashMap::with_capacity_and_hasher(base_left.right_to_left.len(), FxBuildHasher);
+        let mut right_to_left =
+            HashMap::with_capacity_and_hasher(base_right.right_to_left.len(), FxBuildHasher);
 
-    // Compose two matchings together
-    pub fn compose(&self, other: &Self) -> Self {
-        let mut left_to_right = FxHashMap::default();
-        let mut right_to_left = FxHashMap::default();
-        for (source, target) in &self.left_to_right {
-            if let Some(final_target) = other.get_from_left(target) {
+        for (source, target) in base_left.iter_right_to_left() {
+            if let Some(final_target) = base_right.get_from_left(target) {
                 left_to_right.insert(*source, final_target);
                 right_to_left.insert(final_target, *source);
             }
         }
+
         Self {
             left_to_right,
             right_to_left,

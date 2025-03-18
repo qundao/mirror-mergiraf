@@ -124,11 +124,10 @@ fn generate_matchings<'a>(
         )
     });
     debug!("matching left to right");
-    let composed_matching = base_left_matching
-        .full
-        .clone()
-        .into_reversed()
-        .compose(&base_right_matching.full);
+    let composed_matching = Matching::compose_base_left_and_base_right(
+        &base_left_matching.full,
+        &base_right_matching.full,
+    );
     let left_right_matching = auxiliary_matcher.match_trees(left, right, Some(&composed_matching));
     debug!("matching all three pairs took {:?}", start.elapsed());
 
