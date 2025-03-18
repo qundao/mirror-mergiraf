@@ -12,6 +12,12 @@ use crate::{
     tree_matcher::DetailedMatching,
 };
 
+const COLOR_EXACTLY_MATCHED_NODE: &str = "#ff2222";
+const COLOR_NON_FULLY_MATCHED_NODE: &str = "#40e0d0";
+const COLOR_EXACT_MATCHING: &str = "red";
+const COLOR_CONTAINER_MATCHING: &str = "blue";
+const COLOR_RECOVERY_MATCHING: &str = "green";
+
 /// Renders a mapping between two trees as a dotty graph
 pub fn write_matching_to_dotty_file<'a>(
     path: impl AsRef<Path>,
@@ -60,19 +66,19 @@ pub fn matching_to_graph<'a>(
 
     for (source_id, target_id) in mapping.exact.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color=red,constraint=false]")?;
+            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_EXACT_MATCHING},constraint=false]")?;
         }
     }
 
     for (source_id, target_id) in mapping.container.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color=blue,constraint=false]")?;
+            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_CONTAINER_MATCHING},constraint=false]")?;
         }
     }
 
     for (source_id, target_id) in mapping.recovery.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color=green,constraint=false]")?;
+            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_RECOVERY_MATCHING},constraint=false]")?;
         }
     }
     writeln!(writer, "}}")?;
@@ -132,10 +138,10 @@ fn add_node(
     let is_exact_match = exactly_matched.contains(&node.id);
     if is_exact_match {
         attrs.push(("style", "filled"));
-        attrs.push(("fillcolor", "#ff2222"));
+        attrs.push(("fillcolor", COLOR_EXACTLY_MATCHED_NODE));
     } else if !matched.contains(&node.id) {
         attrs.push(("style", "filled"));
-        attrs.push(("fillcolor", "#40e0d0"));
+        attrs.push(("fillcolor", COLOR_NON_FULLY_MATCHED_NODE));
     }
     writeln!(
         writer,
