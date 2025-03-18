@@ -1,8 +1,7 @@
+use std::collections::HashSet;
 use std::fs::OpenOptions;
-use std::io;
-use std::io::Write;
+use std::io::{self, BufWriter, Write};
 use std::path::Path;
-use std::{collections::HashSet, fs::File};
 
 use itertools::Itertools;
 use log::error;
@@ -40,11 +39,13 @@ pub fn matching_to_graph<'a>(
     right: &Ast<'a>,
     mapping: &DetailedMatching<'a>,
 ) -> io::Result<()> {
-    let mut writer = OpenOptions::new()
+    let file = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
         .open(path)?;
+
+    let mut writer = BufWriter::new(file);
 
     writeln!(writer, "graph matching {{")?;
     let left_prefix = "l";
@@ -82,12 +83,15 @@ pub fn matching_to_graph<'a>(
         }
     }
     writeln!(writer, "}}")?;
+
+    writer.flush()?;
+
     Ok(())
 }
 
 /// Renders a tree as a dotty graph
-pub fn tree_to_graph(
-    writer: &mut File,
+pub fn tree_to_graph<W: Write>(
+    writer: &mut W,
     node: &Ast<'_>,
     prefix: &str,
     matched: &HashSet<usize>,
@@ -107,9 +111,9 @@ pub fn tree_to_graph(
     Ok(visited)
 }
 
-fn add_node(
+fn add_node<W: Write>(
     node: &AstNode<'_>,
-    writer: &mut File,
+    writer: &mut W,
     prefix: &str,
     matched: &HashSet<usize>,
     exactly_matched: &HashSet<usize>,
