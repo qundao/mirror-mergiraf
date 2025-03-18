@@ -99,7 +99,7 @@ enum CliCommand {
         /// Keep file untouched and show the results of resolution on standard output instead
         #[arg(short, long)]
         keep: bool,
-        /// Create a copy of the original file by adding the `.orig` suffix to it (`true` by default)
+        /// Create a copy of the original file by adding the `.orig` suffix to it
         #[arg(
             long,
             default_missing_value = "true",
