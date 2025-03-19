@@ -1,17 +1,16 @@
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::fs::{self};
+use std::path::Path;
 use std::time::Duration;
 
 use diffy_imara::{create_patch, PatchFormatter};
+use mergiraf::line_based::line_based_merge;
 use mergiraf::settings::DisplaySettings;
 use mergiraf::{line_merge_and_structured_resolution, PathBufExt};
-use rstest::rstest;
 
-mod common;
-use common::detect_extension;
-
-fn run_test_from_dir(test_dir: &Path) {
-    let ext = detect_extension(test_dir);
+#[test]
+fn timeout_support() {
+    let test_dir = Path::new("examples/java/working/move_and_modify_conflict");
+    let ext = "java";
     #[expect(unstable_name_collisions)]
     let fname_base = test_dir.join(format!("Base.{ext}")).leak();
     let contents_base = fs::read_to_string(&fname_base)
@@ -25,19 +24,20 @@ fn run_test_from_dir(test_dir: &Path) {
     let contents_right = fs::read_to_string(fname_right)
         .expect("Unable to read right file")
         .leak();
-    let fname_expected = test_dir.join(format!("Expected.{ext}"));
-    let contents_expected = fs::read_to_string(fname_expected).expect("Unable to read right file");
+    let settings = DisplaySettings::default();
+    let contents_expected =
+        line_based_merge(contents_base, contents_left, contents_right, &settings).contents;
 
     let merge_result = line_merge_and_structured_resolution(
         contents_base,
         contents_left,
         contents_right,
         fname_base,
-        DisplaySettings::default(),
+        settings,
         true,
         None,
         None,
-        Duration::from_millis(0),
+        Duration::from_millis(1), // very small timeout: structured merging should never be that fast
     );
 
     let expected = contents_expected.trim();
@@ -49,16 +49,4 @@ fn run_test_from_dir(test_dir: &Path) {
         eprintln!("test failed: outputs differ for {}", test_dir.display());
         panic!();
     }
-}
-
-/// End-to-end tests for the "mergiraf merge" command
-#[rstest]
-fn integration(#[files("examples/*/working/*")] path: PathBuf) {
-    run_test_from_dir(&path);
-}
-
-// use this test to debug a specific test case by changing the path in it.
-#[test]
-fn debug_test() {
-    run_test_from_dir(Path::new("examples/go/working/remove_and_add_imports"));
 }

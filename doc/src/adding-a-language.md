@@ -300,7 +300,7 @@ Those can be viewed as SVG files by running `helpers/generate_svg.sh`.
 To run a test with a debugger, you can use the test defined in `tests/integration_tests.rs`:
 ```rust
 // use this test to debug a specific test case by changing the path in it.
-#[rstest]
+#[test]
 fn debug_test() {
     run_test_from_dir(Path::new("examples/go/working/remove_and_add_imports"))
 }
