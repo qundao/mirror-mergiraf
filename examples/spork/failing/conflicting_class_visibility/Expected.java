@@ -1,7 +1,7 @@
 <<<<<<< LEFT
-public
+public static class Cls {}
 ||||||| BASE
+static class Cls {}
 =======
-private
+private static class Cls {}
 >>>>>>> RIGHT
- static class Cls {}

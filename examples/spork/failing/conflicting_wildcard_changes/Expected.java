@@ -1,14 +1,13 @@
 import java.util.List;
 
 class Cls {
-    public static void print(List<?
 <<<<<<< LEFT
-super
+    public static void print(List<? super String> list) {
 ||||||| BASE
+    public static void print(List list) {
 =======
-extends
+    public static void print(List<? extends String> list) {
 >>>>>>> RIGHT
-        String> list) {
         System.out.println(list);
     }
 }

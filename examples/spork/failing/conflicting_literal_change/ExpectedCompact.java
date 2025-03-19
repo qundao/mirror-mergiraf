@@ -1,11 +1,13 @@
 public class Adder {
     public int add(int a, int b) {
+        return a +
 <<<<<<< LEFT
-        return a + 1;
+ 1
 ||||||| BASE
-        return a + b;
+ b
 =======
-        return a + 2;
+ 2
 >>>>>>> RIGHT
+;
     }
 }

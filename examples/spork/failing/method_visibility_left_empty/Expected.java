@@ -1,9 +1,9 @@
 class Cls {
 <<<<<<< LEFT
+    final static void method() {}
 ||||||| BASE
-public
+    public final static void method() {}
 =======
-protected
+    protected final static void method() {}
 >>>>>>> RIGHT
-     final static void method() {}
 }

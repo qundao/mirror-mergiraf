@@ -1,9 +1,9 @@
 class Cls {
 <<<<<<< LEFT
-public
+    public void method() {}
 ||||||| BASE
-=======
-private
->>>>>>> RIGHT
     void method() {}
+=======
+    private void method() {}
+>>>>>>> RIGHT
 }
