@@ -26,6 +26,7 @@ and the following declarative file formats:
 * YAML (*.yml, *.yaml)
 * TOML (*.toml)
 * Devicetree Source (*.dts)
+* Java properties files (*.properties)
 
 This list can also be obtained with the `mergiraf languages` command.
 

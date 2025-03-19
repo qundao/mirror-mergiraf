@@ -1,4 +1,5 @@
 *.java merge=mergiraf
+*.properties merge=mergiraf
 *.rs merge=mergiraf
 *.go merge=mergiraf
 *.js merge=mergiraf

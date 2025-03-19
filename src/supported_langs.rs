@@ -159,6 +159,14 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             ],
         },
         LangProfile {
+            name: "Java properties",
+            extensions: vec!["properties"],
+            language: tree_sitter_properties::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![CommutativeParent::without_delimiters("file", "\n")],
+            signatures: vec![signature("property", vec![vec![ChildType("key")]])],
+        },
+        LangProfile {
             name: "Kotlin",
             extensions: vec!["kt"],
             language: tree_sitter_kotlin_ng::LANGUAGE.into(),
