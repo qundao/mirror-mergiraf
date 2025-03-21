@@ -116,6 +116,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     ],
                     &["marker_annotation", "annotation"],
                 ]),
+                CommutativeParent::without_delimiters("throws", ", ")
+                    .restricted_to_groups(&[&["identifier"]]),
                 CommutativeParent::without_delimiters("catch_type", " | "),
                 CommutativeParent::without_delimiters("type_list", ", "), // for "implements" or "sealed"
                 CommutativeParent::new("annotation_argument_list", "{", ", ", "}"),
@@ -152,7 +154,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("static", vec![vec![]]),
                 signature("final", vec![vec![]]),
                 signature("sealed", vec![vec![]]),
-                // catch_type & type_list
+                // catch_type, type_list, throws
                 signature("identifier", vec![vec![]]),
                 // annotation_argument_list
                 signature("element_value_pair", vec![vec![Field("key")]]),
