@@ -30,7 +30,7 @@ impl<'a> SuccessorMap<'a> {
         > = HashMap::new();
         for pcs in changeset.iter() {
             let parent_map = parent_to_children.entry(pcs.parent).or_default();
-            parent_map.add(pcs.predecessor, (pcs.revision, pcs.successor));
+            parent_map.insert(pcs.predecessor, (pcs.revision, pcs.successor));
         }
         SuccessorMap {
             multimap: parent_to_children,

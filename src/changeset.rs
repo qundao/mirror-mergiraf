@@ -99,9 +99,9 @@ impl<'a> ChangeSet<'a> {
 
     /// Adds a new PCS to the set
     pub fn add(&mut self, pcs: PCS<'a>) {
-        self.successors.add(pcs.successor, pcs);
-        self.predecessors.add(pcs.predecessor, pcs);
-        self.parents.add(pcs.parent, pcs);
+        self.successors.insert(pcs.successor, pcs);
+        self.predecessors.insert(pcs.predecessor, pcs);
+        self.parents.insert(pcs.parent, pcs);
     }
 
     /// Finds all the PCS which contain either the successor or predecessor of this PCS as successor or predecessor,

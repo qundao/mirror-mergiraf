@@ -11,33 +11,10 @@ pub struct MultiMap<K, V> {
     empty: FxHashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
 }
 
-impl<K, V> MultiMap<K, V>
-where
-    K: Eq + PartialEq + Hash,
-    V: Eq + PartialEq + Hash,
-{
+impl<K, V> MultiMap<K, V> {
     /// Creates an empty multimap
     pub fn new() -> Self {
-        Self {
-            map: FxHashMap::default(),
-            empty: FxHashSet::default(),
-        }
-    }
-
-    /// Gets the set of values associated to the key (which might be empty)
-    pub fn get<Q>(&self, key: &Q) -> &FxHashSet<V>
-    where
-        K: std::borrow::Borrow<Q>,
-        Q: Eq + Hash,
-    {
-        self.map.get(key).unwrap_or(&self.empty)
-    }
-
-    /// Adds a mapping from a key to a value.
-    /// Returns whether the mapping was already added or if it already existed.
-    pub fn add(&mut self, key: K, value: V) -> bool {
-        let set = self.map.entry(key).or_default();
-        set.insert(value)
+        Self::default()
     }
 
     /// The keys that are present
@@ -67,23 +44,44 @@ where
     pub fn iter_values(&self) -> impl Iterator<Item = &V> {
         self.map.values().flatten()
     }
+}
+
+impl<K, V> MultiMap<K, V>
+where
+    K: Eq + PartialEq + Hash,
+    V: Eq + PartialEq + Hash,
+{
+    /// Gets the set of values associated to the key (which might be empty)
+    pub fn get<Q>(&self, key: &Q) -> &FxHashSet<V>
+    where
+        K: std::borrow::Borrow<Q>,
+        Q: Eq + Hash,
+    {
+        self.map.get(key).unwrap_or(&self.empty)
+    }
+
+    /// Adds a mapping from a key to a value.
+    /// Returns whether the mapping was already added or if it already existed.
+    pub fn insert(&mut self, key: K, value: V) -> bool {
+        let set = self.map.entry(key).or_default();
+        set.insert(value)
+    }
 
     pub fn contains_key<Q>(&self, k: &Q) -> bool
     where
         K: std::borrow::Borrow<Q>,
         Q: Hash + Eq,
     {
-        self.map.get(k).is_some_and(|s| !s.is_empty())
+        !self.get(k).is_empty()
     }
 }
 
-impl<K, V> Default for MultiMap<K, V>
-where
-    K: Eq + PartialEq + Hash,
-    V: Eq + PartialEq + Hash,
-{
+impl<K, V> Default for MultiMap<K, V> {
     fn default() -> Self {
-        Self::new()
+        Self {
+            map: FxHashMap::default(),
+            empty: FxHashSet::default(),
+        }
     }
 }
 
@@ -98,7 +96,7 @@ where
     {
         let mut result = Self::new();
         for (k, v) in iter {
-            result.add(k, v);
+            result.insert(k, v);
         }
         result
     }
@@ -106,7 +104,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use itertools::Itertools;
     use std::collections::HashSet;
 
     use super::*;
@@ -116,26 +113,18 @@ mod tests {
         let mut multimap = MultiMap::new();
 
         assert!(multimap.get(&23).is_empty());
-        assert!(multimap.add(23, 45));
-        assert_eq!(multimap.get(&23).iter().copied().collect_vec(), vec![45]);
-        assert!(!multimap.add(23, 45));
-        assert_eq!(multimap.get(&23).iter().copied().collect_vec(), vec![45]);
-        assert!(multimap.add(23, 67));
-
-        let expected_slice = [45, 67];
-        let expected_set = expected_slice.iter().collect::<HashSet<&i32>>();
-        assert_eq!(
-            multimap.get(&23).iter().collect::<HashSet<&i32>>(),
-            expected_set
-        );
+        assert!(multimap.insert(23, 45));
+        assert_eq!(multimap.get(&23), &FxHashSet::from_iter([45]));
+        assert!(!multimap.insert(23, 45));
+        assert_eq!(multimap.get(&23), &FxHashSet::from_iter([45]));
+        assert!(multimap.insert(23, 67));
+        assert_eq!(multimap.get(&23), &FxHashSet::from_iter([45, 67]));
 
         let full_set = multimap
             .iter_pairs()
             .map(|(x, y)| (*x, *y))
             .collect::<HashSet<(i32, i32)>>();
-        let expected_full_set = vec![(23, 45), (23, 67)]
-            .into_iter()
-            .collect::<HashSet<(i32, i32)>>();
+        let expected_full_set = HashSet::from([(23, 45), (23, 67)]);
         assert_eq!(full_set, expected_full_set);
     }
 }
