@@ -1,12 +1,12 @@
 use itertools::Itertools;
 use log::debug;
 use std::{
-    cmp::{min, Ordering},
+    cmp::{Ordering, min},
     collections::HashSet,
     fmt::Display,
     time::Instant,
 };
-use tree_edit_distance::{diff, Edit};
+use tree_edit_distance::{Edit, diff};
 use typed_arena::Arena;
 
 use crate::{

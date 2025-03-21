@@ -2,13 +2,15 @@ use std::{
     borrow::Cow,
     env, fs,
     path::{Path, PathBuf},
-    process::{exit, Command},
+    process::{Command, exit},
     time::Duration,
 };
 
 use clap::{ArgAction, Parser, Subcommand};
 use log::warn;
 use mergiraf::{
+    DISABLING_ENV_VAR,
+    PathBufExt,
     attempts::AttemptsCache,
     bug_reporter::report_bug,
     languages,
@@ -17,8 +19,6 @@ use mergiraf::{
     newline::{imitate_cr_lf_from_input, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
-    PathBufExt,
-    DISABLING_ENV_VAR,
 };
 
 /// Syntax-aware merge driver for Git.
@@ -255,7 +255,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
 
             if merge_result.conflict_count > 0 {
                 if old_git_detected {
-                    warn!("Using Git v2.44.0 or above is recommended to get meaningful revision names on conflict markers when using Mergiraf.");
+                    warn!(
+                        "Using Git v2.44.0 or above is recommended to get meaningful revision names on conflict markers when using Mergiraf."
+                    );
                 }
                 1
             } else {

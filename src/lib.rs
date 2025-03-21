@@ -59,12 +59,12 @@ use git::extract_revision_from_git;
 use itertools::Itertools;
 use lang_profile::LangProfile;
 use line_based::{
-    line_based_merge, line_based_merge_with_duplicate_signature_detection, LINE_BASED_METHOD,
+    LINE_BASED_METHOD, line_based_merge, line_based_merge_with_duplicate_signature_detection,
 };
 use log::{debug, info, warn};
 
 use merge_result::MergeResult;
-use parsed_merge::{ParsedMerge, PARSED_MERGE_DIFF2_DETECTED};
+use parsed_merge::{PARSED_MERGE_DIFF2_DETECTED, ParsedMerge};
 use pcs::Revision;
 use settings::DisplaySettings;
 use structured::structured_merge;
@@ -425,9 +425,13 @@ pub fn resolve_merge_cascading<'a>(
             if err == PARSED_MERGE_DIFF2_DETECTED {
                 // if parsing the original merge failed because it's done in diff2 mode,
                 // then we warn the user about it but don't give up yet as we can try a full merge
-                warn!("Cannot solve conflicts in diff2 style. Merging the original conflict sides from scratch instead.");
+                warn!(
+                    "Cannot solve conflicts in diff2 style. Merging the original conflict sides from scratch instead."
+                );
             } else {
-                warn!("Error while parsing conflicts: {err}. Merging the original conflict sides from scratch instead.");
+                warn!(
+                    "Error while parsing conflicts: {err}. Merging the original conflict sides from scratch instead."
+                );
             }
         }
         Ok(parsed_merge) => {

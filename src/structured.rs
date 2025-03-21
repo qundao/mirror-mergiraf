@@ -4,6 +4,7 @@ use log::debug;
 use typed_arena::Arena;
 
 use crate::{
+    MergeResult, Revision, TSParser,
     lang_profile::LangProfile,
     line_based::{FULLY_STRUCTURED_METHOD, STRUCTURED_RESOLUTION_METHOD},
     merge_3dm::three_way_merge,
@@ -11,7 +12,6 @@ use crate::{
     parsed_merge::ParsedMerge,
     settings::DisplaySettings,
     tree_matcher::TreeMatcher,
-    MergeResult, Revision, TSParser,
 };
 
 /// Performs a fully structured merge, parsing the contents of all three revisions,

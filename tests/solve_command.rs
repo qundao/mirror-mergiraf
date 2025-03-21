@@ -4,7 +4,7 @@ use std::process::Command;
 
 use mergiraf::newline::normalize_to_lf;
 use mergiraf::settings::DisplaySettings;
-use mergiraf::{resolve_merge_cascading, DISABLING_ENV_VAR};
+use mergiraf::{DISABLING_ENV_VAR, resolve_merge_cascading};
 use rstest::rstest;
 
 mod common;

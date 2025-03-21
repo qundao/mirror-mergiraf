@@ -2,10 +2,10 @@ use std::fs::{self};
 use std::path::Path;
 use std::time::Duration;
 
-use diffy_imara::{create_patch, PatchFormatter};
+use diffy_imara::{PatchFormatter, create_patch};
 use mergiraf::line_based::line_based_merge;
 use mergiraf::settings::DisplaySettings;
-use mergiraf::{line_merge_and_structured_resolution, PathBufExt};
+use mergiraf::{PathBufExt, line_merge_and_structured_resolution};
 
 #[test]
 fn timeout_support() {

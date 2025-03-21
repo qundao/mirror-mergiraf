@@ -67,19 +67,28 @@ pub fn matching_to_graph<'a>(
 
     for (source_id, target_id) in mapping.exact.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_EXACT_MATCHING},constraint=false]")?;
+            writeln!(
+                writer,
+                "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_EXACT_MATCHING},constraint=false]"
+            )?;
         }
     }
 
     for (source_id, target_id) in mapping.container.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_CONTAINER_MATCHING},constraint=false]")?;
+            writeln!(
+                writer,
+                "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_CONTAINER_MATCHING},constraint=false]"
+            )?;
         }
     }
 
     for (source_id, target_id) in mapping.recovery.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
-            writeln!(writer, "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_RECOVERY_MATCHING},constraint=false]")?;
+            writeln!(
+                writer,
+                "  {left_prefix}{source_id} -- {right_prefix}{target_id} [color={COLOR_RECOVERY_MATCHING},constraint=false]"
+            )?;
         }
     }
     writeln!(writer, "}}")?;

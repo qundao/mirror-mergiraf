@@ -115,7 +115,7 @@ impl<'tree> Matching<'tree> {
     }
 
     /// Retrieve match ids from left to right
-    pub fn as_ids<'s>(&'s self) -> impl Iterator<Item = (usize, usize)> + use<'s, 'tree> {
+    pub fn as_ids(&self) -> impl Iterator<Item = (usize, usize)> {
         self.left_to_right
             .iter()
             .map(|(source, target)| (source.id, target.id))

@@ -7,7 +7,7 @@ use std::{
 };
 
 use rand::distr::{Alphanumeric, SampleString};
-use zip::{write::SimpleFileOptions, ZipWriter};
+use zip::{ZipWriter, write::SimpleFileOptions};
 
 use crate::{attempts::AttemptsCache, git::extract_revision_from_git, pcs::Revision};
 

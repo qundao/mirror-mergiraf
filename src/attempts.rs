@@ -7,7 +7,7 @@ use std::{
     process::Command,
 };
 
-use etcetera::{choose_app_strategy, AppStrategy, AppStrategyArgs};
+use etcetera::{AppStrategy, AppStrategyArgs, choose_app_strategy};
 use itertools::Itertools;
 use log::warn;
 use rand::distr::{Alphanumeric, SampleString};

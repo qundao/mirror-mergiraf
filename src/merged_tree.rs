@@ -441,7 +441,11 @@ impl<'a> MergedTree<'a> {
                 });
 
                 let (preceding_whitespace, indentation_shift) = match whitespaces {
-                    [Some(whitespace_left), Some(whitespace_right), Some(whitespace_base)] => {
+                    [
+                        Some(whitespace_left),
+                        Some(whitespace_right),
+                        Some(whitespace_base),
+                    ] => {
                         if whitespace_base == whitespace_left {
                             whitespace_right
                         } else {

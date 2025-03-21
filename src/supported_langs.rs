@@ -3,8 +3,8 @@ use std::sync::LazyLock;
 use crate::{
     lang_profile::{CommutativeParent, LangProfile},
     signature::{
-        signature,
         PathStep::{ChildType, Field},
+        signature,
     },
 };
 

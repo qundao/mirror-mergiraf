@@ -1,4 +1,4 @@
-use crate::{parse, pcs::Revision, MergeResult, TSParser};
+use crate::{MergeResult, TSParser, parse, pcs::Revision};
 use diffy_imara::{Algorithm, ConflictStyle, MergeOptions};
 use typed_arena::Arena;
 

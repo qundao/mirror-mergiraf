@@ -5,7 +5,7 @@ use itertools::Itertools;
 use crate::{
     class_mapping::{ClassMapping, RevNode},
     multimap::MultiMap,
-    pcs::{PCSNode, Revision, PCS},
+    pcs::{PCS, PCSNode, Revision},
     tree::{Ast, AstNode},
 };
 
@@ -130,7 +130,7 @@ impl<'a> ChangeSet<'a> {
     pub(crate) fn other_successors<'s, 'b>(
         &'s self,
         pcs: &'b PCS<'a>,
-    ) -> impl Iterator<Item = &'s PCS<'a>> + use<'s, 'a, 'b> {
+    ) -> impl Iterator<Item = &'s PCS<'a>> {
         self.parents.get(&pcs.parent).iter().filter(move |other| {
             other.successor != pcs.successor && other.predecessor == pcs.predecessor
         })
@@ -140,7 +140,7 @@ impl<'a> ChangeSet<'a> {
     pub fn inconsistent_triples<'s, 'b>(
         &'s self,
         pcs: &'b PCS<'a>,
-    ) -> impl Iterator<Item = &'s PCS<'a>> + use<'s, 'a, 'b> {
+    ) -> impl Iterator<Item = &'s PCS<'a>> {
         self.parents
             .get(&pcs.parent)
             .iter()
