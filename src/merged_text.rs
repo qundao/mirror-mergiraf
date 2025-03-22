@@ -142,6 +142,22 @@ impl<'a> MergedText<'a> {
 
     /// Renders the full file according to the supplied [`DisplaySettings`]
     pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
+        // if all the chunks are `Merged`, just concatenate them all
+        if let Some(contents) = self
+            .sections
+            .iter()
+            .map(|section| {
+                if let MergeSection::Merged(contents) = section {
+                    Some(contents.as_ref())
+                } else {
+                    None
+                }
+            })
+            .collect()
+        {
+            return contents;
+        }
+
         if settings.compact_or_default() {
             self.render_compact(settings)
         } else {
