@@ -1,0 +1,15 @@
+<root>
+   <foo
+<<<<<<< LEFT
+     iota="i"
+||||||| BASE
+=======
+     iota="i2"
+>>>>>>> RIGHT
+        alpha="a"
+     beta="b"
+     gamma="c"
+     delta="d"
+/>
+   <bar />
+</root>

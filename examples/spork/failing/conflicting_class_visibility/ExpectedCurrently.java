@@ -1,0 +1,1 @@
+public private static class Cls {}
