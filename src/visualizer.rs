@@ -177,7 +177,7 @@ fn add_node<W: Write>(
 mod tests {
     use std::fs;
 
-    use crate::{matching::Matching, test_utils::ctx};
+    use crate::test_utils::ctx;
 
     use super::*;
 
@@ -189,12 +189,7 @@ mod tests {
         let ctx = ctx();
         let parsed_left = ctx.parse_json("{\"foo\": 3}");
         let parsed_right = ctx.parse_json("{\"foo\": 4}");
-        let matching = DetailedMatching {
-            full: Matching::default(),
-            exact: Matching::default(),
-            container: Matching::default(),
-            recovery: Matching::default(),
-        };
+        let matching = DetailedMatching::default();
 
         matching_to_graph(&target_path, &parsed_left, &parsed_right, &matching).unwrap();
 

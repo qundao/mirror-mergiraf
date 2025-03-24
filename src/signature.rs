@@ -384,7 +384,7 @@ impl AstPath {
 
 impl Display for AstPath {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.steps.iter().join(", "))
+        write!(f, "{}", self.steps.iter().format(", "))
     }
 }
 

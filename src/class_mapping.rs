@@ -29,7 +29,7 @@ impl Eq for Leader<'_> {}
 
 impl<'a> RevNode<'a> {
     pub fn new(rev: Revision, node: &'a AstNode<'a>) -> Self {
-        RevNode { rev, node }
+        Self { rev, node }
     }
 
     /// Whether the subtree rooted at this node contains another node (up to class mapping).
@@ -205,7 +205,7 @@ impl<'a> ClassMapping<'a> {
         }
     }
 
-    /// Checks whether the supplied revison (left or right) is only reformatting
+    /// Checks whether the supplied revision (left or right) is only reformatting
     /// the source (the unindented sources are different as strings but the trees are
     /// isomorphic)
     pub fn is_reformatting(&self, leader: Leader<'a>, revision: Revision) -> bool {
@@ -226,8 +226,7 @@ impl<'a> ClassMapping<'a> {
         leader.as_representative().node.field_name.or_else(|| {
             self.internal_representatives(leader)
                 .iter()
-                .filter_map(|(_, node)| node.node.field_name)
-                .next()
+                .find_map(|(_, node)| node.node.field_name)
         })
     }
 }

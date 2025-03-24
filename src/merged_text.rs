@@ -12,7 +12,7 @@ use crate::{parsed_merge::ParsedMerge, settings::DisplaySettings};
 /// don't necessarily need to match line boundaries, and the precise
 /// layout of the resulting text is not known yet as it depends on
 /// the output settings.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct MergedText<'a> {
     sections: Vec<MergeSection<'a>>,
 }
@@ -33,9 +33,7 @@ enum MergeSection<'a> {
 impl<'a> MergedText<'a> {
     /// Creates an empty merged text
     pub(crate) fn new() -> Self {
-        MergedText {
-            sections: Vec::new(),
-        }
+        Self::default()
     }
 
     /// Appends merged text at the end
@@ -106,9 +104,9 @@ impl<'a> MergedText<'a> {
                     .into(),
                 };
                 newline_found = newline_found
-                    || left.unwrap_or_default().contains('\n')
-                    || right.unwrap_or_default().contains('\n')
-                    || base.unwrap_or_default().contains('\n');
+                    || left.is_some_and(|s| s.contains('\n'))
+                    || right.is_some_and(|s| s.contains('\n'))
+                    || base.is_some_and(|s| s.contains('\n'));
                 result
             }
         });
@@ -122,6 +120,10 @@ impl<'a> MergedText<'a> {
         reindent_first: bool,
         reindent_last: bool,
     ) -> String {
+        if indentation.is_empty() {
+            return String::from(content);
+        }
+
         let reindented = content
             .split('\n')
             .enumerate()
@@ -177,7 +179,7 @@ impl<'a> MergedText<'a> {
                 MergeSection::Merged(contents) => {
                     if gathering_conflict {
                         if let Some(newline_idx) = contents.find('\n') {
-                            let to_append = &contents[..(newline_idx + 1)];
+                            let (to_append, rest) = contents.split_at(newline_idx + 1);
                             left_buffer.push_str(to_append);
                             base_buffer.push_str(to_append);
                             right_buffer.push_str(to_append);
@@ -188,7 +190,7 @@ impl<'a> MergedText<'a> {
                                 settings,
                                 &mut output,
                             );
-                            output.push_str(&contents[(newline_idx + 1)..]);
+                            output.push_str(rest);
                             gathering_conflict = false;
                         } else if contents.trim().is_empty() {
                             // the content being added is just whitespace (but no newlines,

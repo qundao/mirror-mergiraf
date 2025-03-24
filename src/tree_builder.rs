@@ -104,13 +104,13 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         // check if any deleted and modified nodes are absent from the resulting tree
         debug!(
             "deleted and modified: {}",
-            deleted_and_modified.iter().join(", ")
+            deleted_and_modified.iter().format(", ")
         );
         let deleted: HashSet<&Leader<'a>> = deleted_and_modified
             .iter()
             .filter(|deleted| !merged_tree.contains(**deleted, self.class_mapping))
             .collect();
-        debug!("really deleted children: {}", deleted.iter().join(", "));
+        debug!("really deleted children: {}", deleted.iter().format(", "));
 
         let parents_to_recompute: HashSet<Leader<'a>> = deleted_and_modified.into_iter()
             .filter(|deleted| !merged_tree.contains(*deleted, self.class_mapping))
@@ -123,7 +123,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .collect();
         debug!(
             "parents to recompute: {}",
-            parents_to_recompute.iter().join(", ")
+            parents_to_recompute.iter().format(", ")
         );
 
         Ok(merged_tree.force_line_based_fallback_on_specific_nodes(
@@ -680,7 +680,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .iter()
             .filter(|x| !right_leaders.contains(x))
             .collect();
-        debug!("{pad}right_removed: {}", right_removed.iter().join(", "));
+        debug!("{pad}right_removed: {}", right_removed.iter().format(", "));
         // check which right removed elements have been modified on the left-hand side,
         // in which case they should be kept
         let mut removed_visiting_state = visiting_state.clone();
@@ -710,12 +710,12 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .iter()
             .filter(|x| !base_leaders.contains(x))
             .collect();
-        debug!("{pad}left_added: {}", left_added.iter().join(", "));
+        debug!("{pad}left_added: {}", left_added.iter().format(", "));
         let right_added: Vec<_> = right_leaders
             .iter()
             .filter(|x| !base_leaders.contains(x) && !left_added.contains(x))
             .collect();
-        debug!("{pad}right_added: {}", right_removed.iter().join(", "));
+        debug!("{pad}right_added: {}", right_removed.iter().format(", "));
 
         // apply this symmetric difference to the left list
         let merged: Vec<_> = left_leaders

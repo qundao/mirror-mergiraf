@@ -33,6 +33,7 @@ pub struct TreeMatcher<'a> {
 }
 
 /// A matching which keeps track of how each link was inferred, for visualization purposes
+#[derive(Default)]
 pub struct DetailedMatching<'src> {
     /// The full set of relations between nodes
     pub full: Matching<'src>,

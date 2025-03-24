@@ -40,9 +40,9 @@ pub struct AstNode<'a> {
     /// It is designed to be the same for any isomorphic tree.
     pub hash: u64,
     /// The children of this node (empty if this is a leaf)
-    pub children: Vec<&'a AstNode<'a>>,
+    pub children: Vec<&'a Self>,
     /// The children indexed by field name
-    field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>>,
+    field_to_children: FxHashMap<&'a str, Vec<&'a Self>>,
     /// The portion of the source code which corresponds to this node
     pub source: &'a str,
     /// The type of node as returned by tree-sitter
@@ -56,12 +56,12 @@ pub struct AstNode<'a> {
     /// A cached number of descendants
     descendant_count: usize,
     /// The parent of this node, if any.
-    parent: UnsafeCell<Option<&'a AstNode<'a>>>,
+    parent: UnsafeCell<Option<&'a Self>>,
     /// As the DFS of a child is a subslice of the DFS of its parent, we compute the entire DFS of
     /// the root once and slice all child DFS into this slice.
     /// This is computed right after construction and then never written to again.
     /// On nodes that have been truncated (which is rare) this will be `None`.
-    dfs: UnsafeCell<Option<&'a [&'a AstNode<'a>]>>,
+    dfs: UnsafeCell<Option<&'a [&'a Self]>>,
 }
 
 impl<'a> Ast<'a> {
@@ -118,7 +118,7 @@ impl<'a> AstNode<'a> {
         arena: &'a Arena<Self>,
     ) -> Result<&'a Self, String> {
         let mut children = Vec::new();
-        let mut field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>> = FxHashMap::default();
+        let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
         let field_name = cursor.field_name();
         let atomic = lang_profile.is_atomic_node_type(cursor.node().grammar_name());
         if !atomic && cursor.goto_first_child() {
@@ -155,7 +155,7 @@ impl<'a> AstNode<'a> {
                 let start_position = offset + line.len() - trimmed.len();
                 let mut hasher = crate::fxhasher();
                 trimmed.hash(&mut hasher);
-                children.push(arena.alloc(AstNode {
+                children.push(arena.alloc(Self {
                     hash: hasher.finish(),
                     children: Vec::new(),
                     field_to_children: FxHashMap::default(),
@@ -191,7 +191,7 @@ impl<'a> AstNode<'a> {
             .map(|child| child.descendant_count)
             .sum::<usize>();
 
-        let result = arena.alloc(AstNode {
+        let result = arena.alloc(Self {
             hash: hasher.finish(),
             children,
             field_to_children,
@@ -245,7 +245,7 @@ impl<'a> AstNode<'a> {
         self.children
             .iter()
             .copied()
-            .map(AstNode::height)
+            .map(Self::height)
             .max()
             .map_or(0, |x| x + 1)
     }
@@ -292,7 +292,7 @@ impl<'a> AstNode<'a> {
     }
 
     /// Depth-first search iterator
-    pub fn dfs(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
+    pub fn dfs(&'a self) -> impl Iterator<Item = &'a Self> {
         // SAFETY: This is not written to after construction.
         if let Some(dfs) = unsafe { *self.dfs.get() } {
             Either::Left(dfs.iter().copied())
@@ -304,14 +304,14 @@ impl<'a> AstNode<'a> {
     }
 
     /// Postfix iterator
-    pub fn postfix(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
+    pub fn postfix(&'a self) -> impl Iterator<Item = &'a Self> {
         PostfixIterator {
             queue: vec![(self, 0)],
         }
     }
 
     /// Ancestors iterator (which includes the node itself)
-    pub fn ancestors(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
+    pub fn ancestors(&'a self) -> impl Iterator<Item = &'a Self> {
         AncestorsIterator { cursor: Some(self) }
     }
 
@@ -530,7 +530,7 @@ impl<'a> AstNode<'a> {
     pub fn ancestor_indentation(&'a self) -> Option<&'a str> {
         self.ancestors()
             .skip(1)
-            .find_map(AstNode::preceding_indentation)
+            .find_map(Self::preceding_indentation)
     }
 
     /// The difference between this node's preceding indentation and

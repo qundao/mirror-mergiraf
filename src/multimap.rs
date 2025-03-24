@@ -41,7 +41,7 @@ impl<K, V> MultiMap<K, V> {
     }
 
     /// Iterates over all values stored in this container
-    pub fn iter_values(&self) -> impl Iterator<Item = &V> {
+    pub fn values(&self) -> impl Iterator<Item = &V> {
         self.map.values().flatten()
     }
 }

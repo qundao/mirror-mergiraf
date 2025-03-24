@@ -31,7 +31,7 @@ pub enum PCSNode<'a> {
 /// A PCS triple, encoding a part of the structure of a tree.
 /// It records that:
 /// * the `parent` node is the parent of both `predecessor` and `successor`
-/// * the `precessor` appears immediately before `successor` in the list of children of `parent`
+/// * the `predecessor` appears immediately before `successor` in the list of children of `parent`
 ///
 /// The PCS triple also records in which revision this fact holds.
 /// To encode that a given node is the first child of its parent, we use [`PCSNode::LeftMarker`] as

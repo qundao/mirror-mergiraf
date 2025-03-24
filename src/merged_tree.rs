@@ -418,7 +418,7 @@ impl<'a> MergedTree<'a> {
         let arbitrary_representative = rev_node.as_representative().node;
         let representatives = {
             let mut representatives = class_mapping.representatives(rev_node);
-            representatives.sort_by(|a, b| Ord::cmp(&a.rev, &b.rev));
+            representatives.sort_by_key(|a| a.rev);
             representatives
         };
         match previous_sibling {

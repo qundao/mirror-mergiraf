@@ -152,7 +152,7 @@ impl<'a> ChangeSet<'a> {
 
     /// Iterate over the PCS triples contained in this `ChangeSet`
     pub fn iter(&self) -> impl Iterator<Item = &PCS<'a>> {
-        self.predecessors.iter_values()
+        self.predecessors.values()
     }
 
     /// Number of PCS triples

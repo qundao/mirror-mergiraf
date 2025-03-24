@@ -8,7 +8,6 @@ use std::{
 };
 
 use etcetera::{AppStrategy, AppStrategyArgs, choose_app_strategy};
-use itertools::Itertools;
 use log::warn;
 use rand::distr::{Alphanumeric, SampleString};
 
@@ -199,25 +198,20 @@ impl AttemptsCache {
     /// Removes older attempts so that the cache doesn't grow too much
     fn prune(&self) -> Result<(), String> {
         let dir_listing = fs::read_dir(&self.base_dir).map_err(|err| err.to_string())?;
-        let subdirs: Vec<_> = dir_listing
-            .flatten()
-            .filter_map(|f| {
-                if let Ok(metadata) = f.metadata() {
-                    if metadata.is_dir() {
-                        return Some((f, metadata));
-                    }
-                }
-                None
-            })
-            .sorted_by(|(_, metadata_a), (_, metadata_b)| {
-                Ord::cmp(
-                    &metadata_b.modified().unwrap(),
-                    &metadata_a.modified().unwrap(),
-                )
-            })
-            .collect();
-        if subdirs.len() > self.max_size {
-            for (f, _) in &subdirs[self.max_size..] {
+        let subdirs = {
+            let mut subdirs: Vec<_> = dir_listing
+                .flatten()
+                .filter_map(|f| {
+                    let metadata = f.metadata().ok()?;
+                    let mtime = metadata.modified().ok()?;
+                    Some((f, mtime))
+                })
+                .collect();
+            subdirs.sort_by_key(|&(_, mtime)| mtime);
+            subdirs
+        };
+        if let Some(old_subdirs) = subdirs.get(self.max_size..) {
+            for (f, _) in old_subdirs {
                 if let Err(err) = fs::remove_dir_all(f.path()) {
                     warn!("Could not delete cached attempt {:?}: {err}", f.file_name());
                 }
@@ -254,7 +248,7 @@ mod tests {
         let attempt_dir = attempts_dir.join(attempt.id());
         assert_eq!(
             fs::read_to_string(attempt_dir.join("Base.java"))
-                .expect("Cound not read Base.java file from attempt dir"),
+                .expect("Could not read Base.java file from attempt dir"),
             "hello base"
         );
 
@@ -294,7 +288,7 @@ mod tests {
         let attempt_dir = attempts_dir.join(attempt.id());
         assert_eq!(
             fs::read_to_string(attempt_dir.join("Base.txt"))
-                .expect("Cound not read Base.txt file from attempt dir"),
+                .expect("Could not read Base.txt file from attempt dir"),
             "hello base"
         );
 
@@ -330,8 +324,7 @@ mod tests {
         let remaining_files = fs::read_dir(attempts_dir)
             .expect("could not read the attempts directory")
             .flatten()
-            .collect_vec()
-            .len();
+            .count();
         assert_eq!(remaining_files, 2);
     }
 }
