@@ -47,10 +47,7 @@ Another example:
 <div class="rev">Left</div>
 
 ```java
-class Bird {
-    String species;
-    int weight;
-}
+{{#include ../../examples/java/working/class_fields/Left.java}}
 ```
 
 </div>
@@ -58,9 +55,7 @@ class Bird {
 <div class="rev">Base</div>
 
 ```java
-class Bird {
-    String species;
-}
+{{#include ../../examples/java/working/class_fields/Base.java}}
 ```
 
 </div>
@@ -68,10 +63,7 @@ class Bird {
 <div class="rev">Right</div>
 
 ```java
-class Bird {
-    String species;
-    double wingspan;
-}
+{{#include ../../examples/java/working/class_fields/Right.java}}
 ```
 
 </div>
@@ -79,11 +71,7 @@ class Bird {
 
 The left and right sides add different attributes to the same Java class. The order of declaration of those attributes does not matter, so the conflict can be resolved to:
 ```java
-class Bird {
-    String species;
-    int weight;
-    double wingspan;
-}
+{{#include ../../examples/java/working/class_fields/Expected.java}}
 ```
 
 In contrast to this, conflicting additions of instructions in a block, or conflicting additions of arguments to a function declaration are not automatically resolved as above, given that the order in which they are inserted matters.
@@ -92,10 +80,7 @@ In contrast to this, conflicting additions of instructions in a block, or confli
 <div class="rev">Left</div>
 
 ```java
-while (true) {
-    mowTheLawn();
-    rechargeBatteries();
-}
+{{#include ../../examples/java/working/statements/Left.java}}
 ```
 
 </div>
@@ -103,9 +88,7 @@ while (true) {
 <div class="rev">Base</div>
 
 ```java
-while (true) {
-    mowTheLawn();
-}
+{{#include ../../examples/java/working/statements/Base.java}}
 ```
 
 </div>
@@ -113,10 +96,7 @@ while (true) {
 <div class="rev">Right</div>
 
 ```java
-while (true) {
-    mowTheLawn();
-    returnToHomeBase();
-}
+{{#include ../../examples/java/working/statements/Right.java}}
 ```
 
 </div>
@@ -173,13 +153,7 @@ In the following example, the left side reformats a function declaration and the
 <div class="rev">Left</div>
 
 ```rust
-fn plan_route(
-    start: &Location,
-    end: &Location,
-    settings: &RouteSettings,
-) -> Route {
-    todo!();
-}
+{{#include ../../examples/rust/working/reformat/Left.rs}}
 ```
 
 </div>
@@ -187,9 +161,7 @@ fn plan_route(
 <div class="rev">Base</div>
 
 ```rust
-fn plan_route(start: &Location, end: &Location, settings: &RouteSettings) -> Route {
-    todo!();
-}
+{{#include ../../examples/rust/working/reformat/Base.rs}}
 ```
 
 </div>
@@ -197,9 +169,7 @@ fn plan_route(start: &Location, end: &Location, settings: &RouteSettings) -> Rou
 <div class="rev">Right</div>
 
 ```rust
-fn plan_route(start: &Location, end: &Location, settings: Option<&RouteSettings>) -> Route {
-    todo!();
-}
+{{#include ../../examples/rust/working/reformat/Right.rs}}
 ```
 
 </div>
@@ -207,13 +177,7 @@ fn plan_route(start: &Location, end: &Location, settings: Option<&RouteSettings>
 
 In this case, Mergiraf produces the following merge:
 ```rust
-fn plan_route(
-    start: &Location,
-    end: &Location,
-    settings: Option<&RouteSettings>,
-) -> Route {
-    todo!();
-}
+{{#include ../../examples/rust/working/reformat/Expected.rs}}
 ```
 
 <div class="warning">
@@ -230,19 +194,7 @@ In this case, the changes on the latter branch are replayed at the new location.
 <div class="rev">Left</div>
 
 ```rust
-impl Lawnmower {
-    fn find_home_station(&self) -> Option<&Station> {
-        self.neighbouring_stations()
-            .iter()
-            .find(|station| self.is_suitable_home(station))
-    }
-
-    fn is_suitable_home(&self, station: &Station) -> bool {
-        station.id == self.home_station_id
-            && !station.occupied
-            && station.color == StationColor::Red
-    }
-}
+{{#include ../../examples/rust/working/move_to_method/Left.rs}}
 ```
 
 </div>
@@ -250,15 +202,7 @@ impl Lawnmower {
 <div class="rev">Base</div>
 
 ```rust
-impl Lawnmower {
-    fn find_home_station(&self) -> Option<&Station> {
-        self.neighbouring_stations().iter().find(|station| {
-            station.id == "home"
-                && !station.occupied
-                && station.color == StationColor::Red
-        })
-    }
-}
+{{#include ../../examples/rust/working/move_to_method/Base.rs}}
 ```
 
 </div>
@@ -266,15 +210,7 @@ impl Lawnmower {
 <div class="rev">Right</div>
 
 ```rust
-impl Lawnmower {
-    fn find_home_station(&self) -> Option<&Station> {
-        self.neighbouring_stations().iter().find(|station| {
-            station.id == "home"
-                && !station.occupied
-                && station.color == StationColor::Blue
-        })
-    }
-}
+{{#include ../../examples/rust/working/move_to_method/Right.rs}}
 ```
 
 </div>
@@ -286,19 +222,7 @@ In such a case, Mergiraf is able to replay the changes of the right branch onto 
 which gives the following result:
 
 ```rust
-impl Lawnmower {
-    fn find_home_station(&self) -> Option<&Station> {
-        self.neighbouring_stations()
-            .iter()
-            .find(|station| self.is_suitable_home(station))
-    }
-
-    fn is_suitable_home(&self, station: &Station) -> bool {
-        station.id == self.home_station_id
-            && !station.occupied
-            && station.color == StationColor::Blue
-    }
-}
+{{#include ../../examples/rust/working/move_to_method/Expected.rs}}
 ```
 
 <div class="warning">
@@ -317,13 +241,7 @@ There is however one notable exception. Consider the following situation:
 <div class="rev">Left</div>
 
 ```json
-{
-    "new_letter": "left value",
-    "alpha": "α",
-    "beta": "β",
-    "gamma": "γ",
-    "delta": "δ"
-}
+{{#include ../../examples/json/working/for_docs/Left.json}}
 ```
 
 </div>
@@ -331,12 +249,7 @@ There is however one notable exception. Consider the following situation:
 <div class="rev">Base</div>
 
 ```json
-{
-    "alpha": "α",
-    "beta": "β",
-    "gamma": "γ",
-    "delta": "δ"
-}
+{{#include ../../examples/json/working/for_docs/Base.json}}
 ```
 
 </div>
@@ -344,13 +257,7 @@ There is however one notable exception. Consider the following situation:
 <div class="rev">Right</div>
 
 ```json
-{
-    "alpha": "α",
-    "beta": "β",
-    "gamma": "γ",
-    "delta": "δ",
-    "new_letter": "right value",
-}
+{{#include ../../examples/json/working/for_docs/Right.json}}
 ```
 
 </div>
@@ -372,18 +279,7 @@ Git's line-based merging algorithm happily merges those revisions into:
 This is a problem, as the `"new_letter"` key appears twice. In such a situation, Mergiraf outputs a conflict:
 
 ```json
-{
-<<<<<<< Left
-    "new_letter": "left value",
-||||||| Base
-=======
-    "new_letter": "right value",
->>>>>>> Right
-    "alpha": "α",
-    "beta": "β",
-    "gamma": "γ",
-    "delta": "δ"
-}
+{{#include ../../examples/json/working/for_docs/Expected.json}}
 ```
 
 This works by defining so-called "signatures" for certain children of commutative parents. A signature defines how to build a key for a syntactic element, child of a commutative parent.

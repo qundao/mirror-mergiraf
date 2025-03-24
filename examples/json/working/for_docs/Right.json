@@ -1,7 +1,7 @@
 {
-    "alpha": 1,
-    "beta": 2,
-    "gamma": 3,
-    "delta": 4,
+    "alpha": "α",
+    "beta": "β",
+    "gamma": "γ",
+    "delta": "δ",
     "new_letter": "right value"
 }
