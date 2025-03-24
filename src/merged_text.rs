@@ -190,9 +190,23 @@ impl<'a> MergedText<'a> {
                             );
                             output.push_str(&contents[(newline_idx + 1)..]);
                             gathering_conflict = false;
+                        } else if contents.trim().is_empty() {
+                            // the content being added is just whitespace (but no newlines,
+                            // checked above), so something that separates an element from the next.
+                            // therefore, we only want to add it a side, if the latter actually
+                            // has an element in it (and not just indentation/nothing at all)
+                            if !base_buffer.trim().is_empty() {
+                                base_buffer.push_str(contents);
+                            }
+                            if !left_buffer.trim().is_empty() {
+                                left_buffer.push_str(contents);
+                            }
+                            if !right_buffer.trim().is_empty() {
+                                right_buffer.push_str(contents);
+                            }
                         } else {
-                            left_buffer.push_str(contents);
                             base_buffer.push_str(contents);
+                            left_buffer.push_str(contents);
                             right_buffer.push_str(contents);
                         }
                     } else {
@@ -433,5 +447,118 @@ let's start ha to me!
             merged_text.render(&DisplaySettings::default()),
             expected_full_line
         );
+    }
+
+    #[test]
+    fn space_after_conflict_base_empty() {
+        // the space shouldn't be pulled into the conflict
+        let merged_text = MergedText {
+            sections: vec![conflict("", "here", "there"), merged(" "), merged("we go")],
+        };
+
+        let expected = "\
+<<<<<<< LEFT
+here we go
+||||||| BASE
+we go
+=======
+there we go
+>>>>>>> RIGHT
+";
+
+        assert_eq!(merged_text.render(&DisplaySettings::default()), expected);
+    }
+
+    #[test]
+    fn space_after_conflict_base_empty_next_incorrect() {
+        // this is not something we expect to get -- normally, the whitespace should come
+        // separately from the actual elements. therefore, the "incorrect" output is okay
+        let merged_text = MergedText {
+            sections: vec![conflict("", "here", "there"), merged(" we go")],
+        };
+
+        let expected_wrong = "\
+<<<<<<< LEFT
+here we go
+||||||| BASE
+ we go
+=======
+there we go
+>>>>>>> RIGHT
+";
+
+        assert_eq!(
+            merged_text.render(&DisplaySettings::default()),
+            expected_wrong
+        );
+    }
+
+    #[test]
+    fn space_after_conflict_base_empty_all_indented() {
+        // the sides may be indented
+        let merged_text = MergedText {
+            sections: vec![
+                merged("    "),
+                conflict("", "here", "there"),
+                merged(" "),
+                merged("we go"),
+            ],
+        };
+
+        let expected = "\
+<<<<<<< LEFT
+    here we go
+||||||| BASE
+    we go
+=======
+    there we go
+>>>>>>> RIGHT
+";
+
+        assert_eq!(merged_text.render(&DisplaySettings::default()), expected);
+    }
+
+    #[test]
+    fn space_after_conflict_left_empty() {
+        // left or right revision may be empty as well
+        let merged_text = MergedText {
+            sections: vec![conflict("here", "", "there"), merged(" "), merged("we go")],
+        };
+
+        let expected = "\
+<<<<<<< LEFT
+we go
+||||||| BASE
+here we go
+=======
+there we go
+>>>>>>> RIGHT
+";
+
+        assert_eq!(merged_text.render(&DisplaySettings::default()), expected);
+    }
+    #[test]
+    fn space_after_conflict_left_empty_all_indented() {
+        // left or right revision may be empty as well
+        let merged_text = MergedText {
+            sections: vec![
+                merged("    "),
+                conflict("here", "", "there"),
+                merged(" "),
+                merged("we go"),
+            ],
+        };
+
+        let expected = "\
+<<<<<<< LEFT
+    we go
+||||||| BASE
+    here we go
+=======
+    there we go
+>>>>>>> RIGHT
+";
+
+        assert_eq!(merged_text.render(&DisplaySettings::default()), expected);
     }
 }

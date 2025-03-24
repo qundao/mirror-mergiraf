@@ -1,7 +1,7 @@
 <<<<<<< LEFT
 public class Test {
 ||||||| BASE
- class Test {
+class Test {
 =======
 static class Test {
 >>>>>>> RIGHT
