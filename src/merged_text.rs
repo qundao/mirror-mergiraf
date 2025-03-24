@@ -315,6 +315,8 @@ impl<'a> MergedText<'a> {
                 }
                 MergeSection::Conflict { base, left, right } => {
                     if let Some(occurrence) = trailing_whitespace_pattern.find(&output) {
+                        // trailing whitespace is the indentation -- split it off from the current
+                        // output and use it to indent conflict contents
                         let whitespace_to_prepend = output.split_off(occurrence.start());
                         let new_base = if base.is_empty() {
                             base
@@ -369,40 +371,38 @@ mod tests {
     fn compact_mode() {
         let merged_text = MergedText {
             sections: vec![
-                merged("hello"),
-                merged(" world\nhi "),
-                conflict("ho base", "ho left", "ho right"),
-                merged("  test\n"),
+                merged("class Cls {\n    "),
+                conflict("", "public", "private"),
+                merged(" "),
+                merged("void method() {}\n}"),
             ],
         };
 
         let expected_compact = "\
-hello world
-hi
+class Cls {
 <<<<<<< LEFT
- ho left
+    public
 ||||||| BASE
- ho base
 =======
- ho right
+    private
 >>>>>>> RIGHT
-  test
-";
+ void method() {}
+}";
         assert_eq!(
             merged_text.render(&DisplaySettings::default_compact()),
             expected_compact
         );
 
         let expected_full_line = "\
-hello world
+class Cls {
 <<<<<<< LEFT
-hi ho left  test
+    public void method() {}
 ||||||| BASE
-hi ho base  test
+    void method() {}
 =======
-hi ho right  test
+    private void method() {}
 >>>>>>> RIGHT
-";
+}";
         assert_eq!(
             merged_text.render(&DisplaySettings::default()),
             expected_full_line
