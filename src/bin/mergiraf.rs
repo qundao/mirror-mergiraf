@@ -112,6 +112,7 @@ enum CliCommand {
             num_args = 0..=1,
             require_equals = true,
             action = ArgAction::Set,
+            conflicts_with_all = ["stdout", "keep"]
         )]
         keep_backup: bool,
         /// DEPRECATED(use `--stdout`): Keep file untouched and show the results of resolution on standard output instead
