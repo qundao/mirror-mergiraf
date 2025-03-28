@@ -42,12 +42,12 @@ itertools = "0.14.0"
 tree-sitter-nix = "0.0.2"
 typed-arena = "2"
 tree-edit-distance = "0.4"
-clap = { version = "4.5.31", features = ["derive"] }
+clap = { version = "4.5.34", features = ["derive"] }
 stderrlog = "0.6"
 log = "0.4"
 rand = "0.9.0"
 etcetera = "0.10.0"
-zip = { version = "2.2.3", features = ["deflate"], default-features = false }
+zip = { version = "2.5.0", features = ["deflate"], default-features = false }
 tree-sitter-scala = "0.23.4"
 either = "1.15.0"
 rustc-hash = "2.1.1"
