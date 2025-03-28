@@ -59,7 +59,7 @@ tree-sitter-verilog = "1.0.3"
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]
-cc = "1.2.16" # required for cross-compiling to MacOS X
+cc = ">=1.2.12" # required for cross-compiling to MacOS X
 
 [dev-dependencies]
 rstest = "0.25.0"
