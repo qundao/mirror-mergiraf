@@ -6,7 +6,7 @@ Mergiraf currently supports the following programming languages:
 * Go (*.go)
 * Javascript (*.js, *.jsx, *.mjs)
 * TypeScript (*.ts, *.tsx)
-* C/C++ (*.c, *.h, *.cc, *.cpp, *.hpp)
+* C/C++ (*.c, *.h, *.cc, *.cpp, *.hpp, *.cxx, *.mpp, *.cppm, *.ixx)
 * C# (*.cs)
 * Dart (*.dart)
 * Scala (*.scala, *.sbt)

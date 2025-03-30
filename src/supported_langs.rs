@@ -425,7 +425,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "C/C++",
-            extensions: vec!["c", "h", "cc", "cpp", "hpp"],
+            extensions: vec!["c", "h", "cc", "cpp", "hpp", "cxx", "mpp", "cppm", "ixx"],
             language: tree_sitter_cpp::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![
