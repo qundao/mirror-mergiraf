@@ -1,3 +1,4 @@
+use core::convert::identity;
 use std::{
     borrow::Cow,
     collections::HashSet,
@@ -312,7 +313,7 @@ impl<'a> MergedTree<'a> {
                     indentation,
                     class_mapping,
                 );
-                output.push_merged(tree_at_rev.reindented_source(&new_indentation).into());
+                output.push_merged(tree_at_rev.reindented_source(&new_indentation));
             }
             Self::MixedTree {
                 node: leader,
@@ -423,9 +424,9 @@ impl<'a> MergedTree<'a> {
         };
         match previous_sibling {
             Some(&PreviousSibling::RealNode(previous_node)) => {
-                let revisions = class_mapping.revision_set(previous_node);
-                let common_revisions =
-                    revisions.intersection(class_mapping.revision_set(rev_node).set());
+                let previous_revisions = class_mapping.revision_set(previous_node);
+                let revisions = class_mapping.revision_set(rev_node);
+                let common_revisions = previous_revisions.intersection(revisions.set());
                 let whitespaces = [Revision::Left, Revision::Right, Revision::Base].map(|rev| {
                     if common_revisions.contains(rev) {
                         Self::whitespace_at_rev(
@@ -440,35 +441,32 @@ impl<'a> MergedTree<'a> {
                     }
                 });
 
-                let (preceding_whitespace, indentation_shift) = match whitespaces {
-                    [
-                        Some(whitespace_left),
-                        Some(whitespace_right),
-                        Some(whitespace_base),
-                    ] => {
-                        if whitespace_base == whitespace_left {
-                            whitespace_right
-                        } else {
-                            whitespace_left
-                        }
+                let (preceding_whitespace, indentation_shift) = if let [
+                    Some(whitespace_left),
+                    Some(whitespace_right),
+                    Some(whitespace_base),
+                ] = whitespaces
+                {
+                    if whitespace_base == whitespace_left {
+                        whitespace_right
+                    } else {
+                        whitespace_left
                     }
-                    [Some(w), _, _] | [_, Some(w), _] | [_, _, Some(w)] => w,
-                    _ => representatives
-                        .iter()
-                        .find_map(|repr| {
-                            let indentation_shift = repr.node.indentation_shift().unwrap_or("");
-                            let ancestor_newlines =
-                                format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
-                            let new_newlines = format!("\n{indentation}");
-                            if let Some(preceding_whitespace) = repr.node.preceding_whitespace() {
+                } else {
+                    (whitespaces.into_iter().find_map(identity))
+                        .or_else(|| {
+                            representatives.iter().find_map(|repr| {
+                                let preceding_whitespace = repr.node.preceding_whitespace()?;
+                                let indentation_shift = repr.node.indentation_shift().unwrap_or("");
+                                let ancestor_newlines =
+                                    format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
+                                let new_newlines = format!("\n{indentation}");
                                 let new_whitespace =
                                     preceding_whitespace.replace(&ancestor_newlines, &new_newlines);
-                                Some((Cow::from(new_whitespace), Cow::from(indentation_shift)))
-                            } else {
-                                None
-                            }
+                                Some((Cow::from(new_whitespace), indentation_shift))
+                            })
                         })
-                        .unwrap_or((Cow::from(""), Cow::from(""))),
+                        .unwrap_or((Cow::from(""), ""))
                 };
 
                 output.push_merged(preceding_whitespace);
@@ -502,7 +500,7 @@ impl<'a> MergedTree<'a> {
         current_node: Leader<'a>,
         indentation: &str,
         class_mapping: &ClassMapping<'a>,
-    ) -> Option<(Cow<'a, str>, Cow<'a, str>)> {
+    ) -> Option<(Cow<'a, str>, &'a str)> {
         let previous_node_at_rev = class_mapping.node_at_rev(previous_node, rev)?;
         let current_node_at_rev = class_mapping.node_at_rev(current_node, rev)?;
 
@@ -528,34 +526,29 @@ impl<'a> MergedTree<'a> {
                     &format!("\n{ancestor_indentation}"),
                     &format!("\n{indentation}"),
                 )),
-                Cow::from(indentation_shift),
+                indentation_shift,
             ))
         } else {
             let indentation = Self::extract_indentation_shift("", source);
-            Some((Cow::from(source), Cow::from(indentation)))
+            Some((Cow::from(source), indentation))
         }
     }
 
     fn trailing_whitespace(node: Leader<'a>, class_mapping: &ClassMapping<'a>) -> Option<&'a str> {
-        let node_base = class_mapping.node_at_rev(node, Revision::Base);
-        let node_left = class_mapping.node_at_rev(node, Revision::Left);
-        let node_right = class_mapping.node_at_rev(node, Revision::Right);
+        let trailing_whitespaces = [Revision::Left, Revision::Right, Revision::Base].map(|rev| {
+            class_mapping
+                .node_at_rev(node, rev)
+                .and_then(AstNode::trailing_whitespace)
+        });
 
-        match (node_base, node_left, node_right) {
-            (Some(base), Some(left), Some(right)) => {
-                let base_trailing = base.trailing_whitespace();
-                let left_trailing = left.trailing_whitespace();
-                let right_trailing = right.trailing_whitespace();
-                if base_trailing == left_trailing {
-                    right_trailing
-                } else {
-                    left_trailing
-                }
+        if let [Some(l_trailing), Some(r_trailing), Some(b_trailing)] = trailing_whitespaces {
+            if b_trailing == l_trailing {
+                Some(r_trailing)
+            } else {
+                Some(l_trailing)
             }
-            (_, Some(node), _) | (_, _, Some(node)) | (Some(node), _, _) => {
-                node.trailing_whitespace()
-            }
-            (None, None, None) => None,
+        } else {
+            trailing_whitespaces.into_iter().find_map(identity)
         }
     }
 

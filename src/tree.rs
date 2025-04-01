@@ -608,13 +608,17 @@ impl<'a> AstNode<'a> {
 
     /// The source of this node, stripped from any indentation inherited by the node or its ancestors
     /// and shifted back to the desired indentation.
-    pub fn reindented_source(&'a self, new_indentation: &str) -> String {
-        let new_newlines = format!("\n{new_indentation}");
+    pub fn reindented_source(&'a self, new_indentation: &str) -> Cow<'a, str> {
         let indentation = (self.preceding_indentation())
             .or(self.ancestor_indentation())
             .unwrap_or("");
-        self.source
-            .replace(&format!("\n{indentation}"), &new_newlines) // TODO FIXME this is invalid for multiline string literals!
+        if indentation == new_indentation {
+            return Cow::from(self.source);
+        }
+        let newlines = format!("\n{indentation}");
+
+        let new_newlines = format!("\n{new_indentation}");
+        Cow::from(self.source.replace(&newlines, &new_newlines)) // TODO FIXME this is invalid for multiline string literals!
     }
 
     /// Source of the node, including any whitespace before and after,
