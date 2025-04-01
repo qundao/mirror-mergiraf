@@ -207,7 +207,8 @@ impl AttemptsCache {
                     Some((f, mtime))
                 })
                 .collect();
-            subdirs.sort_by_key(|&(_, mtime)| mtime);
+            // sort by mtime _descending_ (oldest subdirs are at the end)
+            subdirs.sort_by(|(_, mtime_a), (_, mtime_b)| mtime_b.cmp(mtime_a));
             subdirs
         };
         if let Some(old_subdirs) = subdirs.get(self.max_size..) {
@@ -223,6 +224,8 @@ impl AttemptsCache {
 
 #[cfg(test)]
 mod tests {
+    use std::{array, thread, time::Duration};
+
     use super::*;
 
     #[test]
@@ -310,7 +313,9 @@ mod tests {
         let attempts_dir = tmpdir.path();
 
         // create a few stale attempts
-        for _ in 0..4 {
+        let attempts: [Attempt; 4] = array::from_fn(|_| {
+            // compensate for file system timestamp (im)precision
+            thread::sleep(Duration::from_millis(100));
             cache
                 .new_attempt(
                     Path::new("foo/bar/MyFile"),
@@ -318,13 +323,20 @@ mod tests {
                     "hello left",
                     "bye right",
                 )
-                .expect("Failed to create attempt in cache");
-        }
+                .expect("Failed to create attempt in cache")
+        });
 
         let remaining_files = fs::read_dir(attempts_dir)
             .expect("could not read the attempts directory")
             .flatten()
             .count();
         assert_eq!(remaining_files, 2);
+
+        // the two old attempts were pruned
+        assert!(!attempts[0].dir.exists());
+        assert!(!attempts[1].dir.exists());
+        // the two new ones were not
+        assert!(attempts[2].dir.exists());
+        assert!(attempts[3].dir.exists());
     }
 }
