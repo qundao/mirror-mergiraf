@@ -217,7 +217,11 @@ impl<'a> MergedText<'a> {
                 }
                 MergeSection::Conflict { base, left, right } => {
                     if !gathering_conflict {
-                        if !output.ends_with('\n') && !output.is_empty() {
+                        if output.ends_with('\n') || output.is_empty() {
+                            base_buffer.clear();
+                            left_buffer.clear();
+                            right_buffer.clear();
+                        } else {
                             // we have an unfinished line in the output: let's remove it
                             // and add it to the conflict we are starting to gather
                             let last_newline_index = output.rfind('\n');
@@ -228,10 +232,6 @@ impl<'a> MergedText<'a> {
                             base_buffer.clone_from(&last_line);
                             left_buffer.clone_from(&last_line);
                             right_buffer = last_line;
-                        } else {
-                            base_buffer.clear();
-                            left_buffer.clear();
-                            right_buffer.clear();
                         }
                     }
                     base_buffer.push_str(base);

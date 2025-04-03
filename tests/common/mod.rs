@@ -5,8 +5,10 @@ use std::fs::{self, read_dir};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use itertools::Itertools;
+
 pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
-    let command_str = format!("git {}", args.join(" "));
+    let command_str = format!("git {}", args.iter().format(" "));
     let mut command = Command::new("git");
     command.current_dir(repo_dir);
     command.args(args);

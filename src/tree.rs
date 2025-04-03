@@ -424,22 +424,20 @@ impl<'a> AstNode<'a> {
     /// The node that comes just before this node in the list of children
     /// of its parent (if any).
     pub fn predecessor(&'a self) -> Option<&'a Self> {
-        let parent = self.parent()?;
-        let mut previous = None;
-        for sibling in &parent.children {
-            if sibling.id == self.id {
-                return previous;
-            }
-            previous = Some(sibling);
-        }
-        None
+        self.parent()?
+            .children
+            .iter()
+            .rev()
+            .skip_while(|sibling| sibling.id != self.id)
+            .skip(1)
+            .copied()
+            .next()
     }
 
     /// The node that comes just after this node in the list of children
     /// of its parent (if any).
     pub fn successor(&'a self) -> Option<&'a Self> {
-        let parent = self.parent()?;
-        parent
+        self.parent()?
             .children
             .iter()
             .skip_while(|sibling| sibling.id != self.id)
@@ -807,7 +805,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn check_heights() {
+    fn heights() {
         let ctx = ctx();
 
         assert_eq!(ctx.parse_json("null").height(), 1);
@@ -816,7 +814,7 @@ mod tests {
     }
 
     #[test]
-    fn check_sizes() {
+    fn sizes() {
         let ctx = ctx();
 
         assert_eq!(ctx.parse_json("null").size(), 2);
@@ -825,7 +823,7 @@ mod tests {
     }
 
     #[test]
-    fn check_children_by_field_names() {
+    fn children_by_field_names() {
         let ctx = ctx();
 
         let root = ctx.parse_json("{\"foo\": 3}").root();
@@ -843,7 +841,7 @@ mod tests {
     }
 
     #[test]
-    fn check_children_by_field_names_with_modifiers() {
+    fn children_by_field_names_with_modifiers() {
         let ctx = ctx();
 
         let root = ctx.parse_java("public class MyCls {}").root();
@@ -855,7 +853,7 @@ mod tests {
     }
 
     #[test]
-    fn check_atomic_nodes() {
+    fn atomic_nodes() {
         let ctx = ctx();
 
         let root = ctx.parse_java("import java.io.InputStream;").root();
@@ -864,7 +862,7 @@ mod tests {
     }
 
     #[test]
-    fn check_s_expr() {
+    fn s_expr() {
         let ctx = ctx();
 
         assert_eq!(

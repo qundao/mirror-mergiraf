@@ -6,7 +6,7 @@ use rustc_hash::FxHashMap;
 use crate::{matching::Matching, pcs::Revision, tree::AstNode};
 
 /// A node together with a marker of which revision it came from.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq)]
 pub struct RevNode<'a> {
     pub rev: Revision,
     pub node: &'a AstNode<'a>,
@@ -14,7 +14,7 @@ pub struct RevNode<'a> {
 
 /// A node at a revision, which happens to be the leader of its class
 /// in a class-mapping.
-#[derive(Debug, Copy, Clone, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Leader<'a>(RevNode<'a>);
 
 impl PartialEq for RevNode<'_> {
@@ -23,9 +23,6 @@ impl PartialEq for RevNode<'_> {
         self.rev == other.rev && self.node.id == other.node.id
     }
 }
-
-impl Eq for RevNode<'_> {}
-impl Eq for Leader<'_> {}
 
 impl<'a> RevNode<'a> {
     pub fn new(rev: Revision, node: &'a AstNode<'a>) -> Self {

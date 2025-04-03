@@ -193,53 +193,50 @@ impl<'a> MergedTree<'a> {
         }
 
         match self {
+            Self::ExactTree { node, .. } | Self::MixedTree { node, .. }
+                if nodes.contains(&node) =>
+            {
+                Self::line_based_local_fallback_for_revnode(node, class_mapping, settings)
+            }
             Self::ExactTree {
                 node, revisions, ..
             } => {
-                if nodes.contains(&node) {
-                    Self::line_based_local_fallback_for_revnode(node, class_mapping, settings)
-                } else {
-                    let picked_revision = revisions.any();
-                    let children = class_mapping
-                        .children_at_revision(node, picked_revision)
-                        .expect("non-existent children for revision in revset of ExactTree");
-                    let cloned_children: Vec<MergedTree<'a>> = children
-                        .into_iter()
-                        .map(|c| {
-                            Self::new_exact(c, revisions, class_mapping)
-                                .force_line_based_fallback_on_specific_nodes(
-                                    nodes,
-                                    class_mapping,
-                                    settings,
-                                )
-                        })
-                        .collect();
-                    if cloned_children
-                        .iter()
-                        .all(|child| matches!(child, Self::ExactTree { .. }))
-                    {
-                        self
-                    } else {
-                        Self::new_mixed(node, cloned_children)
-                    }
-                }
-            }
-            Self::MixedTree { node, children, .. } => {
-                if nodes.contains(&node) {
-                    Self::line_based_local_fallback_for_revnode(node, class_mapping, settings)
-                } else {
-                    let cloned_children = children
-                        .into_iter()
-                        .map(|c| {
-                            c.force_line_based_fallback_on_specific_nodes(
+                let picked_revision = revisions.any();
+                let children = class_mapping
+                    .children_at_revision(node, picked_revision)
+                    .expect("non-existent children for revision in revset of ExactTree");
+                let cloned_children: Vec<MergedTree<'a>> = children
+                    .into_iter()
+                    .map(|c| {
+                        Self::new_exact(c, revisions, class_mapping)
+                            .force_line_based_fallback_on_specific_nodes(
                                 nodes,
                                 class_mapping,
                                 settings,
                             )
-                        })
-                        .collect();
+                    })
+                    .collect();
+                if cloned_children
+                    .iter()
+                    .all(|child| matches!(child, Self::ExactTree { .. }))
+                {
+                    self
+                } else {
                     Self::new_mixed(node, cloned_children)
                 }
+            }
+            Self::MixedTree { node, children, .. } => {
+                let cloned_children = children
+                    .into_iter()
+                    .map(|c| {
+                        c.force_line_based_fallback_on_specific_nodes(
+                            nodes,
+                            class_mapping,
+                            settings,
+                        )
+                    })
+                    .collect();
+                Self::new_mixed(node, cloned_children)
             }
             _ => self,
         }
@@ -623,7 +620,7 @@ impl<'a> MergedTree<'a> {
                 let children_printed = children
                     .iter()
                     .map(|c| c.debug_print(indentation + 2))
-                    .join("\n");
+                    .format("\n");
                 format!("Mixed({node}\n{children_printed}{result})")
             }
             Self::Conflict { .. } => "Conflict()".to_string(),

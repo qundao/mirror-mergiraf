@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 use itertools::Itertools;
 use log::debug;
 use regex::Regex;
@@ -117,7 +119,7 @@ fn highlight_duplicate_signatures<'a>(
         sigs.len(),
         "Inconsistent length of signature arrays and elements array"
     );
-    for (idx, (element, sig)) in std::iter::zip(&elements, &sigs).enumerate().rev() {
+    for (idx, (element, sig)) in zip(&elements, &sigs).enumerate().rev() {
         match sig {
             None => {
                 let is_separator = is_separator(element, trimmed_separator);
@@ -258,10 +260,7 @@ fn merge_same_sigs<'a>(
     let right = filter_by_revision(elements, Revision::Right, class_mapping);
 
     if left.len() == right.len()
-        && left
-            .iter()
-            .zip(right.iter())
-            .all(|(elem_left, elem_right)| elem_left.isomorphic_to(elem_right))
+        && zip(&left, &right).all(|(elem_left, elem_right)| elem_left.isomorphic_to(elem_right))
     {
         let v = add_separators(left, separator, add_separator)
             .iter()

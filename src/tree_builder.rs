@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::fmt::Display;
 
 use either::Either;
 use itertools::Itertools;
@@ -273,6 +274,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         // reason: the following two `if`s should really be `&&`-ed,
                         // but https://github.com/rust-lang/rust/issues/53667
                         // until then, collapsing one but not the other looks misleading
+                        // TODO(if-let-chains): use them here
                         #[allow(clippy::collapsible_if)]
                         if let PCSNode::Node { node: leader, .. } = node {
                             if let Some(commutative_parent) = self
@@ -318,7 +320,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             debug!(
                 "{pad}{node} Error while gathering successors, some non-base successors were not visited:"
             );
-            debug!("{pad}{}", non_base_nodes.difference(&seen_nodes).join(", "));
+            debug!(
+                "{pad}{}",
+                non_base_nodes.difference(&seen_nodes).format(", ")
+            );
             return self.commutative_or_line_based_local_fallback(node, visiting_state);
         }
 
@@ -561,6 +566,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .lang_profile
             .get_commutative_parent(node.grammar_name())
         {
+            // TODO(if-let-chains): if let Some() && if let Ok() {...}
             let commutative_merge =
                 self.commutatively_merge_children(node, commutative_parent, visiting_state);
             if let Ok(successful_merge) = commutative_merge {
@@ -771,13 +777,13 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             rev.iter()
                 .map(|n| n.source.trim())
                 .find(|s| *s != trimmed_left_delim)
-                .is_some_and(|s| s == trimmed_sep)
+                == Some(trimmed_sep)
         });
         let ends_with_separator = [&base, &left, &right].into_iter().any(|rev| {
             rev.iter()
                 .map(|n| n.source.trim())
                 .rfind(|s| *s != trimmed_right_delim)
-                .is_some_and(|s| s == trimmed_sep)
+                == Some(trimmed_sep)
         });
 
         let separator = MergedTree::CommutativeChildSeparator {
@@ -786,15 +792,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 .chain(Self::find_separators_with_whitespace(base, trimmed_sep))
                 // remove the indentation at the end of separators
                 // (it will be added back when pretty-printing, possibly at a different level)
-                .map(|separator| {
+                .next()
+                .map_or(commutative_parent.separator, |separator| {
                     let newline = separator.rfind('\n');
                     match newline {
                         None => separator,
                         Some(index) => &separator[..(index + 1)],
                     }
-                })
-                .next()
-                .unwrap_or(commutative_parent.separator),
+                }),
         };
 
         // add delimiters and separators in the merged list
@@ -1040,8 +1045,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     }
 }
 
-fn fmt_set<S>(s: &HashSet<(Revision, PCSNode<'_>), S>) -> String {
-    s.iter().map(|(r, n)| format!("({r},{n})")).join(", ")
+fn fmt_set<S>(s: &HashSet<(Revision, PCSNode<'_>), S>) -> impl Display {
+    s.iter()
+        .format_with(", ", |(r, n), f| f(&format_args!("({r},{n})")))
 }
 
 #[cfg(test)]

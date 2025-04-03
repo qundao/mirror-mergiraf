@@ -78,7 +78,7 @@ fn create_archive(
         Alphanumeric.sample_string(&mut rand::rng(), 8)
     );
     let archive_name = format!("{archive_base_name}.zip");
-    let file_desc = File::create(archive_name.clone())?;
+    let file_desc = File::create(&archive_name)?;
     let mut zip = ZipWriter::new(file_desc);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
