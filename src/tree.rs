@@ -395,32 +395,6 @@ impl<'a> AstNode<'a> {
         unsafe { *self.parent.get() }
     }
 
-    /// Represent the tree as a sort of S-expression
-    pub fn s_expr(&self) -> String {
-        let mut output = String::new();
-        self.internal_s_expr(&mut output);
-        output
-    }
-
-    fn internal_s_expr(&self, output: &mut String) {
-        if self.is_leaf() {
-            output.push_str(self.source);
-        } else {
-            output.push_str(self.grammar_name);
-            output.push('(');
-            let mut first = true;
-            for child in &self.children {
-                if first {
-                    first = false;
-                } else {
-                    output.push(' ');
-                }
-                child.internal_s_expr(output);
-            }
-            output.push(')');
-        }
-    }
-
     /// The node that comes just before this node in the list of children
     /// of its parent (if any).
     pub fn predecessor(&'a self) -> Option<&'a Self> {
@@ -859,16 +833,6 @@ mod tests {
         let root = ctx.parse_java("import java.io.InputStream;").root();
         let import_statement = root.child(0).unwrap();
         assert_eq!(import_statement.children.len(), 0);
-    }
-
-    #[test]
-    fn s_expr() {
-        let ctx = ctx();
-
-        assert_eq!(
-            ctx.parse_json("{\"foo\": 3}").root().s_expr(),
-            "document(object({ pair(string(\" foo \") : 3) }))"
-        );
     }
 
     #[test]
