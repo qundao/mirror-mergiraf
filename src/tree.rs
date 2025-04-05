@@ -137,8 +137,19 @@ impl<'a> AstNode<'a> {
             cursor.goto_parent();
         }
         let node = cursor.node();
+        // Strip any trailing newlines from the node's source, because we're better
+        // off treating this as whitespace between nodes, to keep track of indentation shifts
         let range = node.byte_range();
         let local_source = &global_source[range.start..range.end];
+        let (range, local_source) = if local_source.ends_with('\n') && node.parent().is_some() {
+            let trimmed_source = local_source.trim_end_matches('\n');
+            (
+                range.start..(range.end - local_source.len() + trimmed_source.len()),
+                trimmed_source,
+            )
+        } else {
+            (range, local_source)
+        };
         if node.is_error() {
             return Err(format!(
                 "parse error at {range:?}, starting with: {}",
@@ -199,7 +210,7 @@ impl<'a> AstNode<'a> {
             grammar_name: node.grammar_name(),
             field_name,
             // parse-specific fields not included in hash/isomorphism
-            byte_range: node.byte_range(),
+            byte_range: range,
             id: 2 * node.id(), // 2* to make it disjoint from the split lines we introduce above
             descendant_count,
             parent: UnsafeCell::new(None),
@@ -467,12 +478,7 @@ impl<'a> AstNode<'a> {
     pub fn preceding_whitespace(&'a self) -> Option<&'a str> {
         let parent = self.parent()?;
         let predecessor = self.predecessor()?;
-        // in some grammars (such as Go), newlines can be parsed explicitly as nodes, meaning that
-        // the whitespace at the end of the predecessor should be included as well in what we return here.
-        let predecessor_end_whitespace =
-            predecessor.source.len() - predecessor.source.trim_end().len();
-        let start =
-            predecessor.byte_range.end - predecessor_end_whitespace - parent.byte_range.start;
+        let start = predecessor.byte_range.end - parent.byte_range.start;
         let end = self.byte_range.start - parent.byte_range.start;
         Some(&parent.source[start..end])
     }
@@ -836,6 +842,17 @@ mod tests {
     }
 
     #[test]
+    fn trailing_newlines_are_stripped_from_nodes() {
+        let ctx = ctx();
+        let tree = ctx.parse_rust("  /// test\n  fn foo() {\n    ()\n  }\n");
+        let comment = tree.root().child(0).unwrap();
+        assert_eq!(comment.grammar_name, "line_comment");
+        // tree-sitter-rust includes a newline at the end of the source for this node,
+        // but we strip it when converting the tree to our own data structure (`AstNode`)
+        assert_eq!(comment.source, "/// test");
+    }
+
+    #[test]
     fn hashing_does_not_depend_on_whitespace_but_on_content() {
         let ctx = ctx();
 
@@ -1002,8 +1019,8 @@ mod tests {
         let tree = ctx.parse_toml("[foo]\na = 1\n\n[bar]\nb = 2");
         let first_table = tree.root().child(0).unwrap();
         let second_table = tree.root().child(1).unwrap();
-        assert_eq!(first_table.source, "[foo]\na = 1\n\n");
-        assert_eq!(first_table.trailing_whitespace(), Some("\n\n"));
+        assert_eq!(first_table.source, "[foo]\na = 1");
+        assert_eq!(first_table.trailing_whitespace(), None);
         assert_eq!(second_table.source, "[bar]\nb = 2");
         assert_eq!(second_table.trailing_whitespace(), None);
     }
