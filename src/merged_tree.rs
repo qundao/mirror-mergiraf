@@ -406,6 +406,15 @@ impl<'a> MergedTree<'a> {
     }
 
     /// Adds any preceding whitespace before pretty-printing a node.
+    /// In most cases, whitespace isn't covered by the abstract syntax tree
+    /// nodes. Representing a (merged) tree back to a string requires therefore
+    /// explicitly adding this whitespace. This method is a heuristic which
+    /// picks whitespace from the original trees and attempts to compute a suitable
+    /// whitespace to append to the output.
+    ///
+    /// It also returns the new indentation at which the current node (`rev_node`)
+    /// should be pretty-printed (without needing to add any further whitespace on the
+    /// first line of the node).
     fn add_preceding_whitespace<'b>(
         output: &mut MergedText<'a>,
         rev_node: Leader<'a>,
@@ -413,7 +422,7 @@ impl<'a> MergedTree<'a> {
         indentation: &'b str,
         class_mapping: &ClassMapping<'a>,
     ) -> Cow<'b, str> {
-        let arbitrary_representative = rev_node.as_representative().node;
+        // The list of representatives of the node in the Base, Left and Right revisions.
         let representatives = {
             let mut representatives = class_mapping.representatives(rev_node);
             representatives.sort_by_key(|a| a.rev);
@@ -426,6 +435,8 @@ impl<'a> MergedTree<'a> {
                 let common_revisions = previous_revisions.intersection(revisions.set());
                 let whitespaces = [Revision::Left, Revision::Right, Revision::Base].map(|rev| {
                     if common_revisions.contains(rev) {
+                        // The previous node in the output and the current have this revision
+                        // in common. So we can likely reuse whitespace from this revision (almost) directly.
                         Self::whitespace_at_rev(
                             rev,
                             previous_node,
@@ -434,30 +445,48 @@ impl<'a> MergedTree<'a> {
                             class_mapping,
                         )
                     } else {
+                        // One of the two nodes don't belong to this revision, so we can't use it to infer whitespace between them
                         None
                     }
                 });
 
+                // Now we have inferred potentially different whitespaces for each revision.
+                // Which one should we pick?
                 let (preceding_whitespace, indentation_shift) = if let [
                     Some(whitespace_left),
                     Some(whitespace_right),
                     Some(whitespace_base),
                 ] = whitespaces
                 {
+                    // We have a candidate whitespace for all three revisions.
                     if whitespace_base == whitespace_left {
+                        // If whitespace only changed in the right revision, then
+                        // the right revision is likely doing some reformatting, so keep
+                        // its whitespace, as an attempt to preserve the reformatting.
                         whitespace_right
                     } else {
+                        // The left revision could be reformatting. Or both left and right,
+                        // in which case we just go for the left revision arbitrarily.
                         whitespace_left
                     }
                 } else {
+                    // Otherwise, pick any of the computed whitespaces, in the priority order
+                    // specified above (left, right, base), to handle reformattings the best we can.
                     (whitespaces.into_iter().find_map(identity))
                         .or_else(|| {
+                            // If we couldn't find any computed whitespace,
+                            // then fall back on using the whitespace preceding the current node,
+                            // in any revision, regardless of whether the previous merged node
+                            // is also the previous node in that revision.
                             representatives.iter().find_map(|repr| {
                                 let preceding_whitespace = repr.node.preceding_whitespace()?;
                                 let indentation_shift = repr.node.indentation_shift().unwrap_or("");
                                 let ancestor_newlines =
                                     format!("\n{}", repr.node.ancestor_indentation().unwrap_or(""));
                                 let new_newlines = format!("\n{indentation}");
+                                // Final whitespace is obtained by re-indenting the preceding whitespace in the
+                                // original revision, replacing any newlines in it by newlines with a potentially
+                                // different indentation.
                                 let new_whitespace =
                                     preceding_whitespace.replace(&ancestor_newlines, &new_newlines);
                                 Some((Cow::from(new_whitespace), indentation_shift))
@@ -470,16 +499,26 @@ impl<'a> MergedTree<'a> {
                 Cow::from(format!("{indentation}{indentation_shift}"))
             }
             Some(PreviousSibling::CommutativeSeparator(separator)) => {
+                // The previous merged node doesn't belong to any revision, as we created this separator
+                // during commutative merging of children.
                 if separator.ends_with('\n') {
+                    // We start a new line, so we need to add indentation accordingly. To determine this
+                    // indentation, we pick an arbitrary revision and use the indentation shift from there,
+                    // until we figure out a more informed way to do that.
+                    let arbitrary_representative = rev_node.as_representative().node;
                     let shift = arbitrary_representative.indentation_shift().unwrap_or("");
                     let new_indentation = format!("{indentation}{shift}");
                     output.push_merged(Cow::from(new_indentation.clone()));
                     Cow::from(new_indentation)
                 } else {
+                    // The separator is assumed to contain sufficient whitespace on its own,
+                    // we don't add any other.
                     Cow::from(indentation)
                 }
             }
             None => {
+                // Otherwise we're the first child in the list, just fall back on the preceding
+                // whitespace in any revision
                 let whitespace = representatives
                     .iter()
                     .find_map(|repr| repr.node.preceding_whitespace())
@@ -490,7 +529,11 @@ impl<'a> MergedTree<'a> {
         }
     }
 
-    /// Extracts the whitespace between two nodes at a given revision
+    /// Extracts the whitespace between two nodes at a given revision.
+    /// This returns two strings:
+    /// - the whitespace between the nodes
+    /// - the indentation shift of the current node (the difference between
+    ///   the parent node's indentation and the current node's indentation)
     fn whitespace_at_rev(
         rev: Revision,
         previous_node: Leader<'a>,
@@ -512,6 +555,7 @@ impl<'a> MergedTree<'a> {
         let root = current_node_at_rev.root();
         let root_start = root.byte_range.start;
         let source = &root.source[(previous_end - root_start)..(current_start - root_start)];
+        // make sure it only consists of whitespace
         if !source.trim().is_empty() {
             return None;
         }
@@ -531,6 +575,7 @@ impl<'a> MergedTree<'a> {
         }
     }
 
+    /// Computes the best trailing whitespace to keep at the end of a node
     fn trailing_whitespace(node: Leader<'a>, class_mapping: &ClassMapping<'a>) -> Option<&'a str> {
         let nodes = [Revision::Left, Revision::Right, Revision::Base]
             .map(|rev| class_mapping.node_at_rev(node, rev));
@@ -540,11 +585,16 @@ impl<'a> MergedTree<'a> {
             let left_trailing = left.trailing_whitespace();
             let right_trailing = right.trailing_whitespace();
             if base_trailing == left_trailing {
+                // Only right changes, so perhaps it's a reformatting on the right revision.
+                // Let's try to preserve this reformatting
                 right_trailing
             } else {
+                // Or maybe the left revision reformats. If both reformat, arbitrarily decide to keep the left side.
                 left_trailing
             }
         } else {
+            // If the node doesn't belong to all revisions, let's just pick a revision (in
+            // the priority order defined above) and return the trailing whitespace at that revision.
             nodes
                 .into_iter()
                 .find_map(identity)
@@ -552,16 +602,27 @@ impl<'a> MergedTree<'a> {
         }
     }
 
+    /// Compute the difference between the ancestor's indentation and the current node's indentation.
+    /// When pretty-printing the node at new indentation (given that the node might have moved places),
+    /// we'll add this indentation shift to the new indentation, to obtain the indentation of the new contents
+    /// of the node.
     fn extract_indentation_shift<'b>(
         ancestor_indentation: &str,
         preceding_whitespace: &'b str,
     ) -> &'b str {
         let line_with_ancestor_indentation = format!("\n{ancestor_indentation}");
+        // Subtract the ancestor's indentation from the last indented line.
+        // For example, consider:
+        // - the following `ancestor_indentation`: ".."       (2 spaces)
+        // - the following `preceding_whitespace`: "\n\n...." (4 spaces)
+        //
+        // We match the former onto the latter like this:
+        // "\n\n...."
+        //    \n..^^--- the indentation shift
+        //    ^^^^-----`ancestor_indentation`
         preceding_whitespace
-            .rfind(&line_with_ancestor_indentation)
-            .map_or("", |s| {
-                &preceding_whitespace[(s + line_with_ancestor_indentation.len())..]
-            })
+            .rsplit_once(&line_with_ancestor_indentation)
+            .map_or("", |(_, shift)| shift)
     }
 
     /// The number of conflicts in this merge
