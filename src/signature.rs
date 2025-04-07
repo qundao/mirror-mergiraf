@@ -403,10 +403,10 @@ mod tests {
 
         let document = ctx.parse_json("{\"a\":\"b\"}").root();
         let other_document = ctx.parse_json("{\"a\":\"c\"}").root();
-        let object = document.child(0).unwrap();
-        let pair = object.child(1).unwrap();
-        let other_pair = other_document.child(0).unwrap().child(1).unwrap();
-        let key = pair.child(0).unwrap();
+        let object = document[0];
+        let pair = object[1];
+        let other_pair = other_document[0][1];
+        let key = pair[0];
 
         let signature_def = {
             let paths = vec![vec![PathStep::Field("key")]];
@@ -428,14 +428,8 @@ mod tests {
     fn node_equality_and_hashing() {
         let ctx = ctx();
 
-        let object = ctx.parse_json("{\"a\":\"b\"}").root().child(0).unwrap();
-        let object_2 = ctx
-            .parse_json("[{\"a\": \"b\"}]")
-            .root()
-            .child(0)
-            .unwrap()
-            .child(1)
-            .unwrap();
+        let object = ctx.parse_json("{\"a\":\"b\"}").root()[0];
+        let object_2 = ctx.parse_json("[{\"a\": \"b\"}]").root()[0][1];
 
         let class_mapping = ClassMapping::new();
         let node_2 = class_mapping.map_to_leader(RevNode {

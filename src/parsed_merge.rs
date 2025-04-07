@@ -1007,24 +1007,10 @@ struct MyType {
         let matching =
             parsed.generate_matching(Revision::Left, Revision::Right, &parsed_left, &parsed_right);
 
-        let mytype_left = parsed_left.root().child(0).unwrap().child(1).unwrap();
-        let mytype_right = parsed_right.root().child(0).unwrap().child(1).unwrap();
-        let closing_bracket_left = parsed_left
-            .root()
-            .child(0)
-            .unwrap()
-            .child(2)
-            .unwrap()
-            .child(7)
-            .unwrap();
-        let closing_bracket_right = parsed_right
-            .root()
-            .child(0)
-            .unwrap()
-            .child(2)
-            .unwrap()
-            .child(3)
-            .unwrap();
+        let mytype_left = parsed_left.root()[0][1];
+        let mytype_right = parsed_right.root()[0][1];
+        let closing_bracket_left = parsed_left.root()[0][2][7];
+        let closing_bracket_right = parsed_right.root()[0][2][3];
 
         assert!(matching.are_matched(mytype_left, mytype_right));
         assert!(matching.are_matched(closing_bracket_left, closing_bracket_right));

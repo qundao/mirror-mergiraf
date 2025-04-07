@@ -447,13 +447,13 @@ mod tests {
         let left_tree = ctx.parse_rust("struct Foo;\n");
         let right_tree = ctx.parse_rust("struct Bar;\n");
 
-        let foo_base = RevNode::new(Revision::Base, base_tree.root().child(0).unwrap());
+        let foo_base = RevNode::new(Revision::Base, base_tree.root()[0]);
         assert_eq!(foo_base.node.source, "struct Foo;");
-        let bar_base = RevNode::new(Revision::Base, base_tree.root().child(1).unwrap());
+        let bar_base = RevNode::new(Revision::Base, base_tree.root()[1]);
         assert_eq!(bar_base.node.source, "struct Bar;");
-        let foo_left = RevNode::new(Revision::Left, left_tree.root().child(0).unwrap());
+        let foo_left = RevNode::new(Revision::Left, left_tree.root()[0]);
         assert_eq!(foo_left.node.source, "struct Foo;");
-        let bar_right = RevNode::new(Revision::Right, right_tree.root().child(0).unwrap());
+        let bar_right = RevNode::new(Revision::Right, right_tree.root()[0]);
         assert_eq!(bar_right.node.source, "struct Bar;");
 
         let mut base_left = Matching::new();
@@ -488,15 +488,15 @@ mod tests {
         let left_tree = ctx.parse_rust("struct FooLeft;\nstruct BarLeft;\nstruct HeyLeft;\n");
         let right_tree = ctx.parse_rust("struct FooRight;\nstruct BarRight;\nstruct HeyRight;\n");
 
-        let foo_base = RevNode::new(Revision::Base, base_tree.root().child(0).unwrap());
-        let foo_left = RevNode::new(Revision::Left, left_tree.root().child(0).unwrap());
-        let foo_right = RevNode::new(Revision::Right, right_tree.root().child(0).unwrap());
-        let bar_base = RevNode::new(Revision::Base, base_tree.root().child(1).unwrap());
-        let bar_left = RevNode::new(Revision::Left, left_tree.root().child(1).unwrap());
-        let bar_right = RevNode::new(Revision::Right, right_tree.root().child(1).unwrap());
-        let hey_base = RevNode::new(Revision::Base, base_tree.root().child(2).unwrap());
-        let hey_left = RevNode::new(Revision::Left, left_tree.root().child(2).unwrap());
-        let hey_right = RevNode::new(Revision::Right, right_tree.root().child(2).unwrap());
+        let foo_base = RevNode::new(Revision::Base, base_tree.root()[0]);
+        let foo_left = RevNode::new(Revision::Left, left_tree.root()[0]);
+        let foo_right = RevNode::new(Revision::Right, right_tree.root()[0]);
+        let bar_base = RevNode::new(Revision::Base, base_tree.root()[1]);
+        let bar_left = RevNode::new(Revision::Left, left_tree.root()[1]);
+        let bar_right = RevNode::new(Revision::Right, right_tree.root()[1]);
+        let hey_base = RevNode::new(Revision::Base, base_tree.root()[2]);
+        let hey_left = RevNode::new(Revision::Left, left_tree.root()[2]);
+        let hey_right = RevNode::new(Revision::Right, right_tree.root()[2]);
 
         let mut base_left = Matching::new();
         base_left.add(base_tree.root(), left_tree.root());

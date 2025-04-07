@@ -143,11 +143,11 @@ mod tests {
         let mut priority_list = PriorityList::new();
 
         let node1 = ctx.parse_rust("fn x() { 1 + (2 + 5) }").root();
-        let node1 = node1.child(0).unwrap().child(3).unwrap().child(1).unwrap();
+        let node1 = node1[0][3][1];
         priority_list.open(node1);
-        let child1 = node1.child(0).unwrap();
-        let child2 = node1.child(1).unwrap();
-        let child3 = node1.child(2).unwrap();
+        let child1 = node1[0];
+        let child2 = node1[1];
+        let child3 = node1[2];
 
         assert_eq!(priority_list.peek_max(), Some(2));
         assert_eq!(priority_list.pop(), vec![child3]);

@@ -202,13 +202,13 @@ mod tests {
 
         let mut matching = Matching::new();
 
-        let array1 = tree1.root().child(0).unwrap();
-        let array2 = tree2.root().child(0).unwrap();
+        let array1 = tree1.root()[0];
+        let array2 = tree2.root()[0];
 
-        let elem1 = array1.child(1).unwrap();
+        let elem1 = array1[1];
         assert_eq!(elem1.source, "1");
-        let elem4 = array2.child(1).unwrap();
-        let elem5 = array2.child(3).unwrap();
+        let elem4 = array2[1];
+        let elem5 = array2[3];
 
         matching.add(elem1, elem4);
         matching.add(elem1, elem5);

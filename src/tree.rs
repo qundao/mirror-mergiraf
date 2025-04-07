@@ -7,6 +7,8 @@ use std::{
     iter::zip,
     ops::Range,
 };
+#[cfg(test)]
+use std::{ops::Index, slice::SliceIndex};
 
 use either::Either;
 use itertools::Itertools;
@@ -729,6 +731,18 @@ impl Display for AstNode<'_> {
     }
 }
 
+#[cfg(test)] // should avoid panicking code elsewhere
+impl<'a, T> Index<T> for AstNode<'a>
+where
+    T: SliceIndex<[&'a Self]>,
+{
+    type Output = <[&'a Self] as Index<T>>::Output;
+
+    fn index(&self, index: T) -> &Self::Output {
+        &self.children[index]
+    }
+}
+
 struct DfsIterator<'a> {
     current: Vec<&'a AstNode<'a>>,
 }
@@ -807,15 +821,11 @@ mod tests {
         let ctx = ctx();
 
         let root = ctx.parse_json("{\"foo\": 3}").root();
-        let object = root.child(0).unwrap();
-        let pair = object.child(1).unwrap();
+        let object = root[0];
+        let pair = object[1];
         assert_eq!(root.children_by_field_name("non_existent"), None);
         assert_eq!(
-            pair.children_by_field_name("key")
-                .unwrap()
-                .first()
-                .unwrap()
-                .source,
+            pair.children_by_field_name("key").unwrap()[0].source,
             "\"foo\""
         );
     }
@@ -825,10 +835,10 @@ mod tests {
         let ctx = ctx();
 
         let root = ctx.parse_java("public class MyCls {}").root();
-        let class_declaration = root.child(0).unwrap();
+        let class_declaration = root[0];
         assert_eq!(
             class_declaration.children_by_field_name("name"),
-            Some(&vec![class_declaration.child(2).unwrap()])
+            Some(&vec![class_declaration[2]])
         );
     }
 
@@ -837,7 +847,7 @@ mod tests {
         let ctx = ctx();
 
         let root = ctx.parse_java("import java.io.InputStream;").root();
-        let import_statement = root.child(0).unwrap();
+        let import_statement = root[0];
         assert_eq!(import_statement.children.len(), 0);
     }
 
@@ -967,10 +977,10 @@ mod tests {
 
         let node_types = truncated.postfix().map(|n| n.grammar_name).collect_vec();
 
-        let truncated_object = truncated.root().child(0).unwrap();
-        let original_object = tree.root().child(0).unwrap();
-        let truncated_first_pair = truncated_object.child(1).unwrap();
-        let original_first_pair = original_object.child(1).unwrap();
+        let truncated_object = truncated.root()[0];
+        let original_object = tree.root()[0];
+        let truncated_first_pair = truncated_object[1];
+        let original_first_pair = original_object[1];
 
         assert_eq!(truncated_object.id, original_object.id);
         assert_eq!(truncated_first_pair.id, original_first_pair.id);
@@ -986,12 +996,10 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse_json("[1, 2,\n 3]");
 
-        let root = tree.root().child(0).unwrap();
-        let bracket = root.child(0).unwrap();
-        let one = root.child(1).unwrap();
-        let comma = root.child(2).unwrap();
-        let two = root.child(3).unwrap();
-        let three = root.child(5).unwrap();
+        let root = tree.root()[0];
+        let [bracket, one, comma, two, _, three] = root[0..=5] else {
+            unreachable!()
+        };
 
         assert_eq!(root.preceding_whitespace(), None);
         assert_eq!(bracket.preceding_whitespace(), None);
@@ -1005,9 +1013,9 @@ mod tests {
     fn preceding_whitespace_go() {
         let ctx = ctx();
         let tree = ctx.parse_go("import (\n    \"fmt\"\n    \"core\"\n)\n");
-        let root = tree.root().child(0).unwrap();
-        let import_list = root.child(1).unwrap();
-        let core = import_list.child(2).unwrap();
+        let root = tree.root()[0];
+        let import_list = root[1];
+        let core = import_list[2];
         assert_eq!(core.source, "\"core\"");
         assert_eq!(core.preceding_whitespace(), Some("\n    "));
         assert_eq!(core.ancestor_indentation(), None);
@@ -1017,8 +1025,8 @@ mod tests {
     fn trailing_whitespace_toml() {
         let ctx = ctx();
         let tree = ctx.parse_toml("[foo]\na = 1\n\n[bar]\nb = 2");
-        let first_table = tree.root().child(0).unwrap();
-        let second_table = tree.root().child(1).unwrap();
+        let first_table = tree.root()[0];
+        let second_table = tree.root()[1];
         assert_eq!(first_table.source, "[foo]\na = 1");
         assert_eq!(first_table.trailing_whitespace(), None);
         assert_eq!(second_table.source, "[bar]\nb = 2");
@@ -1029,9 +1037,9 @@ mod tests {
     fn preceding_indentation_shift() {
         let ctx = ctx();
         let tree = ctx.parse_java("\nclass MyCls {\n    int attr;\n}");
-        let class_decl = tree.root().child(0).unwrap();
-        let class_body = class_decl.child(2).unwrap();
-        let attr = class_body.child(1).unwrap();
+        let class_decl = tree.root()[0];
+        let class_body = class_decl[2];
+        let attr = class_body[1];
 
         assert_eq!(attr.indentation_shift(), Some("    "));
     }
@@ -1040,16 +1048,9 @@ mod tests {
     fn preceding_indentation_shift_tabs() {
         let ctx = ctx();
         let tree = ctx.parse_java("class Outer {\n\tclass MyCls {\n\t\tint attr;\n\t}\n}\n");
-        let class_decl = tree
-            .root()
-            .child(0)
-            .unwrap()
-            .child(2)
-            .unwrap()
-            .child(1)
-            .unwrap();
-        let class_body = class_decl.child(2).unwrap();
-        let attr = class_body.child(1).unwrap();
+        let class_decl = tree.root()[0][2][1];
+        let class_body = class_decl[2];
+        let attr = class_body[1];
 
         assert_eq!(attr.indentation_shift(), Some("\t"));
     }
@@ -1058,16 +1059,9 @@ mod tests {
     fn preceding_indentation_shift_mixed_spaces_and_tabs() {
         let ctx = ctx();
         let tree = ctx.parse_java("class Outer {\n\tclass MyCls {\n        int attr;\n\t}\n}\n");
-        let class_decl = tree
-            .root()
-            .child(0)
-            .unwrap()
-            .child(2)
-            .unwrap()
-            .child(1)
-            .unwrap();
-        let class_body = class_decl.child(2).unwrap();
-        let attr = class_body.child(1).unwrap();
+        let class_decl = tree.root()[0][2][1];
+        let class_body = class_decl[2];
+        let attr = class_body[1];
 
         assert_eq!(attr.indentation_shift(), Some("    "));
     }
@@ -1076,16 +1070,9 @@ mod tests {
     fn preceding_indentation_shift_mixed_tabs_and_spaces() {
         let ctx = ctx();
         let tree = ctx.parse_java("class Outer {\n    class MyCls {\n\t\tint attr;\n    }\n}\n");
-        let class_decl = tree
-            .root()
-            .child(0)
-            .unwrap()
-            .child(2)
-            .unwrap()
-            .child(1)
-            .unwrap();
-        let class_body = class_decl.child(2).unwrap();
-        let attr = class_body.child(1).unwrap();
+        let class_decl = tree.root()[0][2][1];
+        let class_body = class_decl[2];
+        let attr = class_body[1];
 
         assert_eq!(attr.indentation_shift(), Some("\t"));
     }
@@ -1094,15 +1081,9 @@ mod tests {
     fn reindent_yaml() {
         let ctx = ctx();
         let tree = ctx.parse_yaml("hello:\n  foo: 2\nbar: 4\n");
-        let block_node = tree.root().child(0).unwrap().child(0).unwrap();
+        let block_node = tree.root()[0][0];
         assert_eq!(block_node.grammar_name, "block_node");
-        let value = block_node
-            .child(0)
-            .unwrap()
-            .child(0)
-            .unwrap()
-            .child(2)
-            .unwrap();
+        let value = block_node[0][0][2];
         assert_eq!(value.grammar_name, "block_node");
 
         assert_eq!(block_node.indentation_shift(), None);
@@ -1114,12 +1095,10 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse_json(" [ 1 , 2,\n 3]");
 
-        let root = tree.root().child(0).unwrap();
-        let bracket = root.child(0).unwrap();
-        let one = root.child(1).unwrap();
-        let comma = root.child(2).unwrap();
-        let two = root.child(3).unwrap();
-        let comma_2 = root.child(4).unwrap();
+        let root = tree.root()[0];
+        let [bracket, one, comma, two, comma_2] = root[0..=4] else {
+            unreachable!()
+        };
 
         assert_eq!(bracket.source_with_surrounding_whitespace(), "[ ");
         assert_eq!(one.source_with_surrounding_whitespace(), " 1 ");
@@ -1146,9 +1125,9 @@ mod tests {
 "#,
         );
 
-        let root = tree.root().child(0).unwrap();
-        let entry_a = root.child(1).unwrap();
-        let array = entry_a.child(2).unwrap();
+        let root = &tree.root()[0];
+        let entry_a = &root[1];
+        let array = &entry_a[2];
 
         assert_eq!(entry_a.source, "\"a\": [\n        1,\n        2,\n    ]");
         assert_eq!(entry_a.indentation_shift(), Some("    "));
@@ -1172,14 +1151,10 @@ mod tests {
 
         let comment_1 = ctx
             .parse_java("/**\n * This is a comment\n * spanning on many lines\n*/")
-            .root()
-            .child(0)
-            .unwrap();
+            .root()[0];
         let comment_2 = ctx
             .parse_java("  /**\n   * This is a comment\n   * spanning on many lines\n  */")
-            .root()
-            .child(0)
-            .unwrap();
+            .root()[0];
 
         assert!(comment_1.isomorphic_to(comment_2));
         assert_eq!(comment_1.children.len(), 4);
@@ -1209,10 +1184,7 @@ mod tests {
                 &Range { start: 59, end: 61 },
             ]
         );
-        assert_eq!(
-            comment_2.children.get(1).unwrap().preceding_whitespace(),
-            Some("\n   ")
-        );
+        assert_eq!(comment_2[1].preceding_whitespace(), Some("\n   "));
     }
 
     #[test]
