@@ -682,7 +682,7 @@ impl<'a> MergedTree<'a> {
                     .iter()
                     .map(|c| c.debug_print(indentation + 2))
                     .format("\n");
-                format!("Mixed({node}\n{children_printed}{result})")
+                format!("Mixed({node}\n{children_printed}\n{result})")
             }
             Self::Conflict { .. } => "Conflict()".to_string(),
             Self::LineBasedMerge { .. } => "LineBasedConflict()".to_string(),
@@ -698,5 +698,48 @@ impl<'a> MergedTree<'a> {
 impl Display for MergedTree<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.debug_print(0))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    use crate::{
+        merge_3dm::three_way_merge,
+        test_utils::{ctx, json_matchers},
+    };
+
+    #[test]
+    fn debug_print() {
+        let ctx = ctx();
+        let base = ctx.parse_json("[1, 1]");
+        let left = ctx.parse_json("[1, 2]");
+        let right = ctx.parse_json("[2, 1]");
+
+        let (primary_matcher, auxiliary_matcher) = json_matchers();
+        let (merged_tree, _) = three_way_merge(
+            &base,
+            &left,
+            &right,
+            None,
+            &primary_matcher,
+            &auxiliary_matcher,
+            &DisplaySettings::default(),
+            None,
+        );
+        assert_eq!(
+            merged_tree.to_string(),
+            "\
+Mixed(document:0…6@Base
+  Mixed(array:0…6@Base
+    Exact([:0…1@Base/BLR/)
+    Exact(number:1…2@Right/..R/)
+    Exact(,:2…3@Base/BLR/)
+    Exact(number:4…5@Left/.L./)
+    Exact(]:5…6@Base/BLR/)
+  )
+)"
+        );
     }
 }

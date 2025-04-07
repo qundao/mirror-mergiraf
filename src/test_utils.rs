@@ -5,6 +5,7 @@ use typed_arena::Arena;
 use crate::{
     lang_profile::LangProfile,
     tree::{Ast, AstNode},
+    tree_matcher::TreeMatcher,
 };
 
 /// Provides a set of utilities to help write concise tests
@@ -58,6 +59,25 @@ impl<'a> TestContext<'a> {
     pub fn parse_toml(&'a self, source: &'a str) -> Ast<'a> {
         self.parse_internal("a.toml", source)
     }
+}
+
+pub(crate) fn json_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
+    let lang_profile = LangProfile::json();
+    let primary_matcher = TreeMatcher {
+        min_height: 0,
+        sim_threshold: 0.5,
+        max_recovery_size: 100,
+        use_rted: true,
+        lang_profile,
+    };
+    let auxiliary_matcher = TreeMatcher {
+        min_height: 1,
+        sim_threshold: 0.5,
+        max_recovery_size: 100,
+        use_rted: false,
+        lang_profile,
+    };
+    (primary_matcher, auxiliary_matcher)
 }
 
 impl LangProfile {
