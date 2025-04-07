@@ -184,13 +184,6 @@ fn create_class_mapping<'a>(
         true,
     );
     class_mapping.add_matching(
-        &left_right_matching.exact,
-        Revision::Left,
-        Revision::Right,
-        true,
-    );
-
-    class_mapping.add_matching(
         &base_left_matching.full,
         Revision::Base,
         Revision::Left,
@@ -201,6 +194,15 @@ fn create_class_mapping<'a>(
         Revision::Base,
         Revision::Right,
         false,
+    );
+    // Only add the left-right matching after adding all the matchings
+    // to the base, because we want to selectively add left-right matches
+    // only when they don't conflict with base matchings.
+    class_mapping.add_matching(
+        &left_right_matching.exact,
+        Revision::Left,
+        Revision::Right,
+        true,
     );
     class_mapping.add_matching(
         &left_right_matching.full,
@@ -738,7 +740,21 @@ fn baz() {
         let left = ctx.parse_rust(left);
         let right = ctx.parse_rust(right);
 
-        let (primary_matcher, auxiliary_matcher) = rust_matchers();
+        let lang_profile = LangProfile::rust();
+        let primary_matcher = TreeMatcher {
+            min_height: 1,
+            sim_threshold: 0.4,
+            max_recovery_size: 100,
+            use_rted: true,
+            lang_profile,
+        };
+        let auxiliary_matcher = TreeMatcher {
+            min_height: 2,
+            sim_threshold: 0.6,
+            max_recovery_size: 100,
+            use_rted: false,
+            lang_profile,
+        };
 
         let settings = DisplaySettings {
             conflict_marker_size: Some(9),
