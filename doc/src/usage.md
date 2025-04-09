@@ -7,6 +7,8 @@ There are two ways to use Mergiraf.
 The first way is recommended as it avoids interrupting your workflow with spurious conflicts.
 The second way can be useful for more occasional uses or when changes to Git's configuration are not possible.
 
+Besides Git, Mergiraf can also be used with [**Jujutsu**](https://jj-vcs.github.io/jj). See the [dedicated section](#interactive-use-with-jujutsu) for details.
+
 ## Registration as a Git merge driver
 
 Registering Mergiraf in Git will enable you to benefit from its conflict solving when merging and various other operations, such as rebasing, cherry-picking or even reverting.
@@ -51,6 +53,14 @@ An [example repository](https://codeberg.org/mergiraf/example-repo) is available
 $ git clone https://codeberg.org/mergiraf/example-repo
 $ cd example-repo
 $ git merge other-branch
+```
+
+For [Jujutsu](#interactive-use-with-jujutsu) users:
+```console
+$ jj git clone https://codeberg.org/mergiraf/example-repo
+$ cd example-repo
+$ jj new main other-branch@origin
+$ jj resolve --tool mergiraf
 ```
 
 ### Reviewing Mergiraf's work
@@ -166,3 +176,22 @@ restaurant:
 ```
 
 You can then mark the conflict as solved with `git add` and continue merging with `git merge --continue`.
+
+## Interactive use with Jujutsu
+
+[Jujutsu](https://jj-vcs.github.io/jj) is a Git-compatible version control system, but it does a few things differently.
+For example, merges never fail and any conflicts are simply recorded in the commits, so you can resolve them at your leisure.
+Since merge conflicts don't interrupt your workflow anyway, the interactive use fits more naturally with Jujutsu and it's not actually possible to make Jujutsu always use Mergiraf automatically.
+That also means there is no equivalent to the `.gitattributes` file.
+
+To resolve all merge conflicts in your [working copy](https://jj-vcs.github.io/jj/latest/working-copy/) at once, run `jj resolve --tool mergiraf`.
+To resolve a single file, provide its path as an additional argument: `jj resolve --tool mergiraf <filename>`.
+
+Technically, Jujutsu requires configuration for such a "merge tool" as well, just like Git.
+However, Jujutsu ships with a default configuration for Mergiraf out-of-the box.
+You can inspect the configuration by running `jj config list --include-defaults merge-tools | grep mergiraf`.
+If you would like to tweak it, please refer to the [relevant section](https://jj-vcs.github.io/jj/latest/config/#3-way-merge-tools-for-conflict-resolution) of the Jujutsu documentation.
+
+Note that it's not recommended to use `mergiraf solve` for interactive use in a Jujutsu repository.
+This is because depending on your configuration, Jujutsu will use different conflict markers than Git, which Mergiraf cannot parse.
+Fortunately, when you use `jj resolve --tool mergiraf`, Jujutsu is nice enough to prepare the conflicted files with Git-style conflict markers, before passing them to Mergiraf.
