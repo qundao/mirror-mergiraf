@@ -297,6 +297,23 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 // update its value with what of `--keep`
                 stdout = keep;
             }
+            // Check if user is using Jujutsu instead of Git, which can lead to issues.
+            if Command::new("jj")
+                .arg("root")
+                .output()
+                .is_ok_and(|o| o.status.success())
+            {
+                return Err(
+                    "\
+                    You seem to be using Jujutsu instead of Git.\n\
+                    Please use `jj resolve --tool mergiraf [file]`.\n\
+                    \n\
+                    Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand. \
+                    Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has \
+                    a builtin configuration to resolve conflicts manually using `mergiraf merge`."
+                    .into()
+                );
+            }
 
             let settings = DisplaySettings {
                 compact,
