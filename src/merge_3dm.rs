@@ -6,7 +6,7 @@ use crate::{
     ast::Ast,
     changeset::ChangeSet,
     class_mapping::{ClassMapping, RevNode},
-    line_based::line_based_merge,
+    line_based::line_based_merge_parsed,
     matching::Matching,
     merged_tree::MergedTree,
     pcs::Revision,
@@ -299,11 +299,11 @@ fn build_tree<'a>(
         settings,
     );
     let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
-        let line_based = line_based_merge(base.source(), left.source(), right.source(), settings);
+        let line_based =
+            line_based_merge_parsed(base.source(), left.source(), right.source(), settings);
         MergedTree::LineBasedMerge {
             node: class_mapping.map_to_leader(RevNode::new(Revision::Base, base.root())),
-            contents: line_based.contents,
-            conflict_mass: line_based.conflict_mass,
+            parsed: line_based,
         }
     });
     debug!("constructing the merged tree took {:?}", start.elapsed());

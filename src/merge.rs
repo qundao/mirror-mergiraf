@@ -10,7 +10,7 @@ use std::{
 use log::{debug, warn};
 
 use crate::{
-    DisplaySettings, LangProfile, MergeResult, ParsedMerge,
+    DisplaySettings, LangProfile, MergeResult,
     attempts::AttemptsCache,
     line_based::{
         LINE_BASED_METHOD, line_based_merge, line_based_merge_with_duplicate_signature_detection,
@@ -98,7 +98,7 @@ pub fn cascading_merge(
 ) -> Vec<MergeResult> {
     // first attempt: try to merge as line-based
     let start = Instant::now();
-    let line_based_merge = line_based_merge_with_duplicate_signature_detection(
+    let (parsed_conflicts, line_based_merge) = line_based_merge_with_duplicate_signature_detection(
         contents_base,
         contents_left,
         contents_right,
@@ -112,16 +112,11 @@ pub fn cascading_merge(
 
     let (tx, rx) = oneshot::channel();
 
-    let line_based_merge_clone = line_based_merge.clone();
-
     thread::spawn(move || {
         let mut merges = Vec::new();
 
         // second attempt: to solve the conflicts from the line-based merge
-        if !line_based_merge_clone.has_additional_issues {
-            let parsed_conflicts = ParsedMerge::parse(&line_based_merge_clone.contents, &settings)
-                .expect("the diffy-imara rust library produced inconsistent conflict markers");
-
+        if !line_based_merge.has_additional_issues {
             let solved_merge = resolve_merge(&parsed_conflicts, &settings, lang_profile, debug_dir);
 
             match solved_merge {
@@ -139,7 +134,7 @@ pub fn cascading_merge(
             }
         }
 
-        if full_merge || line_based_merge_clone.has_additional_issues {
+        if full_merge || line_based_merge.has_additional_issues {
             // third attempt: full-blown structured merge
             let structured_merge = structured_merge(
                 contents_base,

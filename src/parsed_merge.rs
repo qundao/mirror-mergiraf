@@ -13,7 +13,7 @@ pub(crate) const PARSED_MERGE_DIFF2_DETECTED: &str =
     "Mergiraf cannot solve conflicts displayed in the diff2 style";
 
 /// A file which potentially contains merge conflicts, parsed as such.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ParsedMerge<'a> {
     /// The actual contents of the parsed merge
     pub chunks: Vec<MergedChunk<'a>>,
@@ -26,7 +26,7 @@ pub struct ParsedMerge<'a> {
 }
 
 /// A chunk in a file with merge conflicts: either a readily merged chunk or a conflict.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum MergedChunk<'a> {
     /// A readily-merged chunk
     Resolved {
@@ -61,7 +61,7 @@ pub enum MergedChunk<'a> {
 }
 
 /// A correspondence between a section of a reconstructed revision and the merge output
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 struct OffsetMap {
     /// The start of the section in the reconstructed revision
     rev_start: usize,
@@ -375,6 +375,22 @@ impl<'a> ParsedMerge<'a> {
         result
     }
 
+    /// If the parsed merge contains no conflicts, "render" it by concatenating all the chunks.
+    /// Otherwise, return `None`.
+    ///
+    /// This is helpful when we want to compare the contents of a merge with some string, and we
+    /// know that the latter doesn't contain any conflicts as well. An additional benefit is not
+    /// requiring [`DisplaySettings`] to render, unlike [`Self::render`]
+    pub(crate) fn render_conflictless(&self) -> Option<String> {
+        self.chunks
+            .iter()
+            .map(|c| match c {
+                MergedChunk::Resolved { contents, .. } => Some(*contents),
+                MergedChunk::Conflict { .. } => None,
+            })
+            .collect()
+    }
+
     fn binary_search(slice: &[OffsetMap], start: usize, length: usize) -> Option<usize> {
         let mut left = 0;
         let mut right = slice.len();
@@ -420,6 +436,11 @@ impl<'a> ParsedMerge<'a> {
                 }
             })
             .sum()
+    }
+
+    // Whether the merge is empty when rendered
+    pub(crate) fn is_empty(&self) -> bool {
+        self.chunks.is_empty() || self.render_conflictless().is_some_and(|s| s.is_empty())
     }
 }
 

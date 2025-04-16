@@ -223,7 +223,13 @@ fn is_separator(element: &MergedTree, trimmed_separator: &'static str) -> bool {
             node.as_representative().node.source.trim() == trimmed_separator
         }
         MergedTree::MixedTree { .. } | MergedTree::Conflict { .. } => false,
-        MergedTree::LineBasedMerge { contents, .. } => contents.trim() == trimmed_separator,
+        MergedTree::LineBasedMerge { parsed, .. } => {
+            // "SAFETY": a separator is like a comma or something,
+            // there is no way it can have a conflict
+            parsed
+                .render_conflictless()
+                .is_some_and(|r| r.trim() == trimmed_separator)
+        }
         MergedTree::CommutativeChildSeparator { .. } => true,
     }
 }

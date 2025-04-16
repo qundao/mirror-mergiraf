@@ -87,7 +87,7 @@ pub fn structured_merge(
 
     Ok(MergeResult {
         contents: result_tree.pretty_print(&class_mapping, settings),
-        conflict_count: result_tree.count_conflicts(settings),
+        conflict_count: result_tree.count_conflicts(),
         conflict_mass: result_tree.conflict_mass(),
         method: if parsed_merge.is_none() {
             FULLY_STRUCTURED_METHOD

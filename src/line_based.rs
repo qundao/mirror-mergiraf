@@ -7,13 +7,12 @@ pub const LINE_BASED_METHOD: &str = "line_based";
 pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
 pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
-/// Perform a textual merge with the diff3 algorithm.
-pub fn line_based_merge(
+pub fn line_based_merge_parsed(
     contents_base: &str,
     contents_left: &str,
     contents_right: &str,
     settings: &DisplaySettings,
-) -> MergeResult {
+) -> ParsedMerge<'static> {
     let merged = MergeOptions::new()
         .set_conflict_marker_length(settings.conflict_marker_size_or_default())
         .set_conflict_style(if settings.diff3 {
@@ -24,17 +23,23 @@ pub fn line_based_merge(
         .set_algorithm(Algorithm::Histogram)
         .merge(contents_base, contents_left, contents_right);
     let merged_contents = match merged {
-        Ok(contents) | Err(contents) => contents,
+        Ok(contents) | Err(contents) => contents.leak(),
     };
-    let parsed_merge = ParsedMerge::parse(&merged_contents, settings)
-        .expect("diffy-imara returned a merge that we cannot parse the conflicts of");
-    MergeResult {
-        contents: parsed_merge.render(settings),
-        conflict_count: parsed_merge.conflict_count(),
-        conflict_mass: parsed_merge.conflict_mass(),
-        method: LINE_BASED_METHOD,
-        has_additional_issues: true,
-    }
+    ParsedMerge::parse(merged_contents, settings)
+        .expect("diffy-imara returned a merge that we cannot parse the conflicts of")
+}
+
+/// Perform a textual merge with the diff3 algorithm.
+pub fn line_based_merge(
+    contents_base: &str,
+    contents_left: &str,
+    contents_right: &str,
+    settings: &DisplaySettings,
+) -> MergeResult {
+    let parsed_merge =
+        line_based_merge_parsed(contents_base, contents_left, contents_right, settings);
+
+    MergeResult::from_parsed_merge(&parsed_merge, settings)
 }
 
 /// Do a line-based merge. If it is conflict-free, also check if it introduced any duplicate signatures,
@@ -45,9 +50,11 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
     contents_right: &str,
     settings: &DisplaySettings,
     lang_profile: &LangProfile,
-) -> MergeResult {
-    let mut line_based_merge =
-        line_based_merge(contents_base, contents_left, contents_right, settings);
+) -> (ParsedMerge<'static>, MergeResult) {
+    let parsed_merge =
+        line_based_merge_parsed(contents_base, contents_left, contents_right, settings);
+
+    let mut merge_result = MergeResult::from_parsed_merge(&parsed_merge, settings);
 
     let mut parser = TSParser::new();
     parser
@@ -63,21 +70,16 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
         tree.map_or(true, |ast| lang_profile.has_signature_conflicts(ast.root()))
     };
 
-    let has_issues = if line_based_merge.conflict_count == 0 {
-        revision_has_issues(&line_based_merge.contents)
+    merge_result.has_additional_issues = if merge_result.conflict_count == 0 {
+        revision_has_issues(&merge_result.contents)
     } else {
-        let parsed_merge = ParsedMerge::parse(&line_based_merge.contents, settings)
-            .expect("diffy-imara returned a merge that we cannot parse the conflicts of");
-
         [Revision::Base, Revision::Left, Revision::Right]
             .into_iter()
             .map(|rev| parsed_merge.reconstruct_revision(rev))
             .any(|contents| revision_has_issues(&contents))
     };
 
-    line_based_merge.has_additional_issues = has_issues;
-
-    line_based_merge
+    (parsed_merge, merge_result)
 }
 
 #[cfg(test)]
@@ -124,7 +126,7 @@ func foo(){}"#;
 
         let lang_profile = LangProfile::go();
 
-        let merge = line_based_merge_with_duplicate_signature_detection(
+        let (_, merge) = line_based_merge_with_duplicate_signature_detection(
             contents_base,
             contents_left,
             contents_right,
