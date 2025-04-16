@@ -3,7 +3,7 @@ use std::{fmt::Display, hash::Hash};
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 
-use crate::{matching::Matching, pcs::Revision, tree::AstNode};
+use crate::{ast::AstNode, matching::Matching, pcs::Revision};
 
 /// A node together with a marker of which revision it came from.
 #[derive(Debug, Copy, Clone, Eq)]

@@ -1,7 +1,7 @@
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use std::collections::{HashMap, HashSet};
 
-use crate::tree::AstNode;
+use crate::ast::AstNode;
 
 /// A one-to-one relation between nodes of two trees.
 #[derive(Debug, Default, Clone)]

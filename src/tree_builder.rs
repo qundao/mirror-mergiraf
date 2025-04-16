@@ -7,6 +7,7 @@ use log::debug;
 use rustc_hash::FxHashSet;
 
 use crate::{
+    ast::AstNode,
     changeset::ChangeSet,
     class_mapping::{ClassMapping, Leader, RevNode, RevisionNESet, RevisionSet},
     lang_profile::{CommutativeParent, LangProfile},
@@ -14,7 +15,6 @@ use crate::{
     multimap::MultiMap,
     pcs::{PCSNode, Revision},
     settings::DisplaySettings,
-    tree::AstNode,
 };
 
 /// An internal structure to map a parent and a predecessor to a possible successor in each revision

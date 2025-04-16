@@ -3,10 +3,10 @@ use std::{fmt::Write, fs, path::Path};
 use itertools::Itertools;
 
 use crate::{
+    ast::{Ast, AstNode},
     class_mapping::{ClassMapping, RevNode},
     multimap::MultiMap,
     pcs::{PCS, PCSNode, Revision},
-    tree::{Ast, AstNode},
 };
 
 /// A set of [PCS] triples, with indices on all three components

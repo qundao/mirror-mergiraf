@@ -3,8 +3,8 @@ use tree_sitter::Parser;
 use typed_arena::Arena;
 
 use crate::{
+    ast::{Ast, AstNode},
     lang_profile::LangProfile,
-    tree::{Ast, AstNode},
     tree_matcher::TreeMatcher,
 };
 

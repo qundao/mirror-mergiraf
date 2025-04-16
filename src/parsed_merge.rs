@@ -3,10 +3,10 @@ use std::{collections::HashMap, ops::Range};
 use regex::Regex;
 
 use crate::{
+    ast::{Ast, AstNode},
     matching::Matching,
     pcs::Revision,
     settings::DisplaySettings,
-    tree::{Ast, AstNode},
 };
 
 pub(crate) const PARSED_MERGE_DIFF2_DETECTED: &str =

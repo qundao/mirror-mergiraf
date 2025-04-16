@@ -7,7 +7,7 @@ use itertools::Itertools;
 use log::error;
 
 use crate::{
-    tree::{Ast, AstNode},
+    ast::{Ast, AstNode},
     tree_matcher::DetailedMatching,
 };
 

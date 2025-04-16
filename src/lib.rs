@@ -15,6 +15,7 @@
 //! Mergiraf is not designed to be used as a library so far, the Rust API is therefore not meant
 //! to be stable.
 
+pub mod ast;
 pub mod attempts;
 pub mod bug_reporter;
 pub(crate) mod changeset;
@@ -42,7 +43,6 @@ pub(crate) mod structured;
 pub mod supported_langs;
 #[cfg(test)]
 pub(crate) mod test_utils;
-pub mod tree;
 pub(crate) mod tree_builder;
 pub(crate) mod tree_matcher;
 pub(crate) mod visualizer;
@@ -54,13 +54,13 @@ use itertools::Itertools;
 use lang_profile::LangProfile;
 use log::debug;
 
+use ast::{Ast, AstNode};
 use merge_result::MergeResult;
 use parsed_merge::{PARSED_MERGE_DIFF2_DETECTED, ParsedMerge};
 use pcs::Revision;
 use settings::DisplaySettings;
 use structured::structured_merge;
 use supported_langs::SUPPORTED_LANGUAGES;
-use tree::{Ast, AstNode};
 use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
 

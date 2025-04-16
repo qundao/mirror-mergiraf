@@ -5,12 +5,12 @@ use log::debug;
 use regex::Regex;
 
 use crate::{
+    ast::AstNode,
     class_mapping::{ClassMapping, Leader, RevNode, RevisionNESet},
     lang_profile::{CommutativeParent, LangProfile},
     merged_tree::MergedTree,
     pcs::Revision,
     signature::isomorphic_merged_trees,
-    tree::AstNode,
 };
 
 impl<'a> MergedTree<'a> {

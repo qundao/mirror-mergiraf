@@ -10,12 +10,12 @@ use tree_edit_distance::{Edit, diff};
 use typed_arena::Arena;
 
 use crate::{
+    ast::{Ast, AstNode},
     lang_profile::LangProfile,
     matching::Matching,
     multimap::MultiMap,
     priority_list::PriorityList,
     signature::Signature,
-    tree::{Ast, AstNode},
 };
 
 #[derive(Debug)]

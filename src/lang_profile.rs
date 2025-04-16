@@ -4,11 +4,11 @@ use itertools::Itertools;
 use tree_sitter::Language;
 
 use crate::{
+    ast::AstNode,
     class_mapping::ClassMapping,
     merged_tree::MergedTree,
     signature::{Signature, SignatureDefinition},
     supported_langs::SUPPORTED_LANGUAGES,
-    tree::AstNode,
 };
 
 /// Language-dependent settings to influence how merging is done.

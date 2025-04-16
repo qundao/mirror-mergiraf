@@ -4,9 +4,9 @@ use std::iter::zip;
 
 use itertools::Itertools;
 
+use crate::ast::AstNode;
 use crate::class_mapping::ClassMapping;
 use crate::merged_tree::MergedTree;
-use crate::tree::AstNode;
 
 /// A signature discriminates children of a commutative parent together.
 /// No two children of the same commutative parent should have the same signature.

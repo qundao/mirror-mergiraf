@@ -1,6 +1,6 @@
 use std::{cmp::Ordering, collections::BinaryHeap};
 
-use crate::tree::AstNode;
+use crate::ast::AstNode;
 
 /// A priority queue which indexes trees by their height.
 /// This follows the "indexed priority list" of

@@ -3,6 +3,7 @@ use std::{path::Path, thread, time::Instant};
 use log::debug;
 
 use crate::{
+    ast::Ast,
     changeset::ChangeSet,
     class_mapping::{ClassMapping, RevNode},
     line_based::line_based_merge,
@@ -10,7 +11,6 @@ use crate::{
     merged_tree::MergedTree,
     pcs::Revision,
     settings::DisplaySettings,
-    tree::Ast,
     tree_builder::TreeBuilder,
     tree_matcher::{DetailedMatching, TreeMatcher},
     visualizer::write_matching_to_dotty_file,
