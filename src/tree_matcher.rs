@@ -150,10 +150,8 @@ impl TreeMatcher<'_> {
                                 } else if matching.can_be_matched(t1, t2) {
                                     matched_1.insert(t1);
                                     matched_2.insert(t2);
-                                    t1.dfs().zip(t2.dfs()).for_each(|(c1, c2)| {
-                                        exact_matching.add(c1, c2);
-                                        matching.add(c1, c2);
-                                    });
+                                    exact_matching.extend(t1.dfs().zip(t2.dfs()));
+                                    matching.extend(t1.dfs().zip(t2.dfs()));
                                 }
                             }
                         }

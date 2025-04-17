@@ -305,7 +305,7 @@ impl<'a> AstNode<'a> {
     }
 
     /// Depth-first search iterator
-    pub fn dfs(&'a self) -> impl ExactSizeIterator<Item = &'a Self> {
+    pub fn dfs(&'a self) -> impl ExactSizeIterator<Item = &'a Self> + Clone {
         // SAFETY: This is not written to after construction.
         if let Some(dfs) = unsafe { *self.dfs.get() } {
             Either::Left(dfs.iter().copied())
@@ -749,6 +749,7 @@ where
     }
 }
 
+#[derive(Clone)]
 struct DfsIterator<'a> {
     current: Vec<&'a AstNode<'a>>,
 }

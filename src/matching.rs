@@ -1,5 +1,8 @@
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::zip,
+};
 
 use crate::ast::AstNode;
 
@@ -51,9 +54,24 @@ impl<'tree> Matching<'tree> {
 
     /// Adds a match between two nodes (in both directions)
     pub fn add(&mut self, from: &'tree AstNode<'tree>, to: &'tree AstNode<'tree>) {
+        // if some other node was matched to either `from` or `to`,
+        // remove it so that the matching remains one-to-one
         self.remove(from, to);
+
         self.left_to_right.insert(from, to);
         self.right_to_left.insert(to, from);
+    }
+
+    pub fn extend<I>(&mut self, pairs: I)
+    where
+        I: Iterator<Item = (&'tree AstNode<'tree>, &'tree AstNode<'tree>)> + Clone,
+    {
+        for (l, r) in pairs.clone() {
+            self.remove(l, r);
+        }
+
+        self.left_to_right.extend(pairs.clone());
+        self.right_to_left.extend(pairs.map(|(l, r)| (r, l)));
     }
 
     /// Removes matches involving both elements (in both directions)
@@ -71,8 +89,13 @@ impl<'tree> Matching<'tree> {
     /// Adds an entire other matching
     pub fn add_matching(&mut self, other: &Self) {
         for (right, left) in other.iter_right_to_left() {
-            self.add(left, right);
+            // if some other node was matched to either `left` or `right`,
+            // remove it so that the matching remains one-to-one
+            self.remove(left, right);
         }
+
+        self.left_to_right.extend(&other.left_to_right);
+        self.right_to_left.extend(&other.right_to_left);
     }
 
     /// Number of matched nodes
@@ -104,14 +127,17 @@ impl<'tree> Matching<'tree> {
 
     // Assuming that the matches in this mapping are only between isomorphic nodes,
     // recursively match the descendants of all matched nodes
-    pub fn add_submatches(&self) -> Self {
-        let mut result = Self::new();
-        for (right_match, left_match) in self.iter_right_to_left() {
-            for (left_descendant, right_descendant) in left_match.dfs().zip(right_match.dfs()) {
-                result.add(left_descendant, right_descendant);
-            }
+    pub fn add_submatches(self) -> Self {
+        let (left_to_right, right_to_left) = self
+            .left_to_right
+            .into_iter()
+            .flat_map(|(l_match, r_match)| zip(l_match.dfs(), r_match.dfs()))
+            .map(|(l_submatch, r_submatch)| ((l_submatch, r_submatch), (r_submatch, l_submatch)))
+            .collect();
+        Self {
+            left_to_right,
+            right_to_left,
         }
-        result
     }
 
     /// Retrieve match ids from left to right

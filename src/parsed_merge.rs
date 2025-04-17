@@ -281,11 +281,12 @@ impl<'a> ParsedMerge<'a> {
         let first_index = self.index_tree_by_merged_ranges(first_revision, first_tree);
         let second_index = self.index_tree_by_merged_ranges(second_revision, second_tree);
         let mut matching = Matching::new();
-        for (range, first_node) in &first_index {
-            if let Some(second_node) = second_index.get(range) {
-                matching.add(first_node, second_node);
-            }
-        }
+        let nodes = first_index.iter().filter_map(|(range, first_node)| {
+            second_index
+                .get(range)
+                .map(|second_node| (*first_node, *second_node))
+        });
+        matching.extend(nodes);
         matching
     }
 
