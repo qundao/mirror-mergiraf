@@ -97,7 +97,7 @@ impl<'a> Ast<'a> {
     }
 
     /// Start a Depth-First Search in prefix order on the tree
-    pub fn dfs(&'a self) -> impl Iterator<Item = &'a AstNode<'a>> {
+    pub fn dfs(&'a self) -> impl ExactSizeIterator<Item = &'a AstNode<'a>> {
         self.root().dfs()
     }
 
@@ -305,14 +305,20 @@ impl<'a> AstNode<'a> {
     }
 
     /// Depth-first search iterator
-    pub fn dfs(&'a self) -> impl Iterator<Item = &'a Self> {
+    pub fn dfs(&'a self) -> impl ExactSizeIterator<Item = &'a Self> {
         // SAFETY: This is not written to after construction.
         if let Some(dfs) = unsafe { *self.dfs.get() } {
             Either::Left(dfs.iter().copied())
         } else {
-            Either::Right(DfsIterator {
-                current: vec![&self],
-            })
+            Either::Right(self.calculate_dfs())
+        }
+    }
+
+    /// Helper function mainly used for testing.
+    /// Circumvents the cached `dfs` field and instead computes DFS manually.
+    fn calculate_dfs(&'a self) -> DfsIterator<'a> {
+        DfsIterator {
+            current: vec![&self],
         }
     }
 
@@ -755,7 +761,14 @@ impl<'a> Iterator for DfsIterator<'a> {
         self.current.extend(node.children.iter().rev());
         Some(node)
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.current.iter().copied().map(AstNode::size).sum();
+        (size, Some(size))
+    }
 }
+
+impl ExactSizeIterator for DfsIterator<'_> {}
 
 struct PostfixIterator<'a> {
     queue: Vec<(&'a AstNode<'a>, usize)>,
@@ -938,6 +951,28 @@ mod tests {
                 "}"
             ]
         );
+    }
+
+    #[test]
+    fn dfs_exact_size_iterator() {
+        let ctx = ctx();
+        let tree = ctx.parse_json("{\"foo\": 3}");
+
+        // using the cached version
+        let mut nodes = tree.root().dfs();
+
+        for len in (0..=11).rev() {
+            assert_eq!(nodes.len(), len);
+            nodes.next();
+        }
+
+        // using the manually calculated version
+        let mut nodes = tree.root().calculate_dfs();
+
+        for len in (0..=11).rev() {
+            assert_eq!(nodes.len(), len);
+            nodes.next();
+        }
     }
 
     #[test]
