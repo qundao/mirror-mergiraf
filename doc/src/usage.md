@@ -1,6 +1,20 @@
 # Usage
 
-There are two ways to use Mergiraf.
+## Enabling `diff3` conflict style
+No matter which of the following workflows you choose, you'll want to enable the [`diff3` merge conflict style](https://git-scm.com/docs/git-config#Documentation/git-config.txt-mergeconflictStyle).[^why-diff3]
+To do that, add the following section in your `~/.gitconfig` file:
+```ini
+[merge]
+    conflictStyle = "diff3"
+```
+
+Or run:
+```console
+$ git config --global merge.conflictStyle diff3
+```
+
+## Workflows
+Mergiraf can be used in two ways:
 1. You can [**register it as a merge driver**](#registration-as-a-git-merge-driver) in Git so that Mergiraf is directly used during the merge process.
 2. Or you can [**invoke it after a merge conflict**](#interactive-use-after-encountering-a-merge-conflict), for it to attempt to solve the conflict.
 
@@ -9,7 +23,7 @@ The second way can be useful for more occasional uses or when changes to Git's c
 
 Besides Git, Mergiraf can also be used with [**Jujutsu**](https://jj-vcs.github.io/jj). See the [dedicated section](#interactive-use-with-jujutsu) for details.
 
-## Registration as a Git merge driver
+### Registration as a Git merge driver
 
 Registering Mergiraf in Git will enable you to benefit from its conflict solving when merging and various other operations, such as rebasing, cherry-picking or even reverting.
 For best results, use Git v2.44.0 or newer.
@@ -46,7 +60,7 @@ $ mergiraf languages --gitattributes >> ~/.gitattributes
 This is the complete list of all supported formats - you can of course keep only the ones you need.
 If you want to enable Mergiraf only in a certain repository, add the lines above in the `.gitattributes` file at the root of that repository instead, or in `.git/info/attributes` if you don't want it to be tracked in the repository.
 
-### Trying it out
+#### Trying it out
 
 An [example repository](https://codeberg.org/mergiraf/example-repo) is available for you to try out Mergiraf on simple examples:
 ```console
@@ -63,7 +77,7 @@ $ jj new main other-branch@origin
 $ jj resolve --tool mergiraf
 ```
 
-### Reviewing Mergiraf's work
+#### Reviewing Mergiraf's work
 
 When Git invokes Mergiraf to merge a file, it can either:
 * successfully merge the file as a line-based merge, just like normal Git would do,
@@ -72,7 +86,7 @@ When Git invokes Mergiraf to merge a file, it can either:
 
 If it turns out that Mergiraf's output is unsatisfactory and you would rather use the built-in merge algorithms, abort the operation (such as with `git merge --abort`) and start again with Mergiraf disabled.
 
-### Temporarily disabling Mergiraf
+#### Temporarily disabling Mergiraf
 
 You can disable Mergiraf by setting the `mergiraf` environment variable to 0:
 ```console
@@ -81,7 +95,7 @@ $ mergiraf=0 git rebase origin/master
 
 This will fall back on Git's regular merge heuristics, without requiring changes to your configuration.
 
-### Reporting a bad merge
+#### Reporting a bad merge
 
 If the output of a merge looks odd, you are encouraged to report it as a bug. The `mergiraf report` command generates an archive containing all necessary information to reproduce the faulty merge.
 
@@ -106,7 +120,7 @@ If the merge to report has conflicts, use the path to the file instead:
 $ mergiraf report src/lib/geolocation.cpp
 ```
 
-### Compact conflict presentation
+#### Compact conflict presentation
 
 By default, Mergiraf aligns the conflicts it outputs to line boundaries to ease their resolution in existing merge tools:
 
@@ -136,7 +150,7 @@ The option `--compact` (or `-c`) of the `mergiraf merge` command enables a more 
 
 The main downside of this mode is that reformatting is often required after resolving conflicts.
 
-## Interactive use after encountering a merge conflict
+### Interactive use after encountering a merge conflict
 
 Say you have encountered a conflict during merge:
 ```console
@@ -177,7 +191,7 @@ restaurant:
 
 You can then mark the conflict as solved with `git add` and continue merging with `git merge --continue`.
 
-## Interactive use with Jujutsu
+### Interactive use with Jujutsu
 
 [Jujutsu](https://jj-vcs.github.io/jj) is a Git-compatible version control system, but it does a few things differently.
 For example, merges never fail and any conflicts are simply recorded in the commits, so you can resolve them at your leisure.
@@ -195,3 +209,5 @@ If you would like to tweak it, please refer to the [relevant section](https://jj
 Note that it's not recommended to use `mergiraf solve` for interactive use in a Jujutsu repository.
 This is because depending on your configuration, Jujutsu will use different conflict markers than Git, which Mergiraf cannot parse.
 Fortunately, when you use `jj resolve --tool mergiraf`, Jujutsu is nice enough to prepare the conflicted files with Git-style conflict markers, before passing them to Mergiraf.
+
+[^why-diff3]: The reason for this is that Mergiraf will try to resolve conflicts by reconstructing the base, left, and right revisions. The default style, `merge`, doesn't provide the information about the base revision at all. And `zdiff3`, the ***zealous*** version of `diff3`, pulls the changes common to the left and right revision out of the conflict. While this might help during manual merging, it can confuses Mergiraf: if both sides end with a brace, `zdiff3` will pull it outside, so the reconstructed base revision will have unbalanced braces and thus fail to parse.
