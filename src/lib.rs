@@ -157,6 +157,8 @@ pub fn languages(gitattributes: bool) -> String {
 
 #[cfg(test)]
 mod test {
+    use crate::structured::ZDIFF3_DETECTED;
+
     use super::*;
 
     use std::collections::HashSet;
@@ -178,5 +180,24 @@ Please update `doc/src/languages.md` and `doc/src/supported_langs.txt`.
 The following extensions are missing from the documentation: {:?}",
             supported_langs.difference(&expected)
         );
+    }
+
+    #[test]
+    fn zdiff() {
+        let contents = "\
+<<<<<<< LEFT
+    if foo {
+        left()
+||||||| BASE
+=======
+    if bar {
+        right()
+>>>>>>> RIGHT
+    }
+";
+        let settings = DisplaySettings::default();
+        let parsed = ParsedMerge::parse(contents, &settings).unwrap();
+        let result = resolve_merge(&parsed, &settings, LangProfile::rust(), None);
+        assert_eq!(result, Err(ZDIFF3_DETECTED.to_string()));
     }
 }

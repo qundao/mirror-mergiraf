@@ -14,6 +14,9 @@ use crate::{
     tree_matcher::TreeMatcher,
 };
 
+pub(crate) const ZDIFF3_DETECTED: &str =
+    "Mergiraf cannot solve conflicts displayed in the zdiff style";
+
 /// Performs a fully structured merge, parsing the contents of all three revisions,
 /// creating tree matchings between all pairs, and merging them.
 ///
@@ -56,11 +59,24 @@ pub fn structured_merge(
     };
 
     let start = Instant::now();
-    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena, &ref_arena)?;
-    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena, &ref_arena)?;
+    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena, &ref_arena);
+    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena, &ref_arena);
     #[rustfmt::skip]
-    let tree_right = parse(&mut parser, contents_right, lang_profile, &arena, &ref_arena)?;
+    let tree_right = parse(&mut parser, contents_right, lang_profile, &arena, &ref_arena);
     debug!("parsing all three files took {:?}", start.elapsed());
+
+    // detect a merge in zdiff3 style
+    let (tree_base, tree_left, tree_right) = match (tree_base, tree_left, tree_right) {
+        // `contents_{base,left,right}` might've been reconstructed from a zdiff3-style merge.
+        // zdiff3 pulls the changes common to left and right sides out of the conflict.
+        // If that change was a paren/brace, this will've made the reconstructed base revision have
+        // unbalanced parens/braces, and thus fail to parse, while the two other sides parse ok.
+        //
+        // Note: this might have false negatives, but "common changes" are braces most of
+        // the time anyway
+        (Err(_), Ok(_), Ok(_)) => return Err(ZDIFF3_DETECTED.into()),
+        (b, l, r) => (b?, l?, r?),
+    };
 
     let initial_matchings = parsed_merge.map(|parsed_merge| {
         (
