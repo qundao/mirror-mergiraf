@@ -71,6 +71,7 @@ fn integration_failing(#[files("examples/*/failing/*")] test_dir: PathBuf) {
         None,
         None,
         Duration::from_millis(0),
+        None,
     );
 
     let actual = merge_result.contents.trim();
@@ -136,6 +137,7 @@ please examine the new output and update ExpectedCurrently.{ext} if it looks oka
         None,
         None,
         Duration::from_millis(0),
+        None,
     );
 
     let actual_compact = merge_result.contents.trim();

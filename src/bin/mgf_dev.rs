@@ -21,6 +21,9 @@ use typed_arena::Arena;
 struct CliArgs {
     #[command(subcommand)]
     command: Command,
+    /// Override automatic language detection.
+    #[arg(short = 'L', long, global = true)]
+    language: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -65,12 +68,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
     };
 
     let lang_profile =
-        LangProfile::detect_from_filename(language_determining_path).ok_or_else(|| {
-            format!(
-                "Could not detect a supported language for {}",
-                language_determining_path.display()
-            )
-        })?;
+        LangProfile::find_by_filename_or_name(language_determining_path, args.language.as_deref())?;
 
     let mut parser = TSParser::new();
     parser
@@ -208,6 +206,24 @@ mod tests {
                 "--commutative",
                 "examples/rust/working/reordering_use_statements/Base.rs",
                 "examples/rust/working/reordering_use_statements/Left.rs",
+            ])),
+            Ok(0)
+        );
+    }
+
+    #[test]
+    fn set_language() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let test_file = repo_dir.path().join("file.txt");
+        fs::copy("examples/java/working/demo/Base.java", &test_file)
+            .expect("Failed to copy the Java file to the temporary directory");
+        assert_eq!(
+            real_main(&CliArgs::parse_from([
+                "mgf_dev",
+                "parse",
+                "--language",
+                "java",
+                test_file.to_str().unwrap(),
             ])),
             Ok(0)
         );

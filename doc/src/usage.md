@@ -95,6 +95,12 @@ $ mergiraf=0 git rebase origin/master
 
 This will fall back on Git's regular merge heuristics, without requiring changes to your configuration.
 
+#### Manually specifying the file's language
+
+You can use the `--language` option (short: `-L`) to specify the language of the files to merge.
+It accepts both file extensions (`--language js`) and language names (`--language javascript`), as specified in the list of [supported languages](./languages.md).
+This will override the language detection done by Mergiraf, which is currently based on file extensions only. 
+
 #### Reporting a bad merge
 
 If the output of a merge looks odd, you are encouraged to report it as a bug. The `mergiraf report` command generates an archive containing all necessary information to reproduce the faulty merge.

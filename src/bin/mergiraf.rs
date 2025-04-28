@@ -51,6 +51,9 @@ struct MergeOrSolveArgs {
     #[arg(short = 'l', long)]
     // the choice of 'l' is inherited from Git's merge driver interface
     conflict_marker_size: Option<usize>,
+    /// Override automatic language detection.
+    #[arg(short = 'L', long)]
+    language: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -175,6 +178,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     debug_dir,
                     compact,
                     conflict_marker_size,
+                    language,
                 },
             timeout,
         } => {
@@ -256,6 +260,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 attempts_cache.as_ref(),
                 debug_dir,
                 Duration::from_millis(timeout.unwrap_or(if fast { 5000 } else { 10000 })),
+                language.as_deref(),
             );
             if let Some(fname_out) = output {
                 write_string_to_file(&fname_out, &merge_result.contents)?;
@@ -286,6 +291,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     debug_dir,
                     compact,
                     conflict_marker_size,
+                    language,
                 },
             keep,
             mut stdout,
@@ -335,6 +341,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 settings,
                 debug_dir.as_deref(),
                 &working_dir,
+                language.as_deref(),
             );
             match postprocessed {
                 Ok(merged) => {
@@ -538,5 +545,105 @@ mod test {
         .expect("failed to execute `mergiraf solve`");
 
         assert!(test_file_orig_file_path.exists());
+    }
+
+    #[test]
+    fn manual_language_selection_for_solve() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let test_file_name = "test.txt";
+
+        let test_file_abs_path = repo_path.join(test_file_name);
+        fs::write(&test_file_abs_path, "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n")
+            .expect("failed to write test file to git repository");
+
+        // first try without specifying a language
+        let return_code = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "solve",
+            test_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf solve`");
+        assert_eq!(
+            return_code, 1,
+            "running `mergiraf solve` should fail because the language can't be detected"
+        );
+
+        // then try with a language specified on the CLI
+        let return_code = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "solve",
+            "--language=json",
+            test_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf solve`");
+        assert_eq!(
+            return_code, 0,
+            "`mergiraf solve` should execute successfully with a specified language"
+        );
+
+        let merge_result =
+            fs::read_to_string(test_file_abs_path).expect("couldn't read the merge result");
+        assert_eq!(merge_result, "[0, 1, 2, 3, 4]\n");
+    }
+
+    #[test]
+    fn manual_language_selection_for_merge() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let base_file_name = "base.txt";
+        let left_file_name = "left.txt";
+        let right_file_name = "right.txt";
+        let output_file_name = "output.txt";
+
+        let base_file_abs_path = repo_path.join(base_file_name);
+        fs::write(&base_file_abs_path, "[1, 2, 3]\n")
+            .expect("failed to write test base file to git repository");
+        let left_file_abs_path = repo_path.join(left_file_name);
+        fs::write(&left_file_abs_path, "[1, 2, 3, 4]\n")
+            .expect("failed to write test left file to git repository");
+        let right_file_abs_path = repo_path.join(right_file_name);
+        fs::write(&right_file_abs_path, "[0, 1, 2, 3]\n")
+            .expect("failed to write test right file to git repository");
+        let output_file_abs_path = repo_path.join(output_file_name);
+
+        // first try without specifying a language
+        let return_code = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "merge",
+            base_file_abs_path.to_str().unwrap(),
+            left_file_abs_path.to_str().unwrap(),
+            right_file_abs_path.to_str().unwrap(),
+            "--output",
+            output_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf merge`");
+        assert_eq!(
+            return_code, 1,
+            "running `mergiraf merge` should fail because the language can't be detected"
+        );
+
+        // then try with a language specified on the CLI
+        let return_code = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "merge",
+            "--language=json",
+            base_file_abs_path.to_str().unwrap(),
+            left_file_abs_path.to_str().unwrap(),
+            right_file_abs_path.to_str().unwrap(),
+            "--output",
+            output_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf merge`");
+        assert_eq!(
+            return_code, 0,
+            "`mergiraf merge` should execute successfully with a specified language"
+        );
+
+        let merge_result =
+            fs::read_to_string(output_file_abs_path).expect("couldn't read the merge result");
+        assert_eq!(merge_result, "[0, 1, 2, 3, 4]\n");
     }
 }

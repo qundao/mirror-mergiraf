@@ -18,7 +18,8 @@ The version of the parser must be selected so that it is compatible with the ver
 Then, go to `src/supported_langs.rs` and add a profile for the language. You can start with a minimal one, such as:
 ```rust
 LangProfile {
-    name: "C#", // only used for logging purposes so far
+    name: "C#", // used for the --language CLI option, and generating the list of supported languages
+    alternate_names: vec![], // other possible values for --language
     extensions: vec!["cs"], // all file extensions for this language (note the lack of `.`!)
     language: tree_sitter_c_sharp::LANGUAGE.into(), // the tree-sitter parser
     // optional settings, explained below

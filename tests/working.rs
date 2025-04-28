@@ -34,6 +34,7 @@ fn compare_against_merge(
         None,
         None,
         Duration::from_millis(0),
+        None,
     );
 
     let expected = contents_expected.trim();

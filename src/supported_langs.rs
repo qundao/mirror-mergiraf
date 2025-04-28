@@ -50,6 +50,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
     vec![
         LangProfile {
             name: "Java",
+            alternate_names: &[],
             extensions: vec!["java"],
             language: tree_sitter_java::LANGUAGE.into(),
             atomic_nodes: vec!["import_declaration"],
@@ -162,6 +163,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Java properties",
+            alternate_names: &[],
             extensions: vec!["properties"],
             language: tree_sitter_properties::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -170,6 +172,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Kotlin",
+            alternate_names: &[],
             extensions: vec!["kt"],
             language: tree_sitter_kotlin_ng::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -216,6 +219,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Rust",
+            alternate_names: &[],
             extensions: vec!["rs"],
             language: tree_sitter_rust::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -317,6 +321,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Go",
+            alternate_names: &[],
             extensions: vec!["go"],
             language: tree_sitter_go::LANGUAGE.into(),
             atomic_nodes: vec!["interpreted_string_literal"], // for https://github.com/tree-sitter/tree-sitter-go/issues/150
@@ -349,6 +354,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Javascript",
+            alternate_names: &[],
             extensions: vec!["js", "jsx", "mjs"],
             language: tree_sitter_javascript::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -366,6 +372,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "JSON",
+            alternate_names: &[],
             extensions: vec!["json"],
             language: tree_sitter_json::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -377,6 +384,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "YAML",
+            alternate_names: &[],
             extensions: vec!["yml", "yaml"],
             language: tree_sitter_yaml::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -385,6 +393,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "TOML",
+            alternate_names: &[],
             extensions: vec!["toml"],
             language: tree_sitter_toml_ng::LANGUAGE.into(),
             atomic_nodes: vec!["string"],
@@ -400,6 +409,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "HTML",
+            alternate_names: &[],
             extensions: vec!["html", "htm"],
             language: tree_sitter_html::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -414,6 +424,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "XML",
+            alternate_names: &[],
             extensions: vec!["xhtml", "xml"],
             language: tree_sitter_xml::LANGUAGE_XML.into(),
             atomic_nodes: vec!["AttValue"],
@@ -425,6 +436,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "C/C++",
+            alternate_names: &["C", "C++"],
             extensions: vec!["c", "h", "cc", "cpp", "hpp", "cxx", "mpp", "cppm", "ixx"],
             language: tree_sitter_cpp::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -452,6 +464,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "C#",
+            alternate_names: &["CSharp"],
             extensions: vec!["cs"],
             language: tree_sitter_c_sharp::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -499,6 +512,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Dart",
+            alternate_names: &[],
             extensions: vec!["dart"],
             language: tree_sitter_dart::language(),
             atomic_nodes: vec!["import_or_export"],
@@ -515,6 +529,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Devicetree Source",
+            alternate_names: &[],
             extensions: vec!["dts"],
             language: tree_sitter_devicetree::LANGUAGE.into(),
             atomic_nodes: vec!["string_literal"],
@@ -526,6 +541,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Scala",
+            alternate_names: &[],
             extensions: vec!["scala", "sbt"],
             language: tree_sitter_scala::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -534,6 +550,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Typescript",
+            alternate_names: &[],
             extensions: vec!["ts"],
             language: tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
             atomic_nodes: vec![],
@@ -542,6 +559,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Typescript (TSX)",
+            alternate_names: &[],
             extensions: vec!["tsx"],
             language: tree_sitter_typescript::LANGUAGE_TSX.into(),
             atomic_nodes: vec![],
@@ -550,6 +568,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Python",
+            alternate_names: &[],
             extensions: vec!["py"],
             language: tree_sitter_python::LANGUAGE.into(),
             atomic_nodes: vec!["string", "dotted_name"],
@@ -576,6 +595,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "PHP",
+            alternate_names: &[],
             extensions: vec!["php", "phtml"],
             language: tree_sitter_php::LANGUAGE_PHP.into(),
             // optional settings, explained below
@@ -611,6 +631,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Solidity",
+            alternate_names: &[],
             extensions: vec!["sol"],
             language: tree_sitter_solidity::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -622,6 +643,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Lua",
+            alternate_names: &[],
             extensions: vec!["lua"],
             language: tree_sitter_lua::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -630,6 +652,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Ruby",
+            alternate_names: &[],
             extensions: vec!["rb"],
             language: tree_sitter_ruby::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -638,6 +661,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Nix",
+            alternate_names: &[],
             extensions: vec!["nix"],
             language: tree_sitter_nix::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -652,6 +676,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "SystemVerilog",
+            alternate_names: &[],
             extensions: vec!["sv", "svh"],
             language: tree_sitter_verilog::LANGUAGE.into(),
             atomic_nodes: vec![],

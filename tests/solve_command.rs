@@ -95,6 +95,7 @@ fn solve_command(#[case] conflict_style: &str) {
         DisplaySettings::default(),
         None,
         repo_dir,
+        None,
     )
     .expect("solving the conflicts returned an error");
 

@@ -18,6 +18,8 @@ use crate::{
 pub struct LangProfile {
     /// a name that identifies the language
     pub name: &'static str,
+    /// alternate names for the language
+    pub alternate_names: &'static [&'static str],
     /// the file extensions of files in this language
     pub extensions: Vec<&'static str>,
     /// `tree_sitter` parser
@@ -31,8 +33,19 @@ pub struct LangProfile {
 }
 
 impl LangProfile {
+    /// Load a profile by language name.
+    /// Alternate names or extensions are also considered.
+    pub fn find_by_name(name: &str) -> Option<&'static Self> {
+        SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
+            lang_profile.name.eq_ignore_ascii_case(name)
+                || (lang_profile.alternate_names.iter())
+                    .chain(&lang_profile.extensions)
+                    .any(|aname| aname.eq_ignore_ascii_case(name))
+        })
+    }
+
     /// Detects the language of a file based on its filename
-    pub fn detect_from_filename<P>(filename: &P) -> Option<&Self>
+    pub fn detect_from_filename<P>(filename: &P) -> Option<&'static Self>
     where
         P: AsRef<Path> + ?Sized,
     {
@@ -40,7 +53,28 @@ impl LangProfile {
         Self::_detect_from_filename(filename)
     }
 
-    fn _detect_from_filename(filename: &Path) -> Option<&Self> {
+    /// Loads a language either by name or by detecting it from a filename
+    pub fn find_by_filename_or_name<P>(
+        filename: &P,
+        language_name: Option<&str>,
+    ) -> Result<&'static Self, String>
+    where
+        P: AsRef<Path> + ?Sized,
+    {
+        if let Some(lang_name) = language_name {
+            Self::find_by_name(lang_name)
+                .ok_or_else(|| format!("Specified language '{lang_name}' could not be found"))
+        } else {
+            Self::detect_from_filename(filename).ok_or_else(|| {
+                format!(
+                    "Could not find a supported language for {}",
+                    filename.as_ref().display()
+                )
+            })
+        }
+    }
+
+    fn _detect_from_filename(filename: &Path) -> Option<&'static Self> {
         // TODO make something more advanced like in difftastic
         // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
         let extension = filename.extension()?;
@@ -233,5 +267,46 @@ mod tests {
 
         assert!(lang_profile.has_signature_conflicts(with_conflicts));
         assert!(!lang_profile.has_signature_conflicts(without_conflicts));
+    }
+
+    #[test]
+    fn find_by_name() {
+        assert_eq!(LangProfile::find_by_name("JSON").unwrap().name, "JSON");
+        assert_eq!(LangProfile::find_by_name("Json").unwrap().name, "JSON");
+        assert_eq!(LangProfile::find_by_name("python").unwrap().name, "Python");
+        assert_eq!(LangProfile::find_by_name("py").unwrap().name, "Python");
+        assert_eq!(
+            LangProfile::find_by_name("Java properties").unwrap().name,
+            "Java properties"
+        );
+        assert!(
+            LangProfile::find_by_name("unknown language").is_none(),
+            "Language shouldn't be found"
+        );
+    }
+
+    #[test]
+    fn find_by_filename_or_name() {
+        assert_eq!(
+            LangProfile::find_by_filename_or_name("file.json", None)
+                .unwrap()
+                .name,
+            "JSON"
+        );
+        assert_eq!(
+            LangProfile::find_by_filename_or_name("file.java", Some("JSON"))
+                .unwrap()
+                .name,
+            "JSON"
+        );
+        assert!(
+            LangProfile::find_by_filename_or_name("file.json", Some("non-existent language"),)
+                .is_err(),
+            "If a language name is provided, the file name should be ignored"
+        );
+        assert!(
+            LangProfile::find_by_filename_or_name("file.unknown_extension", None).is_err(),
+            "Looking up language by unknown extension should fail"
+        );
     }
 }
