@@ -64,12 +64,11 @@ impl TreeMatcher<'_> {
         let arena = Arena::new();
         let truncated_left = left
             .root()
-            .truncate(&|node| exact_matching.get_from_left(node).is_some(), &arena);
+            .truncate(|node| exact_matching.get_from_left(node).is_some(), &arena);
 
-        let truncated_right = right.root().truncate(
-            &|node| exact_matching.get_from_right(node).is_some(),
-            &arena,
-        );
+        let truncated_right = right
+            .root()
+            .truncate(|node| exact_matching.get_from_right(node).is_some(), &arena);
         let mut truncated_matching: Matching = matching.translate(truncated_left, truncated_right);
 
         // Second pass for container mappings

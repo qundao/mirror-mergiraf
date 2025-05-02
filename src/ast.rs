@@ -440,44 +440,51 @@ impl<'a> AstNode<'a> {
     }
 
     /// Truncate a tree so that all nodes selected by the predicate are treated as leaves
-    pub fn truncate<'b, F>(
-        &'a self,
-        predicate: &F,
-        arena: &'b Arena<AstNode<'b>>,
-    ) -> &'b AstNode<'b>
+    pub fn truncate<'b, F>(&'a self, predicate: F, arena: &'b Arena<AstNode<'b>>) -> &'b AstNode<'b>
     where
         F: Fn(&'a Self) -> bool,
         'a: 'b,
     {
-        let truncate = predicate(self);
-        let children = if truncate {
-            Vec::new()
-        } else {
-            self.children
-                .iter()
-                .map(|child| child.truncate(predicate, arena))
-                .collect()
-        };
-        let field_to_children = if truncate {
-            FxHashMap::default()
-        } else {
-            let child_id_map: FxHashMap<usize, &'b AstNode<'b>> =
-                children.iter().map(|child| (child.id, *child)).collect();
-            self.field_to_children
-                .iter()
-                .map(|(k, v)| (*k, v.iter().map(|child| child_id_map[&child.id]).collect()))
-                .collect()
-        };
-        let result = arena.alloc(AstNode {
-            children,
-            field_to_children,
-            byte_range: self.byte_range.clone(),
-            parent: UnsafeCell::new(None),
-            dfs: UnsafeCell::new(None),
-            ..*self
-        });
-        result.internal_set_parent_on_children();
-        result
+        fn _truncate<'a, 'b, F>(
+            node: &'a AstNode<'a>,
+            predicate: &F,
+            arena: &'b Arena<AstNode<'b>>,
+        ) -> &'b AstNode<'b>
+        where
+            F: Fn(&'a AstNode<'a>) -> bool,
+            'a: 'b,
+        {
+            let truncate = predicate(node);
+            let children = if truncate {
+                Vec::new()
+            } else {
+                node.children
+                    .iter()
+                    .map(|child| _truncate(child, predicate, arena))
+                    .collect()
+            };
+            let field_to_children = if truncate {
+                FxHashMap::default()
+            } else {
+                let child_id_map: FxHashMap<usize, &'b AstNode<'b>> =
+                    children.iter().map(|child| (child.id, *child)).collect();
+                node.field_to_children
+                    .iter()
+                    .map(|(k, v)| (*k, v.iter().map(|child| child_id_map[&child.id]).collect()))
+                    .collect()
+            };
+            let result = arena.alloc(AstNode {
+                children,
+                field_to_children,
+                byte_range: node.byte_range.clone(),
+                parent: UnsafeCell::new(None),
+                dfs: UnsafeCell::new(None),
+                ..*node
+            });
+            result.internal_set_parent_on_children();
+            result
+        }
+        _truncate(self, &predicate, arena)
     }
 
     /// Any whitespace that precedes this node.
@@ -1009,7 +1016,7 @@ mod tests {
         let arena = Arena::new();
         let truncated = tree
             .root()
-            .truncate(&|node| node.grammar_name == "pair", &arena);
+            .truncate(|node| node.grammar_name == "pair", &arena);
 
         let node_types = truncated.postfix().map(|n| n.grammar_name).collect_vec();
 
