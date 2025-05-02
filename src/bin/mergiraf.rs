@@ -191,16 +191,16 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             #[expect(unstable_name_collisions)]
             let right = right.leak();
 
-            // NOTE: reborrow to turn `&mut str` returned by `String::leak` into `&str`
+            // NOTE: reborrow to turn `&mut Path` returned by `PathBuf::leak` into `&Path`
             #[expect(unstable_name_collisions)]
             let path_name = path_name.map(|s| &*s.leak());
+            #[expect(unstable_name_collisions)]
+            let debug_dir = debug_dir.map(|s| &*s.leak());
 
+            // same for `String::leak`
             let base_name = base_name.map(|s| &*s.leak());
             let left_name = left_name.map(|s| &*s.leak());
             let right_name = right_name.map(|s| &*s.leak());
-
-            #[expect(unstable_name_collisions)]
-            let debug_dir = debug_dir.map(|s| &*s.leak());
 
             let settings: DisplaySettings<'static> = DisplaySettings {
                 compact,

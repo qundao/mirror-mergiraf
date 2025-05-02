@@ -197,14 +197,16 @@ impl TreeMatcher<'_> {
             let mut best_candidate = None;
             for candidate in candidates {
                 let sim = matching.dice(left_node, candidate);
-                if sim > max_sim && sim > self.sim_threshold {
-                    max_sim = sim;
-                    best_candidate = Some(candidate);
-                } else if sim > max_sim && sim > self.sim_threshold * 0.75 {
-                    debug!(
-                        "discarding match with similarity {}, close to threshold {}",
-                        sim, self.sim_threshold
-                    );
+                if sim > max_sim {
+                    if sim > self.sim_threshold {
+                        max_sim = sim;
+                        best_candidate = Some(candidate);
+                    } else if sim > self.sim_threshold * 0.75 {
+                        debug!(
+                            "discarding match with similarity {}, close to threshold {}",
+                            sim, self.sim_threshold
+                        );
+                    }
                 }
             }
             if let Some(winner) = best_candidate {
@@ -234,21 +236,16 @@ impl TreeMatcher<'_> {
         let mut seen_ancestors = HashSet::new();
         let mut candidates = Vec::new();
         for seed in seeds {
-            for ancestor in seed
+            let node_candidates = seed
                 .ancestors()
                 .skip(1)
-                .filter(|ancestor| ancestor.parent().is_some())
-            {
-                if seen_ancestors.contains(ancestor) {
-                    break;
-                }
-                seen_ancestors.insert(ancestor);
-                if left_node.grammar_name == ancestor.grammar_name
-                    && matching.get_from_right(ancestor).is_none()
-                {
-                    candidates.push(ancestor);
-                }
-            }
+                .take_while(|ancestor| !ancestor.is_root())
+                .take_while(|ancestor| seen_ancestors.insert(*ancestor))
+                .filter(|ancestor| {
+                    left_node.grammar_name == ancestor.grammar_name
+                        && matching.get_from_right(ancestor).is_none()
+                });
+            candidates.extend(node_candidates);
         }
         candidates
     }
@@ -336,10 +333,8 @@ impl TreeMatcher<'_> {
             if children_r.len() != 1 {
                 continue;
             }
-            // SAFETY: checked above
-            let child_l = unsafe { children_l.iter().next().unwrap_unchecked() };
-            // SAFETY: checked above
-            let child_r = unsafe { children_r.iter().next().unwrap_unchecked() };
+            let child_l = children_l.iter().next().expect("checked len above");
+            let child_r = children_r.iter().next().expect("checked len above");
             if matching.can_be_matched(child_l, child_r) {
                 if signature.is_some() || recursive {
                     self.match_subtrees_linearly(

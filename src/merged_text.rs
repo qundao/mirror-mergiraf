@@ -281,7 +281,7 @@ impl<'a> MergedText<'a> {
             }
         }
         Self::maybe_add_newline(output);
-        output.push_str(&settings.middle_marker());
+        output.push_str(&settings.middle_marker_or_default());
         output.push('\n');
         if !right.trim().is_empty() {
             output.push_str(right);

@@ -58,8 +58,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     let representative = class_mapping
                         .node_at_rev(*node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
-                    (Self::Original(representative))
-                        .children_by_field_name(field_name, class_mapping)
+                    Self::Original(representative).children_by_field_name(field_name, class_mapping)
                 }
                 MergedTree::MixedTree { children, .. } => children
                     .iter()
@@ -95,7 +94,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     let representative = class_mapping
                         .node_at_rev(*node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
-                    (Self::Original(representative))
+                    Self::Original(representative)
                         .children_by_grammar_name(grammar_name, class_mapping)
                 }
                 MergedTree::MixedTree { children, .. } => children

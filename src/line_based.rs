@@ -4,8 +4,6 @@ use typed_arena::Arena;
 
 use crate::{lang_profile::LangProfile, parsed_merge::ParsedMerge, settings::DisplaySettings};
 pub const LINE_BASED_METHOD: &str = "line_based";
-pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
-pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
 pub fn line_based_merge_parsed(
     contents_base: &str,

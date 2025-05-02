@@ -320,8 +320,7 @@ impl<'a> ParsedMerge<'a> {
 
     /// Render the parsed merge back to a string representation
     pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
-        let mut result = String::new();
-        for chunk in &self.chunks {
+        self.chunks.iter().fold(String::new(), |mut result, chunk| {
             match chunk {
                 MergedChunk::Resolved { contents, .. } => result.push_str(contents),
                 MergedChunk::Conflict {
@@ -359,7 +358,7 @@ impl<'a> ParsedMerge<'a> {
                         }
                     }
 
-                    result.push_str(&settings.middle_marker());
+                    result.push_str(&settings.middle_marker_or_default());
                     result.push('\n');
 
                     result.push_str(right.unwrap_or_default());
@@ -372,8 +371,8 @@ impl<'a> ParsedMerge<'a> {
                     }
                 }
             }
-        }
-        result
+            result
+        })
     }
 
     /// If the parsed merge contains no conflicts, "render" it by concatenating all the chunks.

@@ -1,4 +1,8 @@
-use std::{fmt::Write, fs, path::Path};
+use std::{
+    fs::File,
+    io::{BufWriter, Write},
+    path::Path,
+};
 
 use itertools::Itertools;
 
@@ -162,11 +166,12 @@ impl<'a> ChangeSet<'a> {
 
     /// Save to file, for debugging purposes
     pub fn save(&self, fname: impl AsRef<Path>) {
-        let result = self.iter().sorted().fold(String::new(), |mut result, pcs| {
-            let _ = writeln!(result, "{pcs}");
-            result
-        });
-        fs::write(fname, result).expect("Unable to write changeset file");
+        let f = File::open(fname).expect("Unable to open changeset file");
+        let mut f = BufWriter::new(f);
+
+        for pcs in self.iter().sorted() {
+            writeln!(f, "{pcs}").expect("Unable to write changeset file");
+        }
     }
 }
 

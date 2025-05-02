@@ -4,15 +4,12 @@ use log::debug;
 use typed_arena::Arena;
 
 use crate::{
-    MergeResult, Revision, TSParser,
-    lang_profile::LangProfile,
-    line_based::{FULLY_STRUCTURED_METHOD, STRUCTURED_RESOLUTION_METHOD},
-    merge_3dm::three_way_merge,
-    parse,
-    parsed_merge::ParsedMerge,
-    settings::DisplaySettings,
-    tree_matcher::TreeMatcher,
+    MergeResult, Revision, TSParser, lang_profile::LangProfile, merge_3dm::three_way_merge, parse,
+    parsed_merge::ParsedMerge, settings::DisplaySettings, tree_matcher::TreeMatcher,
 };
+
+pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
+pub const FULLY_STRUCTURED_METHOD: &str = "fully_structured";
 
 pub(crate) const ZDIFF3_DETECTED: &str =
     "Mergiraf cannot solve conflicts displayed in the zdiff style";

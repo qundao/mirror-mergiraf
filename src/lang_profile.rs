@@ -135,22 +135,23 @@ impl LangProfile {
 
     /// Checks if a tree has any signature conflicts in it
     pub(crate) fn has_signature_conflicts<'a>(&self, node: &'a AstNode<'a>) -> bool {
-        let conflict_in_children = node
-            .children
-            .iter()
-            .any(|child| self.has_signature_conflicts(child));
-        conflict_in_children
-            || (if node.children.len() < 2 {
-                false
-            } else if self.get_commutative_parent(node.grammar_name).is_some() {
-                !node
+        let conflict_in_children = || {
+            node.children
+                .iter()
+                .any(|child| self.has_signature_conflicts(child))
+        };
+
+        let conflict_in_self = || {
+            node.children.len() >= 2
+                && self.get_commutative_parent(node.grammar_name).is_some()
+                && !node
                     .children
                     .iter()
                     .filter_map(|child| self.extract_signature_from_original_node(child))
                     .all_unique()
-            } else {
-                false
-            })
+        };
+
+        conflict_in_self() || conflict_in_children()
     }
 
     /// Should this node type be treated as atomic?

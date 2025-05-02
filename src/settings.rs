@@ -16,21 +16,21 @@ pub struct DisplaySettings<'a> {
     /// It can either:
     /// - miss completely (`<<<<<<<(newline)`), in which case we use "LEFT" as a placeholder.
     /// - be present but empty (`<<<<<<<(space)(newline`) -- a very unlikely case which we ignore.
-    /// - be present and non-empty (<<<<<<<(space)(revision name)(newline))
+    /// - be present and non-empty (`<<<<<<<(space)(revision name)(newline)`)
     pub left_revision_name: Option<Cow<'a, str>>,
     /// The string that identifies the base revision in conflict markers
     ///
     /// It can either:
     /// - miss completely (`|||||||(newline)`), in which case we use "BASE" as a placeholder.
     /// - be present but empty (`|||||||(space)(newline`) -- a very unlikely case which we ignore.
-    /// - be present and non-empty (|||||||(space)(revision name)(newline))
+    /// - be present and non-empty (`|||||||(space)(revision name)(newline)`)
     pub base_revision_name: Option<Cow<'a, str>>,
     /// The string that identifies the right revision in conflict markers
     ///
     /// It can either:
     /// - miss completely (`>>>>>>>(newline)`), in which case we use "RIGHT" as a placeholder.
     /// - be present but empty (`>>>>>>>(space)(newline`) -- a very unlikely case which we ignore.
-    /// - be present and non-empty (>>>>>>>(space)(revision name)(newline))
+    /// - be present and non-empty (`>>>>>>>(space)(revision name)(newline)`)
     pub right_revision_name: Option<Cow<'a, str>>,
 }
 
@@ -96,7 +96,7 @@ impl<'a> DisplaySettings<'a> {
     /// The marker before the beginning of "right" (last) part of a conflict.
     /// It does not contain any newline character.
     /// Uses the default values of `conflict_marker_size` if not set
-    pub fn middle_marker(&self) -> String {
+    pub fn middle_marker_or_default(&self) -> String {
         "=".repeat(self.conflict_marker_size_or_default())
     }
 
