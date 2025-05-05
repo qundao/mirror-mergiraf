@@ -535,9 +535,9 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     return Ok((all_successors, result));
                 }
                 PCSNode::Node { node, .. } => {
-                    let _representative = self.class_mapping.node_at_rev(node, revision)
+                    let representative = self.class_mapping.node_at_rev(node, revision)
                         .expect("extract_conflict_side: gathering a class leader which doesn't have a representative in the revision");
-                    result.push(node.as_representative().node); // TODO should we not pick the representative in the revision instead?
+                    result.push(representative);
                     if !seen_nodes.insert(candidate) {
                         return Err("PCS successor loop detected".to_string());
                     }
