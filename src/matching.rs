@@ -54,6 +54,10 @@ impl<'tree> Matching<'tree> {
 
     /// Adds a match between two nodes (in both directions)
     pub fn add(&mut self, from: &'tree AstNode<'tree>, to: &'tree AstNode<'tree>) {
+        debug_assert_eq!(
+            from.grammar_name, to.grammar_name,
+            "Attempting to match nodes with different grammar_names"
+        );
         // if some other node was matched to either `from` or `to`,
         // remove it so that the matching remains one-to-one
         self.remove(from, to);
@@ -67,6 +71,10 @@ impl<'tree> Matching<'tree> {
         I: Iterator<Item = (&'tree AstNode<'tree>, &'tree AstNode<'tree>)> + Clone,
     {
         for (l, r) in pairs.clone() {
+            debug_assert_eq!(
+                l.grammar_name, r.grammar_name,
+                "Attempting to match nodes with different grammar_names"
+            );
             self.remove(l, r);
         }
 

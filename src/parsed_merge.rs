@@ -294,7 +294,7 @@ impl<'a> ParsedMerge<'a> {
         &self,
         revision: Revision,
         tree: &'b Ast<'b>,
-    ) -> HashMap<Range<usize>, &'b AstNode<'b>> {
+    ) -> HashMap<(&'static str, Range<usize>), &'b AstNode<'b>> {
         let mut map = HashMap::new();
         self.recursively_index_node(revision, tree.root(), &mut map);
         map
@@ -304,11 +304,11 @@ impl<'a> ParsedMerge<'a> {
         &self,
         revision: Revision,
         node: &'b AstNode<'b>,
-        map: &mut HashMap<Range<usize>, &'b AstNode<'b>>,
+        map: &mut HashMap<(&'static str, Range<usize>), &'b AstNode<'b>>,
     ) {
         match self.rev_range_to_merged_range(&node.byte_range, revision) {
             Some(range) => {
-                map.insert(range, node);
+                map.insert((node.grammar_name, range), node);
             }
             None => {
                 node.children
@@ -1037,6 +1037,46 @@ struct MyType {
         assert!(matching.are_matched(closing_bracket_left, closing_bracket_right));
 
         assert_eq!(matching.len(), 7);
+    }
+
+    #[test]
+    fn identical_ranges_but_different_grammar_names() {
+        let ctx = ctx();
+        let source = "\
+{
+}:
+
+{
+  foo.bar = \"Hello World\";
+<<<<<<< LEFT
+  foo.baz = \"Mergiraf is fun :)\";
+||||||| BASE
+=======
+  foo.foo = \"Test\";
+>>>>>>> RIGHT
+}
+";
+        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+
+        let base_rev = parsed.reconstruct_revision(Revision::Base);
+        let left_rev = parsed.reconstruct_revision(Revision::Left);
+
+        let parsed_base = ctx.parse_nix(&base_rev);
+        let parsed_left = ctx.parse_nix(&left_rev);
+
+        let binding_set_base = parsed_base.root()[0][2][1];
+        assert_eq!(binding_set_base.grammar_name, "binding_set");
+        let binding_left = parsed_left.root()[0][2][1][0];
+        assert_eq!(binding_left.grammar_name, "binding");
+        // two nodes of different types have the same range
+        assert_eq!(binding_set_base.byte_range, binding_left.byte_range);
+
+        let matching =
+            parsed.generate_matching(Revision::Base, Revision::Left, &parsed_base, &parsed_left);
+
+        // the two nodes are not matched despite having the same range
+        assert!(matching.get_from_left(binding_set_base).is_none());
+        assert!(matching.get_from_right(binding_left).is_none());
     }
 
     #[test]

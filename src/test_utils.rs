@@ -59,6 +59,10 @@ impl<'a> TestContext<'a> {
     pub fn parse_toml(&'a self, source: &'a str) -> Ast<'a> {
         self.parse_internal("a.toml", source)
     }
+
+    pub fn parse_nix(&'a self, source: &'a str) -> Ast<'a> {
+        self.parse_internal("a.nix", source)
+    }
 }
 
 pub(crate) fn json_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
