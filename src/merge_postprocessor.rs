@@ -90,7 +90,6 @@ fn highlight_duplicate_signatures<'a>(
     // find an example of a separator among the elements to merge
     let trimmed_separator = commutative_parent.separator.trim();
     let separator_example = find_separator(parent, trimmed_separator, class_mapping);
-    let separator_node = separator_example.map(|revnode| revnode.node);
 
     // determine whether the separator should be added at the end of a line
     // TODO this could probably be simplified now that we have line-based conflict printing
@@ -189,7 +188,7 @@ fn highlight_duplicate_signatures<'a>(
                                 })
                                 .collect::<Vec<_>>(),
                             class_mapping,
-                            separator_node,
+                            separator_example,
                             conflict_add_separator,
                         );
 
@@ -251,7 +250,7 @@ enum AddSeparator {
 fn merge_same_sigs<'a>(
     elements: &[&MergedTree<'a>],
     class_mapping: &ClassMapping<'a>,
-    separator: Option<&'a AstNode<'a>>,
+    separator: Option<RevNode<'a>>,
     add_separator: AddSeparator,
 ) -> (Vec<MergedTree<'a>>, bool) {
     if let &[first, second] = elements {
@@ -268,11 +267,15 @@ fn merge_same_sigs<'a>(
     if left.len() == right.len()
         && zip(&left, &right).all(|(elem_left, elem_right)| elem_left.isomorphic_to(elem_right))
     {
-        let v = add_separators(left, separator, add_separator)
+        let left_revnodes = left
             .iter()
-            .map(|ast_node| {
+            .map(|ast_node| RevNode::new(Revision::Left, ast_node))
+            .collect();
+        let v = add_separators(left_revnodes, separator, add_separator)
+            .into_iter()
+            .map(|rev_node| {
                 MergedTree::new_exact(
-                    class_mapping.map_to_leader(RevNode::new(Revision::Left, ast_node)),
+                    class_mapping.map_to_leader(rev_node),
                     RevisionNESet::singleton(Revision::Left).with(Revision::Right),
                     class_mapping,
                 )
@@ -280,6 +283,12 @@ fn merge_same_sigs<'a>(
             .collect();
         (v, false)
     } else {
+        let separator = separator.map(|revnode| revnode.node);
+        // NOTE: here we're adding the separator (coming from one particular revision)
+        // to conflict sides in other revisions too, meaning that the nodes in each conflict
+        // side aren't necessarily coming from the corresponding revision. Which is bad,
+        // but it's not clear how that can be avoided: it can be that the separator doesn't appear
+        // at all in a given revision.
         (
             vec![MergedTree::Conflict {
                 base: add_separators(base, separator, add_separator),
@@ -310,11 +319,11 @@ fn filter_by_revision<'a>(
 }
 
 /// Insert separators between a list of merged elements
-fn add_separators<'a>(
-    elements: Vec<&'a AstNode<'a>>,
-    separator: Option<&'a AstNode<'a>>,
+fn add_separators<T: Clone + Copy>(
+    elements: Vec<T>,
+    separator: Option<T>,
     add_separator: AddSeparator,
-) -> Vec<&'a AstNode<'a>> {
+) -> Vec<T> {
     if elements.is_empty() {
         return vec![];
     }
