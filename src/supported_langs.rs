@@ -444,7 +444,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             language: tree_sitter_cpp::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![
-                CommutativeParent::new("initializer_list", "{", ",", "}"),
+                CommutativeParent::new("initializer_list", "{", ",", "}")
+                    .restricted_to_groups(&[&["initializer_pair"]]),
                 CommutativeParent::new("field_declaration_list", "{\n", "\n", "\n}\n")
                     .restricted_to_groups(&[&["field_declaration"], &["function_definition"]]),
             ],
