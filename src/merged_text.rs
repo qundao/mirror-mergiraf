@@ -3,7 +3,9 @@ use std::borrow::Cow;
 use itertools::Itertools;
 use regex::Regex;
 
-use crate::{parsed_merge::ParsedMerge, settings::DisplaySettings};
+use crate::{
+    merge_result::MergeResult, parsed_merge::ParsedMerge, pcs::Revision, settings::DisplaySettings,
+};
 
 /// A merged file represented as a sequence of sections,
 /// some being successfully merged and others being conflicts.
@@ -34,6 +36,27 @@ impl<'a> MergedText<'a> {
     /// Creates an empty merged text
     pub(crate) fn new() -> Self {
         Self::default()
+    }
+
+    /// Number of conflict sections in the text
+    pub(crate) fn count_conflicts(&self) -> usize {
+        self.sections
+            .iter()
+            .filter(|section| matches!(section, MergeSection::Conflict { .. }))
+            .count()
+    }
+
+    /// Sum of the size of conflicts
+    pub(crate) fn conflict_mass(&self) -> usize {
+        self.sections
+            .iter()
+            .map(|section| match section {
+                MergeSection::Merged(_) => 0,
+                MergeSection::Conflict { base, left, right } => {
+                    base.len() + left.len() + right.len()
+                }
+            })
+            .sum()
     }
 
     /// Appends merged text at the end
@@ -133,6 +156,25 @@ impl<'a> MergedText<'a> {
         } else {
             reindented
         }
+    }
+
+    /// Reconstruct the source of a revision based on the merged output.
+    ///
+    /// Because some changes from both revisions have likely already been
+    /// merged in the non-conflicting sections, this is not the original revision,
+    /// but rather a half-merged version of it.
+    pub(crate) fn reconstruct_revision(&self, revision: Revision) -> String {
+        self.sections
+            .iter()
+            .map(|section| match section {
+                MergeSection::Merged(contents) => contents.as_ref(),
+                MergeSection::Conflict { left, base, right } => match revision {
+                    Revision::Base => base.as_ref(),
+                    Revision::Left => left.as_ref(),
+                    Revision::Right => right.as_ref(),
+                },
+            })
+            .collect()
     }
 
     /// Renders the full file according to the supplied [`DisplaySettings`]
@@ -342,6 +384,23 @@ impl<'a> MergedText<'a> {
     fn maybe_add_newline(output: &mut String) {
         if !output.ends_with('\n') && !output.is_empty() {
             output.push('\n');
+        }
+    }
+
+    /// Render to a merge result
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn into_merge_result(
+        &self,
+        settings: &DisplaySettings,
+        method: &'static str,
+    ) -> MergeResult {
+        let rendered = self.render(settings);
+        MergeResult {
+            contents: rendered,
+            conflict_count: self.count_conflicts(),
+            conflict_mass: self.conflict_mass(),
+            method,
+            has_additional_issues: false,
         }
     }
 }
@@ -555,5 +614,45 @@ there we go
 ";
 
         assert_eq!(merged_text.render(&DisplaySettings::default()), expected);
+    }
+
+    #[test]
+    fn reconstruct_revision() {
+        let merged_text = MergedText {
+            sections: vec![
+                merged("let's say "),
+                conflict("ho", "hi", "ha"),
+                merged(" to "),
+                conflict("you", "everyone", "me"),
+                merged("!"),
+            ],
+        };
+        assert_eq!(
+            merged_text.reconstruct_revision(Revision::Base),
+            "let's say ho to you!"
+        );
+        assert_eq!(
+            merged_text.reconstruct_revision(Revision::Left),
+            "let's say hi to everyone!"
+        );
+        assert_eq!(
+            merged_text.reconstruct_revision(Revision::Right),
+            "let's say ha to me!"
+        );
+    }
+
+    #[test]
+    fn conflict_count_and_mass() {
+        let merged_text = MergedText {
+            sections: vec![
+                merged("let's say "),
+                conflict("ho", "hi", "ha"),
+                merged(" to "),
+                conflict("you", "everyone", "me"),
+                merged("!"),
+            ],
+        };
+        assert_eq!(merged_text.conflict_mass(), 19);
+        assert_eq!(merged_text.count_conflicts(), 2);
     }
 }

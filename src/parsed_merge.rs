@@ -4,7 +4,9 @@ use regex::Regex;
 
 use crate::{
     ast::{Ast, AstNode},
+    line_based::LINE_BASED_METHOD,
     matching::Matching,
+    merge_result::MergeResult,
     pcs::Revision,
     settings::DisplaySettings,
 };
@@ -414,7 +416,7 @@ impl<'a> ParsedMerge<'a> {
         None
     }
 
-    // Number of conflicts in this merge
+    /// Number of conflicts in this merge
     pub fn conflict_count(&self) -> usize {
         self.chunks
             .iter()
@@ -422,8 +424,8 @@ impl<'a> ParsedMerge<'a> {
             .count()
     }
 
-    // Number of bytes of conflicting content, which is an attempt
-    // at quantifying the effort it takes to resolve the conflicts.
+    /// Number of bytes of conflicting content, which is an attempt
+    /// at quantifying the effort it takes to resolve the conflicts.
     pub fn conflict_mass(&self) -> usize {
         self.chunks
             .iter()
@@ -438,9 +440,23 @@ impl<'a> ParsedMerge<'a> {
             .sum()
     }
 
-    // Whether the merge is empty when rendered
+    /// Whether the merge is empty when rendered
     pub(crate) fn is_empty(&self) -> bool {
         self.chunks.is_empty() || self.render_conflictless().is_some_and(|s| s.is_empty())
+    }
+
+    /// Render into a merge result with the provided settings
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn into_merge_result(&self, settings: &DisplaySettings<'_>) -> MergeResult {
+        MergeResult {
+            contents: self.render(settings),
+            conflict_count: self.conflict_count(),
+            conflict_mass: self.conflict_mass(),
+            method: LINE_BASED_METHOD,
+            // the line-based merge might have come from a non-syntax-aware tool,
+            // and we cautiously assume that it does have issues
+            has_additional_issues: true,
+        }
     }
 }
 

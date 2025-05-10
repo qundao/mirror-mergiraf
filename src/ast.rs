@@ -343,7 +343,7 @@ impl<'a> AstNode<'a> {
 
     /// Whether this node is isomorphic to another.
     /// This doesn't take commutativity into account.
-    pub fn isomorphic_to(&'a self, other: &'a Self) -> bool {
+    pub fn isomorphic_to<'b>(&'a self, other: &'b AstNode<'b>) -> bool {
         let mut zipped = self.dfs().zip(other.dfs());
         self.hash == other.hash
             && zipped.all(|(n1, n2)| {

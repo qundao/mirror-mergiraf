@@ -98,15 +98,42 @@ pub fn structured_merge(
     );
     debug!("{result_tree}");
 
-    Ok(MergeResult {
-        contents: result_tree.pretty_print(&class_mapping, settings),
-        conflict_count: result_tree.count_conflicts(),
-        conflict_mass: result_tree.conflict_mass(),
-        method: if parsed_merge.is_none() {
-            FULLY_STRUCTURED_METHOD
-        } else {
-            STRUCTURED_RESOLUTION_METHOD
-        },
-        has_additional_issues: false,
-    })
+    let merged_text = result_tree.to_merged_text(&class_mapping);
+
+    // Check that the rendered merge is faithful to the tree
+    let revisions_to_check = if merged_text.count_conflicts() == 0 {
+        [Revision::Base].as_slice()
+    } else {
+        [Revision::Base, Revision::Left, Revision::Right].as_slice()
+    };
+    for revision in revisions_to_check {
+        let merged_revision = merged_text.reconstruct_revision(*revision);
+        let arena = Arena::new();
+        let ref_arena = Arena::new();
+        let tree = parse(
+            &mut parser,
+            &merged_revision,
+            lang_profile,
+            &arena,
+            &ref_arena,
+        )
+        .map_err(|err| {
+            format!(
+                "merge discarded because rendered revision {revision} has a parsing error: {err}"
+            )
+        })?;
+        if !result_tree.isomorphic_to_source(tree.root(), *revision, &class_mapping) {
+            debug!(
+                "discarding merge because rendered revision {revision} isn't isomorphic to the merged tree"
+            );
+            return Err("merge discarded after isomorphism check".to_owned());
+        }
+    }
+
+    let method = if parsed_merge.is_none() {
+        FULLY_STRUCTURED_METHOD
+    } else {
+        STRUCTURED_RESOLUTION_METHOD
+    };
+    Ok(merged_text.into_merge_result(settings, method))
 }

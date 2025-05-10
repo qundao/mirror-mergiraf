@@ -6,7 +6,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use itertools::Itertools;
+use itertools::{EitherOrBoth, Itertools};
 
 use crate::{
     ast::AstNode,
@@ -275,15 +275,124 @@ impl<'a> MergedTree<'a> {
         }
     }
 
+    /// Checks if the merged tree is isomorphic to a parsed source,
+    /// when considered at a particular revision.
+    /// This is used as a safety check to make sure that the rendered
+    /// version of this merge (which is then re-parsed) is faithful to
+    /// the intended merge structure, as a means of detecting invalid
+    /// whitespace generation or merges that are syntactically invalid.
+    pub fn isomorphic_to_source<'b>(
+        &'a self,
+        other_node: &'b AstNode<'b>,
+        revision: Revision,
+        class_mapping: &ClassMapping<'a>,
+    ) -> bool {
+        match self {
+            MergedTree::ExactTree {
+                node, revisions, ..
+            } => {
+                let ast_node = class_mapping.node_at_rev(*node, revisions.any()).expect(
+                    "inconsistency between revision set of ExactTree and the class mapping",
+                );
+                ast_node.isomorphic_to(other_node)
+            }
+            MergedTree::MixedTree { node, children, .. } => {
+                if node.grammar_name() != other_node.grammar_name {
+                    return false;
+                }
+                // If one of the children is a line-based merge, we just give up
+                // and assume that the nodes are isomorphic. This is because
+                // the line-based merge might contain any number of actual children,
+                // so we are unable to match the other children together.
+                // It would be better to re-parse the textual merge, but that would assume
+                // the ability to parse a snippet of text for a particular node type, which
+                // is not supported by tree-sitter yet:
+                // https://github.com/tree-sitter/tree-sitter/issues/711
+                let contains_line_based_merge = children
+                    .iter()
+                    .any(|c| matches!(c, MergedTree::LineBasedMerge { .. }));
+                if contains_line_based_merge {
+                    return true;
+                }
+                let children_at_rev = children
+                    .iter()
+                    .flat_map(|child| match child {
+                        MergedTree::LineBasedMerge { .. } => {
+                            unreachable!(
+                                "line-based merge should have been caught by the earlier filter"
+                            )
+                        }
+                        MergedTree::Conflict { base, left, right } => {
+                            let nodes = match revision {
+                                Revision::Base => base,
+                                Revision::Left => left,
+                                Revision::Right => right,
+                            };
+                            nodes.iter().copied().map(MergedChild::Original).collect()
+                        }
+                        _ => {
+                            vec![MergedChild::Merged(child)]
+                        }
+                    })
+                    .filter(|child| {
+                        // filter out nodes which wouldn't be present in a parsed tree,
+                        // so as not to create a mismatch in the number of children
+                        match child {
+                            MergedChild::Merged(MergedTree::CommutativeChildSeparator {
+                                separator,
+                            }) => !separator.trim().is_empty(),
+                            MergedChild::Merged(MergedTree::MixedTree { children, .. }) => {
+                                !children.is_empty()
+                            }
+                            _ => true,
+                        }
+                    });
+                children_at_rev
+                    .zip_longest(&other_node.children)
+                    .all(|pair| {
+                        if let EitherOrBoth::Both(child, other_child) = pair {
+                            match child {
+                                MergedChild::Merged(merged_tree) => merged_tree
+                                    .isomorphic_to_source(other_child, revision, class_mapping),
+                                MergedChild::Original(ast_node) => {
+                                    ast_node.isomorphic_to(other_child)
+                                }
+                            }
+                        } else {
+                            false
+                        }
+                    })
+            }
+            MergedTree::LineBasedMerge { .. } => {
+                // See above
+                true
+            }
+            MergedTree::Conflict { .. } => {
+                // Conflict is only allowed to appear as a child of another node, in which case
+                // it will be flattened above
+                false
+            }
+            MergedTree::CommutativeChildSeparator { separator } => {
+                separator.trim() == other_node.source.trim()
+            }
+        }
+    }
+
+    /// Renders the tree to a series of strings, with merged and conflicting sections
+    pub fn to_merged_text(&'a self, class_mapping: &ClassMapping<'a>) -> MergedText<'a> {
+        let mut merged_text = MergedText::new();
+        self.pretty_print_recursively(&mut merged_text, class_mapping, None, "");
+        merged_text
+    }
+
+    #[cfg(test)]
     /// Pretty-prints the result tree into its final output. Exciting!
     pub fn pretty_print<'u: 'a>(
         &'u self,
         class_mapping: &ClassMapping<'a>,
         settings: &DisplaySettings,
     ) -> String {
-        let mut output = MergedText::new();
-        self.pretty_print_recursively(&mut output, class_mapping, None, "");
-        output.render(settings)
+        self.to_merged_text(class_mapping).render(settings)
     }
 
     /// Recursively pretty-prints a sub part of the result tree.
@@ -623,31 +732,6 @@ impl<'a> MergedTree<'a> {
             .map_or("", |(_, shift)| shift)
     }
 
-    /// The number of conflicts in this merge
-    pub fn count_conflicts(&self) -> usize {
-        match self {
-            Self::ExactTree { .. } | Self::CommutativeChildSeparator { .. } => 0,
-            Self::MixedTree { children, .. } => children.iter().map(Self::count_conflicts).sum(),
-            Self::Conflict { .. } => 1,
-            Self::LineBasedMerge { parsed, .. } => parsed.conflict_count(),
-        }
-    }
-
-    /// The number of conflicting bytes, as an attempt to quantify the effort
-    /// required to solve them.
-    pub fn conflict_mass(&self) -> usize {
-        match self {
-            Self::ExactTree { .. } | Self::CommutativeChildSeparator { .. } => 0,
-            Self::MixedTree { children, .. } => children.iter().map(Self::conflict_mass).sum(),
-            Self::Conflict { base, left, right } => {
-                Self::pretty_print_astnode_list(Revision::Left, left).len()
-                    + Self::pretty_print_astnode_list(Revision::Base, base).len()
-                    + Self::pretty_print_astnode_list(Revision::Right, right).len()
-            }
-            Self::LineBasedMerge { parsed, .. } => parsed.conflict_mass(),
-        }
-    }
-
     fn pretty_print_astnode_list(_revision: Revision, list: &[&'a AstNode<'a>]) -> String {
         let mut output = String::new();
         let mut first = true;
@@ -692,6 +776,15 @@ impl Display for MergedTree<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.debug_print(0))
     }
+}
+
+/// Represents a child from a MergedTree::MixedTree
+/// where any conflicts have been replaced by their version in
+/// one revision.
+/// Only used internally in `MergedTree::isomorphic_to_source`.
+enum MergedChild<'a, 'b> {
+    Merged(&'a MergedTree<'a>),
+    Original(&'b AstNode<'b>),
 }
 
 #[cfg(test)]

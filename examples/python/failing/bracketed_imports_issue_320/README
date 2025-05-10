@@ -1,0 +1,9 @@
+The structured resolution of this merge gives:
+
+```
+from ..._utils import foo,
+    bar, async_foo
+```
+which is syntactically invalid but still accepted by the Python grammar.
+
+This test checks that this structured resolution is rejected.

@@ -51,13 +51,11 @@ pub fn resolve_merge_cascading<'a>(
                 Err(err) => warn!("Error while resolving conflicts: {err}"),
             }
 
-            let rendered_from_parsed = MergeResult {
-                contents: parsed_merge.render(&settings),
-                conflict_count: parsed_merge.conflict_count(),
-                conflict_mass: parsed_merge.conflict_mass(),
-                method: FROM_PARSED_ORIGINAL,
-                has_additional_issues: false,
-            };
+            let mut rendered_from_parsed = parsed_merge.into_merge_result(&settings);
+            // For now, we assume that the original merge with conflicts is free of syntax errors
+            // and duplicate signatures, so that it has priority over any other merge that we'd produce
+            // and would be syntactically invalid.
+            rendered_from_parsed.has_additional_issues = false;
             solves.push(rendered_from_parsed);
         }
     }
