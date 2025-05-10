@@ -166,7 +166,7 @@ impl<'a> ChangeSet<'a> {
 
     /// Save to file, for debugging purposes
     pub fn save(&self, fname: impl AsRef<Path>) {
-        let f = File::open(fname).expect("Unable to open changeset file");
+        let f = File::create(fname).expect("Unable to open changeset file");
         let mut f = BufWriter::new(f);
 
         for pcs in self.iter().sorted() {
@@ -177,7 +177,10 @@ impl<'a> ChangeSet<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use log::debug;
+    use tempfile::tempdir;
 
     use crate::test_utils::ctx;
 
@@ -248,5 +251,41 @@ mod tests {
             }
             assert_eq!(conflicts, empty_conflicts);
         }
+    }
+
+    #[test]
+    fn write_to_file() {
+        let ctx = ctx();
+
+        let tree = ctx.parse_json("[1, 2]");
+
+        let classmapping = ClassMapping::new();
+        let mut changeset = ChangeSet::new();
+        changeset.add_tree(&tree, Revision::Base, &classmapping);
+
+        let tmp_dir = tempdir().expect("failed to create a temp dir");
+
+        let path = tmp_dir.path().to_owned().join("changeset.txt");
+        changeset.save(&path);
+
+        let contents = fs::read_to_string(&path).expect("Failed to read the changeset.txt file");
+
+        let expected_contents = r"(⊥, ⊣, document:0…6@Base, Base)
+(⊥, document:0…6@Base, ⊢, Base)
+(document:0…6@Base, ⊣, array:0…6@Base, Base)
+(document:0…6@Base, array:0…6@Base, ⊢, Base)
+(array:0…6@Base, ⊣, [:0…1@Base, Base)
+(array:0…6@Base, [:0…1@Base, number:1…2@Base, Base)
+(array:0…6@Base, number:1…2@Base, ,:2…3@Base, Base)
+(array:0…6@Base, ,:2…3@Base, number:4…5@Base, Base)
+(array:0…6@Base, number:4…5@Base, ]:5…6@Base, Base)
+(array:0…6@Base, ]:5…6@Base, ⊢, Base)
+([:0…1@Base, ⊣, ⊢, Base)
+(number:1…2@Base, ⊣, ⊢, Base)
+(,:2…3@Base, ⊣, ⊢, Base)
+(number:4…5@Base, ⊣, ⊢, Base)
+(]:5…6@Base, ⊣, ⊢, Base)
+";
+        assert_eq!(contents, expected_contents);
     }
 }
