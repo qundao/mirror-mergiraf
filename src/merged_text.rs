@@ -71,9 +71,11 @@ impl<'a> MergedText<'a> {
         left: Cow<'a, str>,
         right: Cow<'a, str>,
     ) {
-        if left == right {
+        if left == right || base == right {
             // well that's not really a conflict
             self.push_merged(left);
+        } else if base == left {
+            self.push_merged(right);
         } else {
             self.sections
                 .push(MergeSection::Conflict { base, left, right });
@@ -654,5 +656,22 @@ there we go
         };
         assert_eq!(merged_text.conflict_mass(), 19);
         assert_eq!(merged_text.count_conflicts(), 2);
+    }
+
+    #[test]
+    fn avoid_spurious_conflicts() {
+        let mut merged_text = MergedText::default();
+        let mut push_conflict = |base, left, right| {
+            merged_text.push_conflict(
+                Cow::Borrowed(base),
+                Cow::Borrowed(left),
+                Cow::Borrowed(right),
+            );
+        };
+        push_conflict("foo", "foo", "bar");
+        push_conflict("foo", "bar", "bar");
+        push_conflict("foo", "bar", "foo");
+
+        assert_eq!(merged_text.render(&DisplaySettings::default()), "barbarbar");
     }
 }

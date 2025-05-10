@@ -250,52 +250,44 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         return line_based;
                     };
 
-                    let MergedTree::Conflict { base, left, right } = &conflict else {
+                    let MergedTree::Conflict { base, left, right } = conflict else {
                         unreachable!("`build_conflict` should return a conflict")
                     };
 
-                    if left.len() == right.len()
-                        && std::iter::zip(left, right).all(|(l, r)| l.isomorphic_to(r))
-                    {
-                        // both sides of the "conflict" consist of nodes that are pairwise isomorphic.
-                        // This means that both sides actually agree in how they change the base.
-                        // Therefore, we resolve the conflict trivially by picking the left side (WLOG)
-                        let not_really_a_conflict = left.iter().copied().map(|l| {
-                            MergedTree::new_exact(
-                                self.class_mapping
-                                    .map_to_leader(RevNode::new(Revision::Left, l)),
-                                RevisionNESet::singleton(Revision::Left).with(Revision::Right),
-                                self.class_mapping,
-                            )
-                        });
-
-                        children.extend(not_really_a_conflict);
-                    } else {
-                        // reason: the following two `if`s should really be `&&`-ed,
-                        // but https://github.com/rust-lang/rust/issues/53667
-                        // until then, collapsing one but not the other looks misleading
-                        // TODO(if-let-chains): use them here
-                        #[allow(clippy::collapsible_if)]
-                        if let PCSNode::Node { node: leader, .. } = node {
-                            if let Some(commutative_parent) = self
-                                .lang_profile
-                                .get_commutative_parent(leader.grammar_name())
-                            {
-                                // knowing that the order of all elements of the conflict does not matter, solve the conflict
-                                let solved_conflict = self.commutatively_merge_lists(
-                                    base,
-                                    left,
-                                    right,
-                                    commutative_parent,
-                                    visiting_state,
-                                )?;
-                                children.extend(solved_conflict);
-                            } else {
-                                children.push(conflict);
-                            }
+                    // reason: the following two `if`s should really be `&&`-ed,
+                    // but https://github.com/rust-lang/rust/issues/53667
+                    // until then, collapsing one but not the other looks misleading
+                    // TODO(if-let-chains): use them here
+                    #[allow(clippy::collapsible_if)]
+                    if let PCSNode::Node { node: leader, .. } = node {
+                        if let Some(commutative_parent) = self
+                            .lang_profile
+                            .get_commutative_parent(leader.grammar_name())
+                        {
+                            // knowing that the order of all elements of the conflict does not matter, solve the conflict
+                            let solved_conflict = self.commutatively_merge_lists(
+                                &base,
+                                &left,
+                                &right,
+                                commutative_parent,
+                                visiting_state,
+                            )?;
+                            children.extend(solved_conflict);
                         } else {
-                            children.push(conflict);
+                            children.extend(MergedTree::new_conflict(
+                                base,
+                                left,
+                                right,
+                                self.class_mapping,
+                            ));
                         }
+                    } else {
+                        children.extend(MergedTree::new_conflict(
+                            base,
+                            left,
+                            right,
+                            self.class_mapping,
+                        ));
                     }
                     cursor = next_cursor;
                 }

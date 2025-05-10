@@ -4,8 +4,10 @@ use std::{
     collections::HashSet,
     fmt::Display,
     hash::{Hash, Hasher},
+    iter,
 };
 
+use either::Either;
 use itertools::{EitherOrBoth, Itertools};
 
 use crate::{
@@ -109,6 +111,60 @@ impl<'a> MergedTree<'a> {
             node,
             children,
             hash: hasher.finish(),
+        }
+    }
+
+    /// Creates a new conflict, or a list of exact nodes if the conflict is spurious
+    pub(crate) fn new_conflict(
+        base: Vec<&'a AstNode<'a>>,
+        left: Vec<&'a AstNode<'a>>,
+        right: Vec<&'a AstNode<'a>>,
+        class_mapping: &ClassMapping<'a>,
+    ) -> Either<iter::Once<Self>, impl Iterator<Item = Self>> {
+        let isomorphic_sides = |first_side: &[&'a AstNode<'a>], second_side: &[&'a AstNode<'a>]| {
+            first_side.len() == second_side.len()
+                && iter::zip(first_side.iter(), second_side.iter())
+                    .all(|(first, second)| first.isomorphic_to(second))
+        };
+
+        fn extract_rev<'a>(
+            first_side: Vec<&'a AstNode<'a>>,
+            first_rev: Revision,
+            second_rev: Revision,
+            class_mapping: &ClassMapping<'a>,
+        ) -> impl Iterator<Item = MergedTree<'a>> {
+            first_side.into_iter().map(move |l| {
+                MergedTree::new_exact(
+                    class_mapping.map_to_leader(RevNode::new(first_rev, l)),
+                    RevisionNESet::singleton(first_rev).with(second_rev),
+                    class_mapping,
+                )
+            })
+        }
+
+        if isomorphic_sides(&left, &right) {
+            Either::Right(extract_rev(
+                left,
+                Revision::Left,
+                Revision::Right,
+                class_mapping,
+            ))
+        } else if isomorphic_sides(&base, &right) {
+            Either::Right(extract_rev(
+                left,
+                Revision::Left,
+                Revision::Left,
+                class_mapping,
+            ))
+        } else if isomorphic_sides(&base, &left) {
+            Either::Right(extract_rev(
+                right,
+                Revision::Right,
+                Revision::Right,
+                class_mapping,
+            ))
+        } else {
+            Either::Left(iter::once(MergedTree::Conflict { base, left, right }))
         }
     }
 
