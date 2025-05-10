@@ -473,7 +473,30 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("compilation_unit", "\n"),
-                CommutativeParent::new("declaration_list", "{", "\n", "}"),
+                CommutativeParent::new("declaration_list", "{", "\n", "}").restricted_to_groups(&[
+                    &["using_directive"],
+                    &[
+                        "field_declaration",
+                        "property_declaration",
+                        "event_declaration",
+                        "event_field_declaration",
+                    ],
+                    &[
+                        "class_declaration",
+                        "struct_declaration",
+                        "enum_declaration",
+                        "delegate_declaration",
+                        "method_declaration",
+                        "record_declaration",
+                        "constructor_declaration",
+                        "destructor_declaration",
+                        "indexer_declaration",
+                        "interface_declaration",
+                        "namespace_declaration",
+                        "operator_declaration",
+                        "conversion_operator_declaration",
+                    ],
+                ]),
                 CommutativeParent::new("enum_member_declaration_list", "{", ",\n", "}"),
             ],
             signatures: vec![
