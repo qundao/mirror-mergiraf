@@ -395,7 +395,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             alternate_names: &[],
             extensions: vec!["yml", "yaml"],
             language: tree_sitter_yaml::LANGUAGE.into(),
-            atomic_nodes: vec![],
+            atomic_nodes: vec!["single_quote_scalar", "double_quote_scalar"],
             commutative_parents: vec![CommutativeParent::without_delimiters("block_mapping", "\n")],
             signatures: vec![signature("block_mapping_pair", vec![vec![Field("key")]])],
         },
