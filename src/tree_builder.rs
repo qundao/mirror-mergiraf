@@ -628,8 +628,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     ) -> Result<Vec<MergedTree<'a>>, String> {
         let pad = visiting_state.indentation();
         debug!("{pad}commutatively_merge_lists");
-        let raw_separator = commutative_parent.separator;
-        let trimmed_sep = raw_separator.trim();
+        let trimmed_sep = commutative_parent.trimmed_separator();
         let trimmed_left_delim = commutative_parent.left_delim.unwrap_or_default().trim();
         let trimmed_right_delim = commutative_parent.right_delim.unwrap_or_default().trim();
         // TODO improve handling of comments? comments added by the right side should ideally be placed sensibly
@@ -669,9 +668,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .chain(right_leaders.iter())
             .map(Leader::grammar_name)
             .collect();
-        if !commutative_parent.children_can_commute(&child_types) {
+        let Some(raw_separator) = commutative_parent.child_separator(&child_types) else {
             return Err("The children are not allowed to commute".to_string());
-        }
+        };
+        // NOTE: trimmed_sep is still consistent with raw_separator per the assumption that the two
+        // kinds of separators are equal up to leading and trailing whitespace
 
         // then, compute the symmetric difference between the base and right lists
         let right_removed: HashSet<&Leader<'_>> = base_leaders
@@ -785,7 +786,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 // remove the indentation at the end of separators
                 // (it will be added back when pretty-printing, possibly at a different level)
                 .next()
-                .map_or(commutative_parent.separator, |separator| {
+                .map_or(raw_separator, |separator| {
                     let newline = separator.rfind('\n');
                     match newline {
                         None => separator,

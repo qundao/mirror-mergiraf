@@ -133,7 +133,7 @@ A commutative parent is not only defined by a type of node, but also:
 
 For instance, to declare that a JSON object is a commutative parent, we do so with
 ```rust
-CommutativeRoot::new("object", "{", ", ", "}")
+CommutativeParent::new("object", "{", ", ", "}")
 ```
 Note how we use the separator is `", "` and not simply `","`. The separators and delimiters should come with sensible default whitespace around them. This whitespace is used as last resort, as Mergiraf attempts to imitate the surrounding style by reusing similar whitespace and indentation settings as existing delimiters and separators.
 
@@ -173,7 +173,7 @@ When inspecting how a file is parsed with `cargo run --bin mgf_dev parse test_fi
 
 We can add other commutative parent definitions in the language profile. For instance, the declarations in the body of a class (such as `field_declaration` or `method_declaration`) can be freely reordered. This can be modeled by marking `declaration_list` nodes as being commutative parents:
 ```rust
-CommutativeRoot::new("declaration_list", "{", "\n\n", "}")
+CommutativeParent::new("declaration_list", "{", "\n\n", "}")
 ```
 and so on. While it is useful to identify as many commutative parent types as possible, not being exhaustive is not a problem as it will only prevent the automated resolution of certain conflicts, but should not otherwise degrade the quality of merges.
 
@@ -184,7 +184,7 @@ In C#, the `compilation_unit` root node can not only contain `using` statements,
 We can declare *children groups*, which are sets of node types which are allowed to commute together.
 By declaring a children group which contains only `using_directive`, we make sure that `using` directive can only be reordered with other `using` directives:
 ```rust
-CommutativeRoot::new("declaration_list", "{", "\n\n", "}")
+CommutativeParent::new("declaration_list", "{", "\n\n", "}")
     .restricted_to_groups(&[
         &["using_directive"]
     ])
@@ -194,13 +194,26 @@ As soon as a children group is declared, that restricts the commutativity of all
 Conflicts can only be solved if all children involved are part of the same group. So, in this case it's also worth
 adding other children groups for other types of nodes which can be reordered together:
 ```rust
-CommutativeRoot::new("declaration_list", "{", "\n\n", "}")
+CommutativeParent::new("declaration_list", "{", "\n\n", "}")
     .restricted_to_groups(&[
         &["using_directive"],
         &["namespace_declaration"],
         &["global_attribute"],
     ])
 ```
+
+It is also possible to specify a different separator to be used when joining children of a specific group.
+For instance, if we want nodes of `using_directive` type to be separated by one newline instead of two for the other types of nodes, we can specify it as follows:
+```rust
+CommutativeParent::new("declaration_list", "{", "\n\n", "}")
+    .restricted_to(vec![
+        ChildrenGroup::with_separator(&["using_directive"], "\n"),
+        ChildrenGroup::new(&["namespace_declaration"]),
+        ChildrenGroup::new(&["global_attribute"]),
+    ]),
+```
+
+Note that the separator for a children group and the separator for the commutative parent can only differ in leading and trailing whitespace.
 
 ## Add signatures
 

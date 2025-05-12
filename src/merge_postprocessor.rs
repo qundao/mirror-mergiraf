@@ -88,7 +88,7 @@ fn highlight_duplicate_signatures<'a>(
     }
 
     // find an example of a separator among the elements to merge
-    let trimmed_separator = commutative_parent.separator.trim();
+    let trimmed_separator = commutative_parent.trimmed_separator();
     let separator_example = find_separator(parent, trimmed_separator, class_mapping);
 
     // determine whether the separator should be added at the end of a line

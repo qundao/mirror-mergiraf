@@ -5,6 +5,7 @@ class MyClass {
         printf("too few arguments\n");
         exit(1);
     }
+
     void runFast() {
         printf("world\n");
     }
