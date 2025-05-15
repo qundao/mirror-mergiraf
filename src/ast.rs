@@ -124,17 +124,14 @@ impl<'a> AstNode<'a> {
         let field_name = cursor.field_name();
         let atomic = lang_profile.is_atomic_node_type(cursor.node().grammar_name());
         if !atomic && cursor.goto_first_child() {
-            let child = Self::internal_new(cursor, global_source, lang_profile, arena)?;
-            children.push(child);
-            if let Some(field_name) = cursor.field_name() {
-                field_to_children.entry(field_name).or_default().push(child);
-            }
-            while cursor.goto_next_sibling() {
+            let mut child_available = true;
+            while child_available {
                 let child = Self::internal_new(cursor, global_source, lang_profile, arena)?;
                 children.push(child);
                 if let Some(field_name) = cursor.field_name() {
                     field_to_children.entry(field_name).or_default().push(child);
                 }
+                child_available = cursor.goto_next_sibling();
             }
             cursor.goto_parent();
         }
