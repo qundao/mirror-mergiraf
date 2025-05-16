@@ -47,7 +47,7 @@ stderrlog = "0.6"
 log = "0.4"
 rand = "0.9.0"
 etcetera = "0.10.0"
-zip = { version = "2.5.0", features = ["deflate"], default-features = false }
+zip = { version = "3.0.0", features = ["deflate"], default-features = false }
 tree-sitter-scala = "0.23.4"
 either = "1.15.0"
 rustc-hash = "2.1.1"
