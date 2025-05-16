@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ffi::OsStr, path::Path};
+use std::{collections::HashSet, ffi::OsStr, hash::Hash, path::Path};
 
 use tree_sitter::Language;
 
@@ -29,6 +29,13 @@ impl PartialEq for LangProfile {
     /// Language names are currently treated as unique identifiers
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+
+impl Hash for LangProfile {
+    // Hashing only by name for now, as it is treated as unique id
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
     }
 }
 

@@ -131,6 +131,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     }
                     MergedTree::MixedTree { node, children, .. } => {
                         node.grammar_name() == a.grammar_name
+                            && node.lang_profile() == a.lang_profile
                             && children.len() == a.children.len()
                             && zip(children, &a.children).all(|(child, ast_node)| {
                                 Self::Merged(child)
@@ -140,6 +141,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     MergedTree::Conflict { .. } => false,
                     MergedTree::LineBasedMerge { node, parsed, .. } => {
                         node.grammar_name() == a.grammar_name
+                            && node.lang_profile() == a.lang_profile
                             // "SAFETY": nodes in an AST don't have conflicts in them
                             // (otherwise, they wouldn't have parsed in the first place)
                             && parsed.render_conflictless().is_some_and(|s| s == a.source)
@@ -192,6 +194,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     },
                 ) => {
                     node_a.grammar_name() == node_b.grammar_name()
+                        && node_a.lang_profile() == node_b.lang_profile()
                         && children_a.len() == children_b.len()
                         && zip(children_a, children_b).all(|(child_a, child_b)| {
                             Self::Merged(child_a).isomorphic(&Self::Merged(child_b), class_mapping)
@@ -480,6 +483,78 @@ mod tests {
         );
         assert_eq!(
             hash(&AstNodeEquiv::Original(object)),
+            hash(&AstNodeEquiv::Merged(&mixed_tree))
+        );
+    }
+
+    #[test]
+    fn node_equality_and_hashing_care_about_languages() {
+        let ctx = ctx();
+
+        let tree_python = ctx.parse_python("foo()").root();
+        let tree_java = ctx.parse_java("foo();").root();
+        let args_python = tree_python[0][0][1];
+        let args_java = tree_java[0][0][1];
+
+        // those nodes would satisfy all other conditions to be isomorphic…
+        assert_eq!(args_python.grammar_name, "argument_list");
+        assert_eq!(args_java.grammar_name, "argument_list");
+        assert_eq!(args_python.children.len(), 2);
+        assert_eq!(args_java.children.len(), 2);
+        assert_eq!(args_python.source, "()");
+        assert_eq!(args_java.source, "()");
+
+        // but they're not isomorphic as merged nodes, because languages differ.
+        let class_mapping = ClassMapping::new();
+        let node_2 = class_mapping.map_to_leader(RevNode {
+            rev: Revision::Base,
+            node: args_java,
+        });
+        let exact = MergedTree::new_exact(
+            node_2,
+            RevisionNESet::singleton(Revision::Base),
+            &class_mapping,
+        );
+
+        assert!(!args_python.isomorphic_to(args_java));
+        assert_ne!(
+            AstNodeEquiv::Original(args_python),
+            AstNodeEquiv::Original(args_java)
+        );
+        assert_ne!(
+            hash(&AstNodeEquiv::Original(args_python)),
+            hash(&AstNodeEquiv::Original(args_java))
+        );
+        assert_ne!(
+            AstNodeEquiv::Original(args_python),
+            AstNodeEquiv::Merged(&exact)
+        );
+        assert_ne!(
+            hash(&AstNodeEquiv::Original(args_python)),
+            hash(&AstNodeEquiv::Merged(&exact))
+        );
+
+        let children = args_java
+            .children
+            .iter()
+            .map(|child| {
+                MergedTree::new_exact(
+                    class_mapping.map_to_leader(RevNode {
+                        rev: Revision::Base,
+                        node: child,
+                    }),
+                    RevisionNESet::singleton(Revision::Base),
+                    &class_mapping,
+                )
+            })
+            .collect();
+        let mixed_tree = MergedTree::new_mixed(node_2, children);
+        assert_ne!(
+            AstNodeEquiv::Original(args_python),
+            AstNodeEquiv::Merged(&mixed_tree)
+        );
+        assert_ne!(
+            hash(&AstNodeEquiv::Original(args_python)),
             hash(&AstNodeEquiv::Merged(&mixed_tree))
         );
     }

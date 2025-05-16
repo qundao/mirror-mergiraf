@@ -4,7 +4,10 @@ use itertools::Itertools;
 use rustc_hash::FxHashMap;
 
 use crate::{
-    ast::AstNode, lang_profile::CommutativeParent, matching::Matching, pcs::Revision,
+    ast::AstNode,
+    lang_profile::{CommutativeParent, LangProfile},
+    matching::Matching,
+    pcs::Revision,
     signature::SignatureDefinition,
 };
 
@@ -53,6 +56,11 @@ impl<'a> Leader<'a> {
     /// of this leader.
     pub fn grammar_name(&self) -> &'static str {
         self.0.node.grammar_name
+    }
+
+    /// The language from which this was parsed, guaranteed to be invariant across representatives
+    pub fn lang_profile(&self) -> &'a LangProfile {
+        self.0.node.lang_profile
     }
 
     /// The commutative parent definition associated with this node

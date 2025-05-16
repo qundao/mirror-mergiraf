@@ -98,6 +98,7 @@ impl<'a> MergedTree<'a> {
         // turned out to be very much not worth it: https://codeberg.org/mergiraf/mergiraf/pulls/326
         let mut hasher = crate::fxhasher();
         node.grammar_name().hash(&mut hasher);
+        node.lang_profile().hash(&mut hasher);
         children
             .iter()
             .map(|child| match child {
@@ -354,7 +355,9 @@ impl<'a> MergedTree<'a> {
                 ast_node.isomorphic_to(other_node)
             }
             MergedTree::MixedTree { node, children, .. } => {
-                if node.grammar_name() != other_node.grammar_name {
+                if node.grammar_name() != other_node.grammar_name
+                    || node.lang_profile() != other_node.lang_profile
+                {
                     return false;
                 }
                 // If one of the children is a line-based merge, we just give up

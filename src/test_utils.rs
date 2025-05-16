@@ -48,6 +48,10 @@ impl<'a> TestContext<'a> {
         self.parse_internal("a.java", source)
     }
 
+    pub fn parse_python(&'a self, source: &'a str) -> Ast<'a> {
+        self.parse_internal("a.py", source)
+    }
+
     pub fn parse_go(&'a self, source: &'a str) -> Ast<'a> {
         self.parse_internal("a.go", source)
     }

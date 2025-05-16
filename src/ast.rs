@@ -190,11 +190,11 @@ impl<'a> AstNode<'a> {
 
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
+        node.grammar_name().hash(&mut hasher);
+        lang_profile.hash(&mut hasher);
         if children.is_empty() {
-            node.grammar_name().hash(&mut hasher);
             local_source.hash(&mut hasher);
         } else {
-            node.grammar_name().hash(&mut hasher);
             children
                 .iter()
                 .map(|child| child.hash)
@@ -747,6 +747,7 @@ impl PartialEq for AstNode<'_> {
         self.hash == other.hash
             && self.id == other.id
             && self.grammar_name == other.grammar_name
+            && self.lang_profile == other.lang_profile
             && self.byte_range == other.byte_range
     }
 }
@@ -945,6 +946,27 @@ mod tests {
 
         assert_eq!(node_1.hash, fake_hash_collision.hash);
         assert!(!node_1.isomorphic_to(&fake_hash_collision));
+    }
+
+    #[test]
+    fn isomorphism_for_different_languages() {
+        let ctx = ctx();
+
+        let tree_python = ctx.parse_python("foo()").root();
+        let tree_java = ctx.parse_java("foo();").root();
+        let arguments_python = tree_python[0][0][1];
+        let arguments_java = tree_java[0][0][1];
+
+        // those nodes would satisfy all other conditions to be isomorphic…
+        assert_eq!(arguments_python.grammar_name, "argument_list");
+        assert_eq!(arguments_java.grammar_name, "argument_list");
+        assert_eq!(arguments_python.children.len(), 2);
+        assert_eq!(arguments_java.children.len(), 2);
+        assert_eq!(arguments_python.source, "()");
+        assert_eq!(arguments_java.source, "()");
+
+        // but they aren't, because the languages differ
+        assert!(!arguments_java.isomorphic_to(arguments_python));
     }
 
     #[test]
