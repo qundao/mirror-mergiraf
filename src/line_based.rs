@@ -65,7 +65,7 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
 
         let tree = parse(&mut parser, contents, lang_profile, &arena, &ref_arena);
 
-        tree.map_or(true, |ast| lang_profile.has_signature_conflicts(ast.root()))
+        tree.map_or(true, |ast| ast.root().has_signature_conflicts())
     };
 
     merge_result.has_additional_issues = if merge_result.conflict_count == 0 {

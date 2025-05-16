@@ -80,7 +80,7 @@ pub use solve::resolve_merge_cascading;
 pub fn parse<'a>(
     parser: &mut TSParser,
     contents: &'a str,
-    lang_profile: &LangProfile,
+    lang_profile: &'a LangProfile,
     arena: &'a Arena<AstNode<'a>>,
     ref_arena: &'a Arena<&'a AstNode<'a>>,
 ) -> Result<Ast<'a>, String> {

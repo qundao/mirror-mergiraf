@@ -3,7 +3,10 @@ use std::{fmt::Display, hash::Hash};
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 
-use crate::{ast::AstNode, matching::Matching, pcs::Revision};
+use crate::{
+    ast::AstNode, lang_profile::CommutativeParent, matching::Matching, pcs::Revision,
+    signature::SignatureDefinition,
+};
 
 /// A node together with a marker of which revision it came from.
 #[derive(Debug, Copy, Clone, Eq)]
@@ -50,6 +53,16 @@ impl<'a> Leader<'a> {
     /// of this leader.
     pub fn grammar_name(&self) -> &'static str {
         self.0.node.grammar_name
+    }
+
+    /// The commutative parent definition associated with this node
+    pub fn commutative_parent_definition(&self) -> Option<&CommutativeParent> {
+        self.0.node.commutative_parent_definition()
+    }
+
+    /// The signature definition for nodes of this type, which is guaranteed to be the same for all representatives
+    pub fn signature_definition(&self) -> Option<&SignatureDefinition> {
+        self.0.node.signature_definition()
     }
 }
 

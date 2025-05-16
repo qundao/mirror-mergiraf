@@ -1,15 +1,8 @@
 use std::{collections::HashSet, ffi::OsStr, path::Path};
 
-use itertools::Itertools;
 use tree_sitter::Language;
 
-use crate::{
-    ast::AstNode,
-    class_mapping::ClassMapping,
-    merged_tree::MergedTree,
-    signature::{Signature, SignatureDefinition},
-    supported_langs::SUPPORTED_LANGUAGES,
-};
+use crate::{signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
 
 /// Language-dependent settings to influence how merging is done.
 /// All those settings are declarative (except for the tree-sitter parser, which is
@@ -30,6 +23,13 @@ pub struct LangProfile {
     pub commutative_parents: Vec<CommutativeParent>,
     // how to extract the signatures of nodes, uniquely identifying children of a commutative parent
     pub signatures: Vec<SignatureDefinition>,
+}
+
+impl PartialEq for LangProfile {
+    /// Language names are currently treated as unique identifiers
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
 }
 
 impl LangProfile {
@@ -90,68 +90,19 @@ impl LangProfile {
     }
 
     /// Do all the children of this parent commute?
-    pub fn get_commutative_parent(&self, grammar_type: &str) -> Option<&CommutativeParent> {
+    pub(crate) fn get_commutative_parent(&self, grammar_type: &str) -> Option<&CommutativeParent> {
         self.commutative_parents
             .iter()
             .find(|cr| cr.parent_type == grammar_type)
     }
 
-    /// Extracts a signature for the given node if we have a signature definition
-    /// for this type of nodes.
-    pub(crate) fn extract_signature_from_original_node<'a>(
-        &self,
-        node: &'a AstNode<'a>,
-    ) -> Option<Signature<'a, 'a>> {
-        let definition = self.find_signature_definition_by_grammar_name(node.grammar_name)?;
-        Some(definition.extract_signature_from_original_node(node))
-    }
-
-    /// Extracts a signature for the given node if we have a signature definition
-    /// for this type of nodes.
-    pub(crate) fn extract_signature_from_merged_node<'b, 'a: 'b>(
-        &self,
-        node: &'b MergedTree<'a>,
-        class_mapping: &ClassMapping<'a>,
-    ) -> Option<Signature<'b, 'a>> {
-        let grammar_name = match node {
-            MergedTree::ExactTree { node, .. }
-            | MergedTree::MixedTree { node, .. }
-            | MergedTree::LineBasedMerge { node, .. } => Some(node.grammar_name()),
-            MergedTree::Conflict { .. } | MergedTree::CommutativeChildSeparator { .. } => None,
-        }?;
-        let definition = self.find_signature_definition_by_grammar_name(grammar_name)?;
-        let signature = definition.extract_signature_from_merged_node(node, class_mapping);
-        Some(signature)
-    }
-
-    fn find_signature_definition_by_grammar_name(
+    pub(crate) fn find_signature_definition_by_grammar_name(
         &self,
         grammar_name: &str,
     ) -> Option<&SignatureDefinition> {
         self.signatures
             .iter()
             .find(|sig_def| sig_def.node_type == grammar_name)
-    }
-
-    /// Checks if a tree has any signature conflicts in it
-    pub(crate) fn has_signature_conflicts<'a>(&self, node: &'a AstNode<'a>) -> bool {
-        let conflict_in_children = || {
-            node.children
-                .iter()
-                .any(|child| self.has_signature_conflicts(child))
-        };
-
-        let conflict_in_self = || {
-            node.children.len() >= 2
-                && self.get_commutative_parent(node.grammar_name).is_some()
-                && !node
-                    .children
-                    .iter()
-                    .filter_map(|child| self.extract_signature_from_original_node(child))
-                    .all_unique()
-        };
-
-        conflict_in_self() || conflict_in_children()
     }
 
     /// Should this node type be treated as atomic?
@@ -318,13 +269,11 @@ mod tests {
     fn has_signature_conflicts() {
         let ctx = ctx();
 
-        let lang_profile = LangProfile::json();
-
         let with_conflicts = ctx.parse_json("[{\"a\":1, \"b\":2, \"a\":3}]").root();
         let without_conflicts = ctx.parse_json("{\"a\": [4], \"b\": [4]}").root();
 
-        assert!(lang_profile.has_signature_conflicts(with_conflicts));
-        assert!(!lang_profile.has_signature_conflicts(without_conflicts));
+        assert!(with_conflicts.has_signature_conflicts());
+        assert!(!without_conflicts.has_signature_conflicts());
     }
 
     #[test]

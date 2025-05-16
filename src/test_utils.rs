@@ -65,21 +65,18 @@ impl<'a> TestContext<'a> {
     }
 }
 
-pub(crate) fn json_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
-    let lang_profile = LangProfile::json();
+pub(crate) fn json_matchers() -> (TreeMatcher, TreeMatcher) {
     let primary_matcher = TreeMatcher {
         min_height: 0,
         sim_threshold: 0.5,
         max_recovery_size: 100,
         use_rted: true,
-        lang_profile,
     };
     let auxiliary_matcher = TreeMatcher {
         min_height: 1,
         sim_threshold: 0.5,
         max_recovery_size: 100,
         use_rted: false,
-        lang_profile,
     };
     (primary_matcher, auxiliary_matcher)
 }

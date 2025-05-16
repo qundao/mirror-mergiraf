@@ -726,6 +726,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
 
 #[cfg(test)]
 mod test {
+    use itertools::Itertools;
+
     use super::*;
 
     #[test]
@@ -735,5 +737,15 @@ mod test {
                 assert!(!ext.starts_with('.'), "{ext}");
             }
         }
+    }
+
+    #[test]
+    fn language_names_are_all_distinct() {
+        assert!(
+            SUPPORTED_LANGUAGES
+                .iter()
+                .map(|profile| profile.name)
+                .all_unique()
+        );
     }
 }

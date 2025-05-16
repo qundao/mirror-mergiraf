@@ -70,7 +70,6 @@ pub fn three_way_merge<'a>(
         base,
         left,
         right,
-        primary_matcher,
         &class_mapping,
         &base_changeset,
         &cleaned_changeset,
@@ -78,7 +77,7 @@ pub fn three_way_merge<'a>(
     );
 
     // post-process to highlight signature conflicts
-    let postprocessed_tree = postprocess_tree(merged_tree, primary_matcher, &class_mapping);
+    let postprocessed_tree = postprocess_tree(merged_tree, &class_mapping);
 
     (postprocessed_tree, class_mapping)
 }
@@ -284,20 +283,13 @@ fn build_tree<'a>(
     base: &Ast<'a>,
     left: &Ast<'a>,
     right: &Ast<'a>,
-    primary_matcher: &TreeMatcher<'_>,
     class_mapping: &ClassMapping<'a>,
     base_changeset: &ChangeSet<'a>,
     cleaned_changeset: &ChangeSet<'a>,
     settings: &DisplaySettings<'a>,
 ) -> MergedTree<'a> {
     let start: Instant = Instant::now();
-    let tree_builder = TreeBuilder::new(
-        cleaned_changeset,
-        base_changeset,
-        class_mapping,
-        primary_matcher.lang_profile,
-        settings,
-    );
+    let tree_builder = TreeBuilder::new(cleaned_changeset, base_changeset, class_mapping, settings);
     let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
         let line_based =
             line_based_merge_parsed(base.source(), left.source(), right.source(), settings);
@@ -313,12 +305,10 @@ fn build_tree<'a>(
 
 fn postprocess_tree<'a>(
     merged_tree: MergedTree<'a>,
-    primary_matcher: &TreeMatcher<'_>,
     class_mapping: &ClassMapping<'a>,
 ) -> MergedTree<'a> {
     let start: Instant = Instant::now();
-    let postprocessed_tree = merged_tree
-        .post_process_for_duplicate_signatures(primary_matcher.lang_profile, class_mapping);
+    let postprocessed_tree = merged_tree.post_process_for_duplicate_signatures(class_mapping);
     debug!(
         "post-processing the merged tree for signature conflicts took {:?}",
         start.elapsed()
@@ -330,7 +320,6 @@ fn postprocess_tree<'a>(
 #[cfg(test)]
 mod tests {
     use crate::{
-        lang_profile::LangProfile,
         settings::DisplaySettings,
         test_utils::{ctx, json_matchers},
     };
@@ -625,21 +614,18 @@ mod tests {
         // assert_eq!(pretty_printed, "{}"); // TODO there should be a delete/modify conflict here!
     }
 
-    fn rust_matchers() -> (TreeMatcher<'static>, TreeMatcher<'static>) {
-        let lang_profile = LangProfile::rust();
+    fn rust_matchers() -> (TreeMatcher, TreeMatcher) {
         let primary_matcher = TreeMatcher {
             min_height: 0,
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
         };
         let auxiliary_matcher = TreeMatcher {
             min_height: 1,
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile,
         };
         (primary_matcher, auxiliary_matcher)
     }
@@ -725,20 +711,17 @@ fn baz() {
         let left = ctx.parse_rust(left);
         let right = ctx.parse_rust(right);
 
-        let lang_profile = LangProfile::rust();
         let primary_matcher = TreeMatcher {
             min_height: 1,
             sim_threshold: 0.4,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
         };
         let auxiliary_matcher = TreeMatcher {
             min_height: 2,
             sim_threshold: 0.6,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile,
         };
 
         let settings = DisplaySettings {

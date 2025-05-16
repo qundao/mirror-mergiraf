@@ -11,7 +11,6 @@ use typed_arena::Arena;
 
 use crate::{
     ast::{Ast, AstNode},
-    lang_profile::LangProfile,
     matching::Matching,
     multimap::MultiMap,
     priority_list::PriorityList,
@@ -19,7 +18,7 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct TreeMatcher<'a> {
+pub struct TreeMatcher {
     /// The minimum height of subtrees to match in the top-down phase
     pub min_height: i32,
     /// The minimum dice similarity to match subtrees in the bottom-up phase
@@ -28,8 +27,6 @@ pub struct TreeMatcher<'a> {
     pub use_rted: bool,
     /// The maximum size of trees to match with tree edit distance
     pub max_recovery_size: i32,
-    /// The language-specific information, which could be used to inform the matching algorithm
-    pub lang_profile: &'a LangProfile,
 }
 
 /// A matching which keeps track of how each link was inferred, for visualization purposes
@@ -45,7 +42,7 @@ pub struct DetailedMatching<'src> {
     pub recovery: Matching<'src>,
 }
 
-impl TreeMatcher<'_> {
+impl TreeMatcher {
     /// The `GumTree` classic matching algorithm.
     /// It can be supplied with an initial matching of nodes which are known
     pub fn match_trees<'a>(
@@ -511,7 +508,6 @@ mod tests {
     #[test]
     fn small_sample() {
         let ctx = ctx();
-        let lang_profile = LangProfile::rust();
 
         let t1 = ctx.parse_rust("fn my_func() -> i32 { 1 + (3 + (5 - 1)) }");
         let t2 = ctx.parse_rust("fn other_func() { (3 + (5 - 1)) * 2 }");
@@ -521,7 +517,6 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
         };
 
         let detailed_matching = matcher.match_trees(&t1, &t2, None);
@@ -535,7 +530,6 @@ mod tests {
     #[test]
     fn example_from_the_paper() {
         let ctx = ctx();
-        let lang_profile = LangProfile::rust();
 
         let t1 = ctx.parse_java(
             "public class Test { public String foo(int i) { if (i == 0) return \"Foo!\"; } }",
@@ -547,7 +541,6 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
         };
 
         let matching = matcher.match_trees(&t1, &t2, None);
@@ -561,7 +554,6 @@ mod tests {
     #[test]
     fn without_rted() {
         let ctx = ctx();
-        let lang_profile = LangProfile::rust();
 
         let t1 = ctx.parse_java(
             "public class Test { public String foo(int i) { if (i == 0) return \"Foo!\"; } }",
@@ -573,7 +565,6 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: false,
-            lang_profile,
         };
 
         let matching = matcher.match_trees(&t1, &t2, None);
@@ -587,7 +578,6 @@ mod tests {
     #[test]
     fn matching_very_shallow_structures() {
         let ctx = ctx();
-        let lang_profile = LangProfile::rust();
 
         let left = ctx.parse_json("[1, 2]");
         let right = ctx.parse_json("[0, 1, 2]");
@@ -597,7 +587,6 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
         };
 
         let matching = matcher.match_trees(&left, &right, None);
@@ -611,7 +600,6 @@ mod tests {
     #[test]
     fn matching_rust_types() {
         let ctx = ctx();
-        let lang_profile = LangProfile::rust();
 
         let left = ctx.parse_rust("use std::collections::{HashMap};");
         let right = ctx.parse_rust("use std::collections::{HashMap, HashSet};");
@@ -621,7 +609,6 @@ mod tests {
             sim_threshold: 0.5,
             max_recovery_size: 100,
             use_rted: true,
-            lang_profile,
         };
         let matching = matcher.match_trees(&left, &right, None);
 

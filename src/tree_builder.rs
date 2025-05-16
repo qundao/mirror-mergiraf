@@ -10,7 +10,7 @@ use crate::{
     ast::AstNode,
     changeset::ChangeSet,
     class_mapping::{ClassMapping, Leader, RevNode, RevisionNESet, RevisionSet},
-    lang_profile::{CommutativeParent, LangProfile},
+    lang_profile::CommutativeParent,
     merged_tree::MergedTree,
     multimap::MultiMap,
     pcs::{PCSNode, Revision},
@@ -50,7 +50,6 @@ pub struct TreeBuilder<'a, 'b> {
     merged_successors: SuccessorMap<'a>,
     base_successors: SuccessorMap<'a>,
     class_mapping: &'b ClassMapping<'a>,
-    lang_profile: &'b LangProfile,
     settings: &'b DisplaySettings<'a>,
 }
 
@@ -75,14 +74,12 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         merged_changeset: &ChangeSet<'a>,
         base_changeset: &ChangeSet<'a>,
         class_mapping: &'b ClassMapping<'a>,
-        lang_profile: &'b LangProfile,
         settings: &'b DisplaySettings<'a>,
     ) -> Self {
         TreeBuilder {
             merged_successors: SuccessorMap::new(merged_changeset),
             base_successors: SuccessorMap::new(base_changeset),
             class_mapping,
-            lang_profile,
             settings,
         }
     }
@@ -260,10 +257,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     // TODO(if-let-chains): use them here
                     #[allow(clippy::collapsible_if)]
                     if let PCSNode::Node { node: leader, .. } = node {
-                        if let Some(commutative_parent) = self
-                            .lang_profile
-                            .get_commutative_parent(leader.grammar_name())
-                        {
+                        if let Some(commutative_parent) = leader.commutative_parent_definition() {
                             // knowing that the order of all elements of the conflict does not matter, solve the conflict
                             let solved_conflict = self.commutatively_merge_lists(
                                 &base,
@@ -554,10 +548,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             ));
         };
         // If the root happens to be commutative, we can merge all children accordingly.
-        if let Some(commutative_parent) = self
-            .lang_profile
-            .get_commutative_parent(node.grammar_name())
-        {
+        if let Some(commutative_parent) = node.commutative_parent_definition() {
             // TODO(if-let-chains): if let Some() && if let Ok() {...}
             let commutative_merge =
                 self.commutatively_merge_children(node, commutative_parent, visiting_state);
@@ -1052,7 +1043,6 @@ mod tests {
     #[test]
     fn recover_exact_tree() {
         let ctx = ctx();
-        let lang_profile = LangProfile::json();
 
         let tree = ctx.parse_json("[1, [2, 3]]");
 
@@ -1066,15 +1056,9 @@ mod tests {
             let merged_changeset = &changeset;
             let base_changeset = &changeset;
             let class_mapping = &class_mapping;
-            let lang_profile = &lang_profile;
             // build the necessary context for the tree-gathering algorithm
-            let tree_gatherer = TreeBuilder::new(
-                merged_changeset,
-                base_changeset,
-                class_mapping,
-                lang_profile,
-                &settings,
-            );
+            let tree_gatherer =
+                TreeBuilder::new(merged_changeset, base_changeset, class_mapping, &settings);
             tree_gatherer.build_tree()
         };
 
@@ -1091,7 +1075,6 @@ mod tests {
     #[test]
     fn contains() {
         let ctx = ctx();
-        let lang_profile = LangProfile::json();
 
         let tree = ctx.parse_json("[1, [2, 3]]");
 
@@ -1105,15 +1088,9 @@ mod tests {
             let merged_changeset = &changeset;
             let base_changeset = &changeset;
             let class_mapping = &class_mapping;
-            let lang_profile = &lang_profile;
             // build the necessary context for the tree-gathering algorithm
-            let tree_gatherer = TreeBuilder::new(
-                merged_changeset,
-                base_changeset,
-                class_mapping,
-                lang_profile,
-                &settings,
-            );
+            let tree_gatherer =
+                TreeBuilder::new(merged_changeset, base_changeset, class_mapping, &settings);
             tree_gatherer.build_tree()
         }
         .expect("a successful merge was expected");

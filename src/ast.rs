@@ -17,7 +17,10 @@ use rustc_hash::FxHashMap;
 use tree_sitter::{Tree, TreeCursor};
 use typed_arena::Arena;
 
-use crate::lang_profile::{CommutativeParent, LangProfile};
+use crate::{
+    lang_profile::{CommutativeParent, LangProfile},
+    signature::{Signature, SignatureDefinition},
+};
 
 /// A syntax tree.
 ///
@@ -64,6 +67,8 @@ pub struct AstNode<'a> {
     /// This is computed right after construction and then never written to again.
     /// On nodes that have been truncated (which is rare) this will be `None`.
     dfs: UnsafeCell<Option<&'a [&'a Self]>>,
+    /// The language this node was parsed from
+    pub lang_profile: &'a LangProfile,
 }
 
 impl<'a> Ast<'a> {
@@ -72,7 +77,7 @@ impl<'a> Ast<'a> {
     pub fn new(
         tree: &Tree,
         source: &'a str,
-        lang_profile: &LangProfile,
+        lang_profile: &'a LangProfile,
         arena: &'a Arena<AstNode<'a>>,
         ref_arena: &'a Arena<&'a AstNode<'a>>,
     ) -> Result<Self, String> {
@@ -116,7 +121,7 @@ impl<'a> AstNode<'a> {
     fn internal_new<'b>(
         cursor: &mut TreeCursor<'b>,
         global_source: &'a str,
-        lang_profile: &LangProfile,
+        lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
     ) -> Result<&'a Self, String> {
         let mut children = Vec::new();
@@ -177,6 +182,7 @@ impl<'a> AstNode<'a> {
                     descendant_count: 1,
                     parent: UnsafeCell::new(None),
                     dfs: UnsafeCell::new(None),
+                    lang_profile,
                 }));
                 offset += line.len() + 1;
             }
@@ -214,6 +220,7 @@ impl<'a> AstNode<'a> {
             descendant_count,
             parent: UnsafeCell::new(None),
             dfs: UnsafeCell::new(None),
+            lang_profile,
         });
         result.internal_set_parent_on_children();
         Ok(result)
@@ -350,6 +357,17 @@ impl<'a> AstNode<'a> {
             })
     }
 
+    /// The commutative merging settings associated with this node.
+    pub fn commutative_parent_definition(&self) -> Option<&CommutativeParent> {
+        self.lang_profile.get_commutative_parent(self.grammar_name)
+    }
+
+    /// The signature definition associated with this node.
+    pub fn signature_definition(&self) -> Option<&SignatureDefinition> {
+        self.lang_profile
+            .find_signature_definition_by_grammar_name(self.grammar_name)
+    }
+
     /// Checks whether a node is isomorphic to another,
     /// taking commutativity into account. This can be
     /// very expensive in the worst cases, so this is not
@@ -361,11 +379,7 @@ impl<'a> AstNode<'a> {
     ///   optional separators at the end of a list).
     /// - we could accept duplicate elements (for instance,
     ///   duplicate Java imports on one side but not on the other)
-    pub fn commutatively_isomorphic_to(
-        &'a self,
-        other: &'a Self,
-        lang_profile: &LangProfile,
-    ) -> bool {
+    pub fn commutatively_isomorphic_to(&'a self, other: &'a Self) -> bool {
         if self.grammar_name != other.grammar_name {
             return false;
         }
@@ -382,22 +396,20 @@ impl<'a> AstNode<'a> {
             !self.children.is_empty()
                 && self.children.len() == other.children.len()
                 && zip(&self.children, &other.children)
-                    .all(|(n1, n2)| n1.commutatively_isomorphic_to(n2, lang_profile))
+                    .all(|(n1, n2)| n1.commutatively_isomorphic_to(n2))
         };
 
         // commutative nodes whose children are one-to-one isomorphic, but not in the same order
         let commutative_parents_with_unordered_isomorphic_children = || {
-            if lang_profile
-                .get_commutative_parent(self.grammar_name)
-                .is_none()
-            {
+            if self.commutative_parent_definition().is_none() {
                 return false;
             }
             self.children.len() == other.children.len()
                 && self.children.iter().all(|child| {
-                    other.children.iter().any(|other_child| {
-                        child.commutatively_isomorphic_to(other_child, lang_profile)
-                    })
+                    other
+                        .children
+                        .iter()
+                        .any(|other_child| child.commutatively_isomorphic_to(other_child))
                 })
         };
 
@@ -631,24 +643,18 @@ impl<'a> AstNode<'a> {
     }
 
     /// Represents the node and its sub-structure in ASCII art
-    pub fn ascii_tree(&'a self, lang_profile: &LangProfile) -> String {
-        self.internal_ascii_tree(
-            &Color::DarkGray.prefix().to_string(),
-            true,
-            lang_profile,
-            None,
-        )
+    pub fn ascii_tree(&'a self) -> String {
+        self.internal_ascii_tree(&Color::DarkGray.prefix().to_string(), true, None)
     }
 
     fn internal_ascii_tree(
         &'a self,
         prefix: &str,
         last_child: bool,
-        lang_profile: &LangProfile,
         parent: Option<&CommutativeParent>,
     ) -> String {
         let num_children = self.children.len();
-        let next_parent = lang_profile.get_commutative_parent(self.grammar_name);
+        let next_parent = self.commutative_parent_definition();
 
         let tree_sym = if last_child { "└" } else { "├" };
 
@@ -672,8 +678,7 @@ impl<'a> AstNode<'a> {
 
         let sig = (parent.is_some())
             .then(|| {
-                lang_profile
-                    .extract_signature_from_original_node(self)
+                self.signature()
                     .map(|sig| format!(" {}", Color::LightCyan.paint(sig.to_string())))
             })
             .flatten()
@@ -689,15 +694,39 @@ impl<'a> AstNode<'a> {
                 .filter(|(_, child)| child.grammar_name != "@virtual_line@")
                 .map(|(index, child)| {
                     let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
-                    child.internal_ascii_tree(
-                        &new_prefix,
-                        index == num_children - 1,
-                        lang_profile,
-                        next_parent,
-                    )
+                    child.internal_ascii_tree(&new_prefix, index == num_children - 1, next_parent)
                 }),
         )
         .collect()
+    }
+
+    /// Checks if a tree has any signature conflicts in it
+    pub(crate) fn has_signature_conflicts(&self) -> bool {
+        let conflict_in_children = || {
+            self.children
+                .iter()
+                .any(|child| child.has_signature_conflicts())
+        };
+
+        let conflict_in_self = || {
+            self.children.len() >= 2
+                && self.commutative_parent_definition().is_some()
+                && !self
+                    .children
+                    .iter()
+                    .copied()
+                    .filter_map(AstNode::signature)
+                    .all_unique()
+        };
+
+        conflict_in_self() || conflict_in_children()
+    }
+
+    /// Extracts a signature for this node if we have a signature definition
+    /// for this type of nodes in the language profile.
+    pub(crate) fn signature(&'a self) -> Option<Signature<'a, 'a>> {
+        let definition = self.signature_definition()?;
+        Some(definition.extract_signature_from_original_node(self))
     }
 }
 
@@ -1231,9 +1260,8 @@ mod tests {
     fn print_as_ascii_art() {
         let ctx = ctx();
         let tree = ctx.parse_json("{\"foo\": 3, \"bar\": 4}");
-        let lang_profile = LangProfile::json();
 
-        let ascii_tree = tree.root().ascii_tree(lang_profile);
+        let ascii_tree = tree.root().ascii_tree();
 
         let expected = "\
 \u{1b}[90m└\u{1b}[0mdocument
@@ -1263,7 +1291,6 @@ mod tests {
     #[test]
     fn commutative_isomorphism() {
         let ctx = ctx();
-        let lang_profile = LangProfile::json();
         let obj_1 = ctx.parse_json("{\"foo\": 3, \"bar\": 4}").root();
         let obj_2 = ctx.parse_json("{\"bar\": 4, \"foo\": 3}").root();
         let obj_3 = ctx.parse_json("{\"bar\": 3, \"foo\": 4}").root();
@@ -1271,14 +1298,12 @@ mod tests {
         let array_1 = ctx.parse_json("[ 1, 2 ]").root();
         let array_2 = ctx.parse_json("[ 2, 1 ]").root();
 
-        assert!(obj_1.commutatively_isomorphic_to(obj_2, lang_profile));
-        assert!(!obj_1.commutatively_isomorphic_to(obj_3, lang_profile));
-        assert!(!obj_2.commutatively_isomorphic_to(obj_3, lang_profile));
-        assert!(obj_1.commutatively_isomorphic_to(obj_4, lang_profile));
-        assert!(!obj_1.commutatively_isomorphic_to(array_1, lang_profile));
-        assert!(!array_1.commutatively_isomorphic_to(array_2, lang_profile));
-
-        let lang_profile_java = LangProfile::java();
+        assert!(obj_1.commutatively_isomorphic_to(obj_2));
+        assert!(!obj_1.commutatively_isomorphic_to(obj_3));
+        assert!(!obj_2.commutatively_isomorphic_to(obj_3));
+        assert!(obj_1.commutatively_isomorphic_to(obj_4));
+        assert!(!obj_1.commutatively_isomorphic_to(array_1));
+        assert!(!array_1.commutatively_isomorphic_to(array_2));
 
         let method1 = ctx.parse_java("public final void main();").root();
         let method2 = ctx.parse_java("public final static void main();").root();
@@ -1286,6 +1311,6 @@ mod tests {
         // `public`, `final` and `static` are all commutative children of (function) `modifiers`,
         // but the second tree doesn't have `static`. A naive `zip` would only check the first two
         // children, see that they're equal, and incorrectly decide that the parents are equal as well
-        assert!(!method1.commutatively_isomorphic_to(method2, lang_profile_java));
+        assert!(!method1.commutatively_isomorphic_to(method2));
     }
 }

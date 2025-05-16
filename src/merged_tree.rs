@@ -18,6 +18,7 @@ use crate::{
     parsed_merge::ParsedMerge,
     pcs::Revision,
     settings::DisplaySettings,
+    signature::Signature,
 };
 
 /// A merged tree, which can contain a mixture of elements from the original trees,
@@ -825,6 +826,22 @@ impl<'a> MergedTree<'a> {
         };
         result.push_str(&c);
         result
+    }
+
+    /// Extracts a signature for the given node if there is a signature definition
+    /// for this type of nodes in the language profile.
+    pub(crate) fn signature<'b>(
+        &'b self,
+        class_mapping: &ClassMapping<'a>,
+    ) -> Option<Signature<'b, 'a>> {
+        let definition = match self {
+            MergedTree::ExactTree { node, .. }
+            | MergedTree::MixedTree { node, .. }
+            | MergedTree::LineBasedMerge { node, .. } => node.signature_definition(),
+            MergedTree::Conflict { .. } | MergedTree::CommutativeChildSeparator { .. } => None,
+        }?;
+        let signature = definition.extract_signature_from_merged_node(self, class_mapping);
+        Some(signature)
     }
 }
 

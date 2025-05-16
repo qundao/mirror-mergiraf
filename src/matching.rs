@@ -37,6 +37,7 @@ impl<'tree> Matching<'tree> {
     /// Is it possible to add this pair while keeping the matching consistent?
     pub fn can_be_matched(&self, from: &AstNode<'tree>, to: &AstNode<'tree>) -> bool {
         from.grammar_name == to.grammar_name
+            && from.lang_profile == to.lang_profile
             && !self.left_to_right.contains_key(from)
             && !self.right_to_left.contains_key(to)
             && (!from.is_leaf() || !to.is_leaf() || from.source == to.source) // TODO we could still accept to match them, but introduce content handling to merge them
@@ -58,6 +59,10 @@ impl<'tree> Matching<'tree> {
             from.grammar_name, to.grammar_name,
             "Attempting to match nodes with different grammar_names"
         );
+        debug_assert_eq!(
+            from.lang_profile.name, to.lang_profile.name,
+            "Attempting to match nodes from different languages"
+        );
         // if some other node was matched to either `from` or `to`,
         // remove it so that the matching remains one-to-one
         self.remove(from, to);
@@ -74,6 +79,10 @@ impl<'tree> Matching<'tree> {
             debug_assert_eq!(
                 l.grammar_name, r.grammar_name,
                 "Attempting to match nodes with different grammar_names"
+            );
+            debug_assert_eq!(
+                l.lang_profile.name, r.lang_profile.name,
+                "Attempting to match nodes from different languages"
             );
             self.remove(l, r);
         }
