@@ -12,7 +12,7 @@ script_dir="$(dirname "${script_path}")"
 # infer the extension
 ext=`ls $1 | grep Base. | sed -e 's/Base.//'`
 
-${script_dir}/run.sh $1 | sed -e '$a\' > /tmp/out$$
+${script_dir}/run.sh $1 | sed -e '$a\' > /tmp/out$$.$ext
 
 echo "------ RESULT ------"
 cat /tmp/out$$
@@ -25,13 +25,22 @@ echo "------ RIGHT --------"
 cat $1/Right.$ext | sed -e '$a\'
 echo "------ EXPECTED --------"
 if [ -e $1/Better.$ext ]; then
-        cat $1/Better.$ext | sed -e '$a\' | tee /tmp/expected$$
-elif [ -e $1/ExpectedDiff3.$ext ]; then
-        cat $1/ExpectedDiff3.$ext | sed -e '$a\' | tee /tmp/expected$$
+        cat $1/Better.$ext | sed -e '$a\' | tee /tmp/expected$$.$ext
+elif [ -e $1/ExpectedIdeally.$ext ]; then
+        cat $1/ExpectedIdeally.$ext | sed -e '$a\' | tee /tmp/expected$$.$ext
 else
-        cat $1/Expected.$ext | sed -e '$a\' | tee /tmp/expected$$
+        cat $1/Expected.$ext | sed -e '$a\' | tee /tmp/expected$$.$ext
 fi
 echo "------ diff ------"
-diff -C 3 --color=auto /tmp/expected$$ /tmp/out$$
+diff -C 3 --color=auto /tmp/expected$$.$ext /tmp/out$$.$ext
+successful=$?
 
-rm /tmp/expected$$ /tmp/out$$
+if [[ $successful -ne 0 ]]; then
+
+    if cargo run --bin mgf_dev -- compare --commutative /tmp/expected$$.$ext /tmp/out$$.$ext > /dev/null 2>&1; then
+       echo "------"
+       echo "Note: up to formatting differences, the test passes"
+    fi
+fi
+
+rm /tmp/expected$$.$ext /tmp/out$$.$ext
