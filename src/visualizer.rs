@@ -197,6 +197,56 @@ mod tests {
 
         let contents =
             fs::read_to_string(&target_path).expect("Could not read the generated graph.dot file");
-        assert!(contents.contains("subgraph ")); // yes, not a very great assertion… but node ids are all unstable!
+
+        let expected_contents = r##"graph matching {
+  subgraph l {
+    l11[label="document:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
+    l10[label="object:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
+    l1[label="{:0_1",shape="box",style="filled",fillcolor="#40e0d0"]
+    l10 -- l1
+    l8[label="pair:1_9",shape="oval",style="filled",fillcolor="#40e0d0"]
+    l5[label="string:1_6",shape="oval",style="filled",fillcolor="#40e0d0"]
+    l2[label="\":1_2",shape="box",style="filled",fillcolor="#40e0d0"]
+    l5 -- l2
+    l3[label="foo:2_5",shape="box",style="filled",fillcolor="#40e0d0"]
+    l5 -- l3
+    l4[label="\":5_6",shape="box",style="filled",fillcolor="#40e0d0"]
+    l5 -- l4
+    l8 -- l5
+    l6[label="::6_7",shape="box",style="filled",fillcolor="#40e0d0"]
+    l8 -- l6
+    l7[label="3:8_9",shape="box",style="filled",fillcolor="#40e0d0"]
+    l8 -- l7
+    l10 -- l8
+    l9[label="}:9_10",shape="box",style="filled",fillcolor="#40e0d0"]
+    l10 -- l9
+    l11 -- l10
+  }
+  subgraph r {
+    r11[label="document:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
+    r10[label="object:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
+    r1[label="{:0_1",shape="box",style="filled",fillcolor="#40e0d0"]
+    r10 -- r1
+    r8[label="pair:1_9",shape="oval",style="filled",fillcolor="#40e0d0"]
+    r5[label="string:1_6",shape="oval",style="filled",fillcolor="#40e0d0"]
+    r2[label="\":1_2",shape="box",style="filled",fillcolor="#40e0d0"]
+    r5 -- r2
+    r3[label="foo:2_5",shape="box",style="filled",fillcolor="#40e0d0"]
+    r5 -- r3
+    r4[label="\":5_6",shape="box",style="filled",fillcolor="#40e0d0"]
+    r5 -- r4
+    r8 -- r5
+    r6[label="::6_7",shape="box",style="filled",fillcolor="#40e0d0"]
+    r8 -- r6
+    r7[label="4:8_9",shape="box",style="filled",fillcolor="#40e0d0"]
+    r8 -- r7
+    r10 -- r8
+    r9[label="}:9_10",shape="box",style="filled",fillcolor="#40e0d0"]
+    r10 -- r9
+    r11 -- r10
+  }
+}
+"##;
+        assert_eq!(contents, expected_contents);
     }
 }

@@ -56,7 +56,7 @@ pub struct AstNode<'a> {
     pub field_name: Option<&'static str>,
     /// The range of bytes in the original source code that the source of this node spans
     pub byte_range: Range<usize>,
-    /// An internal node id returned by tree-sitter, guaranteed to be unique within the tree.
+    /// An internal node id, guaranteed to be unique within the tree.
     pub id: usize,
     /// A cached number of descendants
     descendant_count: usize,
@@ -81,7 +81,14 @@ impl<'a> Ast<'a> {
         arena: &'a Arena<AstNode<'a>>,
         ref_arena: &'a Arena<&'a AstNode<'a>>,
     ) -> Result<Self, String> {
-        let root = AstNode::internal_new(&mut tree.walk(), source, lang_profile, arena)?;
+        let mut next_node_id = 1;
+        let root = AstNode::internal_new(
+            &mut tree.walk(),
+            source,
+            lang_profile,
+            arena,
+            &mut next_node_id,
+        )?;
         root.internal_precompute_root_dfs(ref_arena);
         Ok(Self { source, root })
     }
@@ -123,6 +130,7 @@ impl<'a> AstNode<'a> {
         global_source: &'a str,
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
+        next_node_id: &mut usize,
     ) -> Result<&'a Self, String> {
         let mut children = Vec::new();
         let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
@@ -131,7 +139,8 @@ impl<'a> AstNode<'a> {
         if !atomic && cursor.goto_first_child() {
             let mut child_available = true;
             while child_available {
-                let child = Self::internal_new(cursor, global_source, lang_profile, arena)?;
+                let child =
+                    Self::internal_new(cursor, global_source, lang_profile, arena, next_node_id)?;
                 children.push(child);
                 if let Some(field_name) = cursor.field_name() {
                     field_to_children.entry(field_name).or_default().push(child);
@@ -178,12 +187,13 @@ impl<'a> AstNode<'a> {
                     grammar_name: "@virtual_line@",
                     field_name: None,
                     byte_range: start_position..start_position + trimmed.len(),
-                    id: 2 * start_position + 1, // start_position is known to be unique among virtual lines
+                    id: *next_node_id,
                     descendant_count: 1,
                     parent: UnsafeCell::new(None),
                     dfs: UnsafeCell::new(None),
                     lang_profile,
                 }));
+                *next_node_id += 1;
                 offset += line.len() + 1;
             }
         }
@@ -216,12 +226,13 @@ impl<'a> AstNode<'a> {
             field_name,
             // parse-specific fields not included in hash/isomorphism
             byte_range: range,
-            id: 2 * node.id(), // 2* to make it disjoint from the split lines we introduce above
+            id: *next_node_id,
             descendant_count,
             parent: UnsafeCell::new(None),
             dfs: UnsafeCell::new(None),
             lang_profile,
         });
+        *next_node_id += 1;
         result.internal_set_parent_on_children();
         Ok(result)
     }
@@ -1334,5 +1345,66 @@ mod tests {
         // but the second tree doesn't have `static`. A naive `zip` would only check the first two
         // children, see that they're equal, and incorrectly decide that the parents are equal as well
         assert!(!method1.commutatively_isomorphic_to(method2));
+    }
+
+    #[test]
+    /// A stricter version of [`node_ids_all_unique`]
+    fn node_ids() {
+        let ctx = ctx();
+
+        let src = r#"let foo = "line 1
+line 2
+line 3";"#;
+        let tree = ctx.parse_rust(src);
+
+        let root = tree.root();
+        assert_eq!(root.id, 13);
+
+        let let_declaration = root[0];
+        assert_eq!(let_declaration.id, 12);
+
+        let [let_kw, foo, eq, str_literal, semicolon] = let_declaration[..] else {
+            unreachable!()
+        };
+        assert_eq!(let_kw.id, 1);
+        assert_eq!(foo.id, 2);
+        assert_eq!(eq.id, 3);
+        assert_eq!(str_literal.id, 10);
+        assert_eq!(semicolon.id, 11);
+
+        let [quote_open, lines, quote_close] = str_literal[..] else {
+            unreachable!()
+        };
+        assert_eq!(quote_open.id, 4);
+        assert_eq!(lines.id, 8);
+        assert_eq!(quote_close.id, 9);
+
+        let [line1, line2, line3] = lines[..] else {
+            unreachable!()
+        };
+        assert_eq!(line1.source, "line 1");
+        assert_eq!(line1.id, 5);
+        assert_eq!(line2.source, "line 2");
+        assert_eq!(line2.id, 6);
+        assert_eq!(line3.source, "line 3");
+        assert_eq!(line3.id, 7);
+    }
+
+    #[test]
+    fn node_ids_all_unique() {
+        let ctx = ctx();
+
+        let src = r#"let foo = "line 1
+line 2
+line 3";"#;
+        let tree = ctx.parse_rust(src);
+
+        let ids = tree.dfs().map(|n| n.id).collect_vec();
+
+        assert!(ids.iter().all_unique());
+
+        // all the available ids (0-len) are used, i.e. none are skipped
+        // not strictly necessary, but nice to have
+        assert_eq!(*ids.iter().max().unwrap(), ids.len());
     }
 }
