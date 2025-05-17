@@ -1048,7 +1048,7 @@ mod tests {
 
         let class_mapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
-        changeset.add_tree(&tree, Revision::Base, &class_mapping);
+        changeset.add_tree(tree, Revision::Base, &class_mapping);
 
         let settings = DisplaySettings::default();
 
@@ -1065,7 +1065,7 @@ mod tests {
         assert_eq!(
             result_tree,
             Ok(MergedTree::new_exact(
-                class_mapping.map_to_leader(RevNode::new(Revision::Base, tree.root())),
+                class_mapping.map_to_leader(RevNode::new(Revision::Base, tree)),
                 RevisionNESet::singleton(Revision::Base),
                 &class_mapping,
             ))
@@ -1080,7 +1080,7 @@ mod tests {
 
         let class_mapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
-        changeset.add_tree(&tree, Revision::Base, &class_mapping);
+        changeset.add_tree(tree, Revision::Base, &class_mapping);
 
         let settings = DisplaySettings::default();
 
@@ -1096,11 +1096,11 @@ mod tests {
         .expect("a successful merge was expected");
 
         assert!(result_tree.contains(
-            class_mapping.map_to_leader(RevNode::new(Revision::Base, tree.root())),
+            class_mapping.map_to_leader(RevNode::new(Revision::Base, tree)),
             &class_mapping
         ));
         assert!(result_tree.contains(
-            class_mapping.map_to_leader(RevNode::new(Revision::Base, tree.root()[0])),
+            class_mapping.map_to_leader(RevNode::new(Revision::Base, tree[0])),
             &class_mapping
         ));
     }

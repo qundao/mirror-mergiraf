@@ -54,7 +54,7 @@ use itertools::Itertools;
 use lang_profile::LangProfile;
 use log::debug;
 
-use ast::{Ast, AstNode};
+use ast::AstNode;
 use merge_result::MergeResult;
 use parsed_merge::{PARSED_MERGE_DIFF2_DETECTED, ParsedMerge};
 use pcs::Revision;
@@ -83,11 +83,11 @@ pub fn parse<'a>(
     lang_profile: &'a LangProfile,
     arena: &'a Arena<AstNode<'a>>,
     ref_arena: &'a Arena<&'a AstNode<'a>>,
-) -> Result<Ast<'a>, String> {
+) -> Result<&'a AstNode<'a>, String> {
     let tree = parser
         .parse(contents, None)
         .expect("Parsing example source code failed");
-    Ast::new(&tree, contents, lang_profile, arena, ref_arena)
+    AstNode::new(&tree, contents, lang_profile, arena, ref_arena)
 }
 
 /// Takes the result of an earlier merge process (likely line-based)

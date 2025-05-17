@@ -90,7 +90,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             let tree = mergiraf::parse(&mut parser, &contents, lang_profile, &arena, &ref_arena)
                 .map_err(|err| format!("File has parse errors: {err}"))?;
 
-            print!("{}", tree.root().ascii_tree());
+            print!("{}", tree.ascii_tree());
             Ok(0)
         }
         Command::Compare {
@@ -120,8 +120,8 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             )
             .map_err(|err| format!("File has parse errors: {err}"))?;
 
-            let first_root = tree_first.root();
-            let second_root = tree_second.root();
+            let first_root = tree_first;
+            let second_root = tree_second;
 
             if first_root.isomorphic_to(second_root)
                 || (*commutative && first_root.commutatively_isomorphic_to(second_root))

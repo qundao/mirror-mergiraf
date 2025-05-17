@@ -88,7 +88,7 @@ mod tests {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
-        let node = ctx.parse_rust("fn x() -> i32 { 1 + 2 }").root();
+        let node = ctx.parse_rust("fn x() -> i32 { 1 + 2 }");
         priority_list.push(node);
 
         assert_eq!(priority_list.peek_max(), Some(4));
@@ -100,9 +100,9 @@ mod tests {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
-        let node1 = ctx.parse_rust("fn y() -> u8 { 1 + 2 }").root();
+        let node1 = ctx.parse_rust("fn y() -> u8 { 1 + 2 }");
         priority_list.push(node1);
-        let node2 = ctx.parse_rust("fn z() { 3 *  5 }").root();
+        let node2 = ctx.parse_rust("fn z() { 3 *  5 }");
         priority_list.push(node2);
 
         assert_eq!(priority_list.peek_max(), Some(4));
@@ -114,9 +114,9 @@ mod tests {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
-        let node1 = ctx.parse_rust("fn a() { 1 + 2 }").root();
+        let node1 = ctx.parse_rust("fn a() { 1 + 2 }");
         priority_list.push(node1);
-        let node2 = ctx.parse_rust("fn b() { 3 * (5 + 1) }").root();
+        let node2 = ctx.parse_rust("fn b() { 3 * (5 + 1) }");
         priority_list.push(node2);
 
         assert_eq!(priority_list.peek_max(), Some(6));
@@ -128,9 +128,9 @@ mod tests {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
-        let node1 = ctx.parse_rust("fn c() { 1 + (2 + 5) }").root();
+        let node1 = ctx.parse_rust("fn c() { 1 + (2 + 5) }");
         priority_list.push(node1);
-        let node2 = ctx.parse_rust("fn d() { 3 * 9 }").root();
+        let node2 = ctx.parse_rust("fn d() { 3 * 9 }");
         priority_list.push(node2);
 
         assert_eq!(priority_list.peek_max(), Some(6));
@@ -142,7 +142,7 @@ mod tests {
         let ctx = ctx();
         let mut priority_list = PriorityList::new();
 
-        let node1 = ctx.parse_rust("fn x() { 1 + (2 + 5) }").root();
+        let node1 = ctx.parse_rust("fn x() { 1 + (2 + 5) }");
         let node1 = node1[0][3][1];
         priority_list.open(node1);
         let child1 = node1[0];

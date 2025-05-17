@@ -3,7 +3,7 @@ use std::{path::Path, thread, time::Instant};
 use log::debug;
 
 use crate::{
-    ast::Ast,
+    ast::AstNode,
     changeset::ChangeSet,
     class_mapping::{ClassMapping, RevNode},
     line_based::line_based_merge_parsed,
@@ -31,9 +31,9 @@ use crate::{
 /// by Simon Larsén, Jean-Rémy Falleri, Benoit Baudry and Martin Monperrus
 #[allow(clippy::too_many_arguments)]
 pub fn three_way_merge<'a>(
-    base: &'a Ast<'a>,
-    left: &'a Ast<'a>,
-    right: &'a Ast<'a>,
+    base: &'a AstNode<'a>,
+    left: &'a AstNode<'a>,
+    right: &'a AstNode<'a>,
     initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
@@ -83,9 +83,9 @@ pub fn three_way_merge<'a>(
 }
 
 fn generate_matchings<'a>(
-    base: &'a Ast<'a>,
-    left: &'a Ast<'a>,
-    right: &'a Ast<'a>,
+    base: &'a AstNode<'a>,
+    left: &'a AstNode<'a>,
+    right: &'a AstNode<'a>,
     initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
@@ -214,9 +214,9 @@ fn create_class_mapping<'a>(
 }
 
 fn generate_pcs_triples<'a>(
-    base: &'a Ast<'a>,
-    left: &'a Ast<'a>,
-    right: &'a Ast<'a>,
+    base: &'a AstNode<'a>,
+    left: &'a AstNode<'a>,
+    right: &'a AstNode<'a>,
     class_mapping: &ClassMapping<'a>,
     debug_dir: Option<&Path>,
 ) -> (ChangeSet<'a>, ChangeSet<'a>) {
@@ -280,9 +280,9 @@ fn fix_pcs_inconsistencies<'a>(
 
 #[allow(clippy::too_many_arguments)]
 fn build_tree<'a>(
-    base: &Ast<'a>,
-    left: &Ast<'a>,
-    right: &Ast<'a>,
+    base: &'a AstNode<'a>,
+    left: &'a AstNode<'a>,
+    right: &'a AstNode<'a>,
     class_mapping: &ClassMapping<'a>,
     base_changeset: &ChangeSet<'a>,
     cleaned_changeset: &ChangeSet<'a>,
@@ -291,10 +291,9 @@ fn build_tree<'a>(
     let start: Instant = Instant::now();
     let tree_builder = TreeBuilder::new(cleaned_changeset, base_changeset, class_mapping, settings);
     let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
-        let line_based =
-            line_based_merge_parsed(base.source(), left.source(), right.source(), settings);
+        let line_based = line_based_merge_parsed(base.source, left.source, right.source, settings);
         MergedTree::LineBasedMerge {
-            node: class_mapping.map_to_leader(RevNode::new(Revision::Base, base.root())),
+            node: class_mapping.map_to_leader(RevNode::new(Revision::Base, base)),
             parsed: line_based,
         }
     });
@@ -339,9 +338,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, classmapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -367,9 +366,9 @@ mod tests {
         let settings = DisplaySettings::default_compact();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -405,9 +404,9 @@ mod tests {
         let settings = DisplaySettings::default_compact();
 
         let (result_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -443,9 +442,9 @@ mod tests {
         let settings = DisplaySettings::default_compact();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -481,9 +480,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -519,9 +518,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -546,9 +545,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -573,9 +572,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -600,9 +599,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -646,9 +645,9 @@ mod tests {
         let settings = DisplaySettings::default();
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,
@@ -730,9 +729,9 @@ fn baz() {
         };
 
         let (merged_tree, class_mapping) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,

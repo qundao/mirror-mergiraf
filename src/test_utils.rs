@@ -2,11 +2,7 @@ use std::hash::{Hash, Hasher};
 use tree_sitter::Parser;
 use typed_arena::Arena;
 
-use crate::{
-    ast::{Ast, AstNode},
-    lang_profile::LangProfile,
-    tree_matcher::TreeMatcher,
-};
+use crate::{ast::AstNode, lang_profile::LangProfile, tree_matcher::TreeMatcher};
 
 /// Provides a set of utilities to help write concise tests
 pub struct TestContext<'a> {
@@ -22,7 +18,7 @@ pub fn ctx<'a>() -> TestContext<'a> {
 }
 
 impl<'a> TestContext<'a> {
-    fn parse_internal(&'a self, extension: &str, source: &'a str) -> Ast<'a> {
+    fn parse_internal(&'a self, extension: &str, source: &'a str) -> &'a AstNode<'a> {
         let lang_profile =
             LangProfile::detect_from_filename(extension).expect("could not load language profile");
         let mut parser = Parser::new();
@@ -32,39 +28,39 @@ impl<'a> TestContext<'a> {
         let tree = parser
             .parse(source, None)
             .expect("Parsing example source code failed");
-        Ast::new(&tree, source, lang_profile, &self.arena, &self.ref_arena)
+        AstNode::new(&tree, source, lang_profile, &self.arena, &self.ref_arena)
             .expect("syntax error in source")
     }
 
-    pub fn parse_rust(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_rust(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.rs", source)
     }
 
-    pub fn parse_json(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_json(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.json", source)
     }
 
-    pub fn parse_java(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_java(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.java", source)
     }
 
-    pub fn parse_python(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_python(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.py", source)
     }
 
-    pub fn parse_go(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_go(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.go", source)
     }
 
-    pub fn parse_yaml(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_yaml(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.yaml", source)
     }
 
-    pub fn parse_toml(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_toml(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.toml", source)
     }
 
-    pub fn parse_nix(&'a self, source: &'a str) -> Ast<'a> {
+    pub fn parse_nix(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.nix", source)
     }
 }

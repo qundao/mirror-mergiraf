@@ -468,23 +468,23 @@ mod tests {
         let left_tree = ctx.parse_rust("struct Foo;\n");
         let right_tree = ctx.parse_rust("struct Bar;\n");
 
-        let foo_base = RevNode::new(Revision::Base, base_tree.root()[0]);
+        let foo_base = RevNode::new(Revision::Base, base_tree[0]);
         assert_eq!(foo_base.node.source, "struct Foo;");
-        let bar_base = RevNode::new(Revision::Base, base_tree.root()[1]);
+        let bar_base = RevNode::new(Revision::Base, base_tree[1]);
         assert_eq!(bar_base.node.source, "struct Bar;");
-        let foo_left = RevNode::new(Revision::Left, left_tree.root()[0]);
+        let foo_left = RevNode::new(Revision::Left, left_tree[0]);
         assert_eq!(foo_left.node.source, "struct Foo;");
-        let bar_right = RevNode::new(Revision::Right, right_tree.root()[0]);
+        let bar_right = RevNode::new(Revision::Right, right_tree[0]);
         assert_eq!(bar_right.node.source, "struct Bar;");
 
         let mut base_left = Matching::new();
-        base_left.add(base_tree.root(), left_tree.root());
+        base_left.add(base_tree, left_tree);
         base_left.add(foo_base.node, foo_left.node);
         let mut base_right = Matching::new();
-        base_right.add(base_tree.root(), right_tree.root());
+        base_right.add(base_tree, right_tree);
         base_right.add(bar_base.node, bar_right.node);
         let mut left_right = Matching::new();
-        left_right.add(left_tree.root(), right_tree.root());
+        left_right.add(left_tree, right_tree);
         left_right.add(foo_left.node, bar_right.node); // this matching is wrong!
 
         let mut class_mapping = ClassMapping::new();
@@ -509,30 +509,30 @@ mod tests {
         let left_tree = ctx.parse_rust("struct FooLeft;\nstruct BarLeft;\nstruct HeyLeft;\n");
         let right_tree = ctx.parse_rust("struct FooRight;\nstruct BarRight;\nstruct HeyRight;\n");
 
-        let foo_base = RevNode::new(Revision::Base, base_tree.root()[0]);
-        let foo_left = RevNode::new(Revision::Left, left_tree.root()[0]);
-        let foo_right = RevNode::new(Revision::Right, right_tree.root()[0]);
-        let bar_base = RevNode::new(Revision::Base, base_tree.root()[1]);
-        let bar_left = RevNode::new(Revision::Left, left_tree.root()[1]);
-        let bar_right = RevNode::new(Revision::Right, right_tree.root()[1]);
-        let hey_base = RevNode::new(Revision::Base, base_tree.root()[2]);
-        let hey_left = RevNode::new(Revision::Left, left_tree.root()[2]);
-        let hey_right = RevNode::new(Revision::Right, right_tree.root()[2]);
+        let foo_base = RevNode::new(Revision::Base, base_tree[0]);
+        let foo_left = RevNode::new(Revision::Left, left_tree[0]);
+        let foo_right = RevNode::new(Revision::Right, right_tree[0]);
+        let bar_base = RevNode::new(Revision::Base, base_tree[1]);
+        let bar_left = RevNode::new(Revision::Left, left_tree[1]);
+        let bar_right = RevNode::new(Revision::Right, right_tree[1]);
+        let hey_base = RevNode::new(Revision::Base, base_tree[2]);
+        let hey_left = RevNode::new(Revision::Left, left_tree[2]);
+        let hey_right = RevNode::new(Revision::Right, right_tree[2]);
 
         let mut base_left = Matching::new();
-        base_left.add(base_tree.root(), left_tree.root());
+        base_left.add(base_tree, left_tree);
         //                                              FooBase and FooLeft are NOT matched
         base_left.add(bar_base.node, bar_left.node); // BarBase and BarLeft are matched
         base_left.add(hey_base.node, hey_left.node); // HeyBase and HeyLeft are matched
 
         let mut base_right = Matching::new();
-        base_right.add(base_tree.root(), right_tree.root());
+        base_right.add(base_tree, right_tree);
         base_right.add(foo_base.node, foo_right.node); // FooBase and FooRight are matched
         //                                                BarBase and BarRight are NOT matched
         base_right.add(hey_base.node, hey_right.node); // HeyBase and HeyRight are matched
 
         let mut left_right = Matching::new();
-        left_right.add(left_tree.root(), right_tree.root());
+        left_right.add(left_tree, right_tree);
         left_right.add(foo_left.node, foo_right.node); // FooLeft and FooRight are matched
         left_right.add(bar_left.node, bar_right.node); // BarLeft and BarRight are matched
         //                                                HeyLeft and HeyRight are NOT matched

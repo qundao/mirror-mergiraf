@@ -7,7 +7,7 @@ use std::{
 use itertools::Itertools;
 
 use crate::{
-    ast::{Ast, AstNode},
+    ast::AstNode,
     class_mapping::{ClassMapping, RevNode},
     multimap::MultiMap,
     pcs::{PCS, PCSNode, Revision},
@@ -31,12 +31,12 @@ impl<'a> ChangeSet<'a> {
     /// Adds PCS triples that encodes a tree
     pub fn add_tree(
         &mut self,
-        tree: &'a Ast<'a>,
+        tree: &'a AstNode<'a>,
         revision: Revision,
         classmapping: &ClassMapping<'a>,
     ) {
         let root = self.add_node_recursively(
-            tree.root(),
+            tree,
             PCSNode::VirtualRoot,
             PCSNode::LeftMarker,
             revision,
@@ -194,7 +194,7 @@ mod tests {
 
         let classmapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
-        changeset.add_tree(&tree, Revision::Base, &classmapping);
+        changeset.add_tree(tree, Revision::Base, &classmapping);
 
         let as_strings = changeset
             .iter()
@@ -241,7 +241,7 @@ mod tests {
 
         let classmapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
-        changeset.add_tree(&tree, Revision::Base, &classmapping);
+        changeset.add_tree(tree, Revision::Base, &classmapping);
 
         let empty_conflicts: Vec<&PCS> = vec![];
         for pcs in changeset.iter() {
@@ -261,7 +261,7 @@ mod tests {
 
         let classmapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
-        changeset.add_tree(&tree, Revision::Base, &classmapping);
+        changeset.add_tree(tree, Revision::Base, &classmapping);
 
         let tmp_dir = tempdir().expect("failed to create a temp dir");
 

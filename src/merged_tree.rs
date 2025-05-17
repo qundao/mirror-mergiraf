@@ -881,9 +881,9 @@ mod test {
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
         let (merged_tree, _) = three_way_merge(
-            &base,
-            &left,
-            &right,
+            base,
+            left,
+            right,
             None,
             &primary_matcher,
             &auxiliary_matcher,

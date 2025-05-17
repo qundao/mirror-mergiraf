@@ -10,10 +10,7 @@ use tree_edit_distance::{Edit, diff};
 use typed_arena::Arena;
 
 use crate::{
-    ast::{Ast, AstNode},
-    matching::Matching,
-    multimap::MultiMap,
-    priority_list::PriorityList,
+    ast::AstNode, matching::Matching, multimap::MultiMap, priority_list::PriorityList,
     signature::Signature,
 };
 
@@ -47,8 +44,8 @@ impl TreeMatcher {
     /// It can be supplied with an initial matching of nodes which are known
     pub fn match_trees<'a>(
         &self,
-        left: &'a Ast<'a>,
-        right: &'a Ast<'a>,
+        left: &'a AstNode<'a>,
+        right: &'a AstNode<'a>,
         initial_matching: Option<&Matching<'a>>,
     ) -> DetailedMatching<'a> {
         let start = Instant::now();
@@ -59,13 +56,11 @@ impl TreeMatcher {
         debug!("top-down phase yielded {} matches", exact_matching.len());
 
         let arena = Arena::new();
-        let truncated_left = left
-            .root()
-            .truncate(|node| exact_matching.get_from_left(node).is_some(), &arena);
+        let truncated_left =
+            left.truncate(|node| exact_matching.get_from_left(node).is_some(), &arena);
 
-        let truncated_right = right
-            .root()
-            .truncate(|node| exact_matching.get_from_right(node).is_some(), &arena);
+        let truncated_right =
+            right.truncate(|node| exact_matching.get_from_right(node).is_some(), &arena);
         let mut truncated_matching: Matching = matching.translate(truncated_left, truncated_right);
 
         // Second pass for container mappings
@@ -73,8 +68,8 @@ impl TreeMatcher {
             self.bottom_up_pass(truncated_left, truncated_right, &mut truncated_matching);
         debug!("matching took {:?}", start.elapsed());
         let mut full = matching;
-        let container = container_matching.translate(left.root(), right.root());
-        let recovery = recovery_matches.translate(left.root(), right.root());
+        let container = container_matching.translate(left, right);
+        let recovery = recovery_matches.translate(left, right);
         full.add_matching(&container);
         full.add_matching(&recovery);
         DetailedMatching {
@@ -88,8 +83,8 @@ impl TreeMatcher {
     // First pass of the GumTree classic algorithm, top down, creating the exact matchings between isomorphic subtrees
     fn top_down_pass<'a>(
         &self,
-        left: &'a Ast<'a>,
-        right: &'a Ast<'a>,
+        left: &'a AstNode<'a>,
+        right: &'a AstNode<'a>,
         initial_matching: Option<&Matching<'a>>,
     ) -> (Matching<'a>, Matching<'a>) {
         let mut matching = Matching::new();
@@ -109,8 +104,8 @@ impl TreeMatcher {
 
         let mut l1 = PriorityList::new();
         let mut l2 = PriorityList::new();
-        l1.push(left.root());
-        l2.push(right.root());
+        l1.push(left);
+        l2.push(right);
         loop {
             let pm_1 = l1.peek_max().unwrap_or(-1);
             let pm_2 = l2.peek_max().unwrap_or(-1);
@@ -519,7 +514,7 @@ mod tests {
             use_rted: true,
         };
 
-        let detailed_matching = matcher.match_trees(&t1, &t2, None);
+        let detailed_matching = matcher.match_trees(t1, t2, None);
 
         assert_eq!(detailed_matching.exact.len(), 13);
         assert_eq!(detailed_matching.container.len(), 4);
@@ -543,7 +538,7 @@ mod tests {
             use_rted: true,
         };
 
-        let matching = matcher.match_trees(&t1, &t2, None);
+        let matching = matcher.match_trees(t1, t2, None);
 
         assert_eq!(matching.exact.len(), 21);
         assert_eq!(matching.container.len(), 6);
@@ -567,7 +562,7 @@ mod tests {
             use_rted: false,
         };
 
-        let matching = matcher.match_trees(&t1, &t2, None);
+        let matching = matcher.match_trees(t1, t2, None);
 
         assert_eq!(matching.exact.len(), 21);
         assert_eq!(matching.container.len(), 6);
@@ -589,7 +584,7 @@ mod tests {
             use_rted: true,
         };
 
-        let matching = matcher.match_trees(&left, &right, None);
+        let matching = matcher.match_trees(left, right, None);
 
         assert_eq!(matching.exact.len(), 4);
         assert_eq!(matching.container.len(), 2);
@@ -610,7 +605,7 @@ mod tests {
             max_recovery_size: 100,
             use_rted: true,
         };
-        let matching = matcher.match_trees(&left, &right, None);
+        let matching = matcher.match_trees(left, right, None);
 
         assert_eq!(matching.exact.len(), 0);
         assert_eq!(matching.container.len(), 1);

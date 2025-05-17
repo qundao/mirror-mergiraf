@@ -76,18 +76,18 @@ pub fn structured_merge(
     let initial_matchings = parsed_merge.map(|parsed_merge| {
         (
             parsed_merge
-                .generate_matching(Revision::Base, Revision::Left, &tree_base, &tree_left)
+                .generate_matching(Revision::Base, Revision::Left, tree_base, tree_left)
                 .add_submatches(),
             parsed_merge
-                .generate_matching(Revision::Base, Revision::Right, &tree_base, &tree_right)
+                .generate_matching(Revision::Base, Revision::Right, tree_base, tree_right)
                 .add_submatches(),
         )
     });
 
     let (result_tree, class_mapping) = three_way_merge(
-        &tree_base,
-        &tree_left,
-        &tree_right,
+        tree_base,
+        tree_left,
+        tree_right,
         initial_matchings.as_ref(),
         &primary_matcher,
         &auxiliary_matcher,
@@ -120,7 +120,7 @@ pub fn structured_merge(
                 "merge discarded because rendered revision {revision} has a parsing error: {err}"
             )
         })?;
-        if !result_tree.isomorphic_to_source(tree.root(), *revision, &class_mapping) {
+        if !result_tree.isomorphic_to_source(tree, *revision, &class_mapping) {
             debug!(
                 "discarding merge because rendered revision {revision} isn't isomorphic to the merged tree"
             );
