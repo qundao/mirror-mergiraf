@@ -61,7 +61,9 @@ impl<'a> MergedText<'a> {
 
     /// Appends merged text at the end
     pub(crate) fn push_merged(&mut self, contents: Cow<'a, str>) {
-        self.sections.push(MergeSection::Merged(contents));
+        if !contents.is_empty() {
+            self.sections.push(MergeSection::Merged(contents));
+        }
     }
 
     /// Appends a conflict at the end
