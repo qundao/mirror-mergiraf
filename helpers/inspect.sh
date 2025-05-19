@@ -15,7 +15,7 @@ ext=`ls $1 | grep Base. | sed -e 's/Base.//'`
 ${script_dir}/run.sh $1 | sed -e '$a\' > /tmp/out$$.$ext
 
 echo "------ RESULT ------"
-cat /tmp/out$$
+cat /tmp/out$$.$ext
 
 echo "------ BASE --------"
 cat $1/Base.$ext | sed -e '$a\'
