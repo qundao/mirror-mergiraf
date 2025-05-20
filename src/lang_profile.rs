@@ -1,4 +1,4 @@
-use std::{collections::HashSet, ffi::OsStr, hash::Hash, path::Path};
+use std::{collections::HashSet, ffi::OsStr, fmt::Display, hash::Hash, path::Path};
 
 use tree_sitter::Language;
 
@@ -36,6 +36,12 @@ impl Hash for LangProfile {
     // Hashing only by name for now, as it is treated as unique id
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+    }
+}
+
+impl Display for LangProfile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 

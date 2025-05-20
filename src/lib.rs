@@ -54,15 +54,12 @@ use itertools::Itertools;
 use lang_profile::LangProfile;
 use log::debug;
 
-use ast::AstNode;
 use merge_result::MergeResult;
 use parsed_merge::{PARSED_MERGE_DIFF2_DETECTED, ParsedMerge};
 use pcs::Revision;
 use settings::DisplaySettings;
 use structured::structured_merge;
 use supported_langs::SUPPORTED_LANGUAGES;
-use tree_sitter::Parser as TSParser;
-use typed_arena::Arena;
 
 pub use path_buf_ext::PathBufExt;
 
@@ -75,20 +72,6 @@ pub const DISABLING_ENV_VAR: &str = "mergiraf";
 
 pub use merge::line_merge_and_structured_resolution;
 pub use solve::resolve_merge_cascading;
-
-/// Helper to parse a source text with a given tree-sitter parser.
-pub fn parse<'a>(
-    parser: &mut TSParser,
-    contents: &'a str,
-    lang_profile: &'a LangProfile,
-    arena: &'a Arena<AstNode<'a>>,
-    ref_arena: &'a Arena<&'a AstNode<'a>>,
-) -> Result<&'a AstNode<'a>, String> {
-    let tree = parser
-        .parse(contents, None)
-        .expect("Parsing example source code failed");
-    AstNode::new(&tree, contents, lang_profile, arena, ref_arena)
-}
 
 /// Takes the result of an earlier merge process (likely line-based)
 /// and attempts to resolve the remaining conflicts using structured merge
@@ -143,8 +126,7 @@ pub fn languages(gitattributes: bool) -> String {
         } else {
             let _ = writeln!(
                 res,
-                "{} ({})",
-                lang_profile.name,
+                "{lang_profile} ({})",
                 lang_profile
                     .extensions
                     .iter()

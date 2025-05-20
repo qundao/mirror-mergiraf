@@ -1,4 +1,4 @@
-use crate::{MergeResult, TSParser, ast::AstNode, parse, pcs::Revision};
+use crate::{MergeResult, ast::AstNode, pcs::Revision};
 use diffy_imara::{Algorithm, ConflictStyle, MergeOptions};
 use typed_arena::Arena;
 
@@ -54,16 +54,11 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
 
     let mut merge_result = parsed_merge.into_merge_result(settings);
 
-    let mut parser = TSParser::new();
-    parser
-        .set_language(&lang_profile.language)
-        .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
-
-    let mut revision_has_issues = |contents: &str| {
+    let revision_has_issues = |contents: &str| {
         let arena = Arena::new();
         let ref_arena = Arena::new();
 
-        let tree = parse(&mut parser, contents, lang_profile, &arena, &ref_arena);
+        let tree = AstNode::parse(contents, lang_profile, &arena, &ref_arena);
 
         tree.map_or(true, AstNode::has_signature_conflicts)
     };

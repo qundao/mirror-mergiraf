@@ -14,7 +14,7 @@ use either::Either;
 use itertools::Itertools;
 use nu_ansi_term::Color;
 use rustc_hash::FxHashMap;
-use tree_sitter::{Tree, TreeCursor};
+use tree_sitter::{Parser, TreeCursor};
 use typed_arena::Arena;
 
 use crate::{
@@ -62,25 +62,36 @@ pub struct AstNode<'a> {
 }
 
 impl<'a> AstNode<'a> {
-    /// Create a new tree from a `tree_sitter` tree, the source code it was generated from,
-    /// and an arena to allocate the nodes from.
-    pub fn new(
-        tree: &Tree,
+    /// Parse a string to a tree using the language supplied
+    pub fn parse(
         source: &'a str,
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         ref_arena: &'a Arena<&'a Self>,
     ) -> Result<&'a Self, String> {
         let mut next_node_id = 1;
-        let root = AstNode::internal_new(
-            &mut tree.walk(),
-            source,
-            lang_profile,
-            arena,
-            &mut next_node_id,
-        )?;
+        let root = Self::parse_root(source, lang_profile, arena, &mut next_node_id)?;
         root.internal_precompute_root_dfs(ref_arena);
         Ok(root)
+    }
+
+    /// Internal method to parse a string to a tree,
+    /// without doing the DFS precomputation and starting
+    /// allocation of node ids at the supplied counter.
+    fn parse_root(
+        source: &'a str,
+        lang_profile: &'a LangProfile,
+        arena: &'a Arena<Self>,
+        next_node_id: &mut usize,
+    ) -> Result<&'a Self, String> {
+        let mut parser = Parser::new();
+        parser
+            .set_language(&lang_profile.language)
+            .map_err(|err| format!("Error loading {lang_profile} grammar: {err}"))?;
+        let tree = parser
+            .parse(source, None)
+            .expect("Parsing source code failed");
+        Self::internal_new(&mut tree.walk(), source, lang_profile, arena, next_node_id)
     }
 
     fn internal_new<'b>(

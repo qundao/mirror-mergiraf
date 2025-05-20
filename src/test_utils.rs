@@ -1,5 +1,4 @@
 use std::hash::{Hash, Hasher};
-use tree_sitter::Parser;
 use typed_arena::Arena;
 
 use crate::{ast::AstNode, lang_profile::LangProfile, tree_matcher::TreeMatcher};
@@ -21,14 +20,7 @@ impl<'a> TestContext<'a> {
     fn parse_internal(&'a self, extension: &str, source: &'a str) -> &'a AstNode<'a> {
         let lang_profile =
             LangProfile::detect_from_filename(extension).expect("could not load language profile");
-        let mut parser = Parser::new();
-        parser
-            .set_language(&lang_profile.language)
-            .expect("Error loading language grammar");
-        let tree = parser
-            .parse(source, None)
-            .expect("Parsing example source code failed");
-        AstNode::new(&tree, source, lang_profile, &self.arena, &self.ref_arena)
+        AstNode::parse(source, lang_profile, &self.arena, &self.ref_arena)
             .expect("syntax error in source")
     }
 

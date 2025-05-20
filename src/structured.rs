@@ -4,7 +4,7 @@ use log::debug;
 use typed_arena::Arena;
 
 use crate::{
-    MergeResult, Revision, TSParser, lang_profile::LangProfile, merge_3dm::three_way_merge, parse,
+    MergeResult, Revision, ast::AstNode, lang_profile::LangProfile, merge_3dm::three_way_merge,
     parsed_merge::ParsedMerge, settings::DisplaySettings, tree_matcher::TreeMatcher,
 };
 
@@ -33,13 +33,6 @@ pub fn structured_merge(
     let arena = Arena::new();
     let ref_arena = Arena::new();
 
-    let start = Instant::now();
-    let mut parser = TSParser::new();
-    parser
-        .set_language(&lang_profile.language)
-        .unwrap_or_else(|_| panic!("Error loading {} grammar", lang_profile.name));
-    debug!("initializing the parser took {:?}", start.elapsed());
-
     let primary_matcher = TreeMatcher {
         min_height: 1,
         sim_threshold: 0.4,
@@ -54,10 +47,9 @@ pub fn structured_merge(
     };
 
     let start = Instant::now();
-    let tree_base = parse(&mut parser, contents_base, lang_profile, &arena, &ref_arena);
-    let tree_left = parse(&mut parser, contents_left, lang_profile, &arena, &ref_arena);
-    #[rustfmt::skip]
-    let tree_right = parse(&mut parser, contents_right, lang_profile, &arena, &ref_arena);
+    let tree_base = AstNode::parse(contents_base, lang_profile, &arena, &ref_arena);
+    let tree_left = AstNode::parse(contents_left, lang_profile, &arena, &ref_arena);
+    let tree_right = AstNode::parse(contents_right, lang_profile, &arena, &ref_arena);
     debug!("parsing all three files took {:?}", start.elapsed());
 
     // detect a merge in zdiff3 style
@@ -108,8 +100,7 @@ pub fn structured_merge(
         let merged_revision = merged_text.reconstruct_revision(*revision);
         let arena = Arena::new();
         let ref_arena = Arena::new();
-        let tree = parse(
-            &mut parser,
+        let tree = AstNode::parse(
             &merged_revision,
             lang_profile,
             &arena,

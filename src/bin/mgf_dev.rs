@@ -7,11 +7,11 @@ use std::{
 
 use clap::{Parser, Subcommand};
 use mergiraf::{
+    ast::AstNode,
     lang_profile::LangProfile,
     // XXX: move the uses to lib to avoid making these public?
     newline::normalize_to_lf,
 };
-use tree_sitter::Parser as TSParser;
 use typed_arena::Arena;
 
 /// Dev helper for contributing to Mergiraf
@@ -70,11 +70,6 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
     let lang_profile =
         LangProfile::find_by_filename_or_name(language_determining_path, args.language.as_deref())?;
 
-    let mut parser = TSParser::new();
-    parser
-        .set_language(&lang_profile.language)
-        .map_err(|err| format!("Error loading {} grammar: {}", lang_profile.name, err))?;
-
     let contents = |path: &Path| -> Result<Cow<str>, String> {
         let original_contents = fs::read_to_string(path)
             .map_err(|err| format!("Could not read {}: {err}", path.display()))?;
@@ -87,7 +82,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
         Command::Parse { path } => {
             let contents = contents(path)?;
 
-            let tree = mergiraf::parse(&mut parser, &contents, lang_profile, &arena, &ref_arena)
+            let tree = AstNode::parse(&contents, lang_profile, &arena, &ref_arena)
                 .map_err(|err| format!("File has parse errors: {err}"))?;
 
             print!("{}", tree.ascii_tree());
@@ -100,25 +95,13 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
         } => {
             let contents_first = contents(first)?;
 
-            let tree_first = mergiraf::parse(
-                &mut parser,
-                &contents_first,
-                lang_profile,
-                &arena,
-                &ref_arena,
-            )
-            .map_err(|err| format!("File has parse errors: {err}"))?;
+            let tree_first = AstNode::parse(&contents_first, lang_profile, &arena, &ref_arena)
+                .map_err(|err| format!("File has parse errors: {err}"))?;
 
             let contents_second = contents(second)?;
 
-            let tree_second = mergiraf::parse(
-                &mut parser,
-                &contents_second,
-                lang_profile,
-                &arena,
-                &ref_arena,
-            )
-            .map_err(|err| format!("File has parse errors: {err}"))?;
+            let tree_second = AstNode::parse(&contents_second, lang_profile, &arena, &ref_arena)
+                .map_err(|err| format!("File has parse errors: {err}"))?;
 
             let first_root = tree_first;
             let second_root = tree_second;
