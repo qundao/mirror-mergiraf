@@ -44,3 +44,4 @@
 *.nix merge=mergiraf
 *.sv merge=mergiraf
 *.svh merge=mergiraf
+*.md merge=mergiraf

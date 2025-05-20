@@ -723,6 +723,32 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             commutative_parents: vec![],
             signatures: vec![],
         },
+        LangProfile {
+            name: "Markdown",
+            alternate_names: &[],
+            extensions: vec!["md"],
+            language: tree_sitter_md::LANGUAGE.into(),
+            atomic_nodes: vec![
+                "paragraph_repeat1",
+                "link_label",
+                "link_destination",
+                "link_title",
+                "code_fence_content",
+                "_line",
+                "indented_code_block",
+                "pipe_table_delimiter_cell",
+                "pipe_table_cell",
+            ],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("document_repeat1", "\n\n").restricted_to(
+                    vec![ChildrenGroup::with_separator(
+                        &["link_reference_definition"],
+                        "\n",
+                    )],
+                ),
+            ],
+            signatures: vec![],
+        },
     ]
 });
 
