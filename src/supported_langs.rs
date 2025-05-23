@@ -162,6 +162,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // annotation_argument_list
                 signature("element_value_pair", vec![vec![Field("key")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "Java properties",
@@ -171,6 +172,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![CommutativeParent::without_delimiters("file", "\n")],
             signatures: vec![signature("property", vec![vec![ChildType("key")]])],
+            injections: None,
         },
         LangProfile {
             name: "Kotlin",
@@ -221,6 +223,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("abstract", vec![vec![]]),
                 signature("override", vec![vec![]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "Rust",
@@ -325,6 +328,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("shorthand_field_initializer", vec![vec![]]),
                 signature("base_field_initializer", vec![]), // maximum one per field_initializer_list
             ],
+            injections: Some(tree_sitter_rust::INJECTIONS_QUERY),
         },
         LangProfile {
             name: "Go",
@@ -361,6 +365,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("import_spec", vec![vec![Field("path")]]), // ideally we'd also take the 'name' into account, as it must probably be unique
                 signature("keyed_element", vec![vec![Field("key")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "Javascript",
@@ -379,6 +384,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("method_definition", vec![vec![Field("name")]]),
                 signature("jsx_attribute", vec![vec![ChildType("identifier")]]),
             ],
+            injections: Some(tree_sitter_javascript::INJECTIONS_QUERY),
         },
         LangProfile {
             name: "JSON",
@@ -391,6 +397,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::new("object", "{", ", ", "}"),
             ],
             signatures: vec![signature("pair", vec![vec![Field("key")]])],
+            injections: None,
         },
         LangProfile {
             name: "YAML",
@@ -400,6 +407,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec!["single_quote_scalar", "double_quote_scalar"],
             commutative_parents: vec![CommutativeParent::without_delimiters("block_mapping", "\n")],
             signatures: vec![signature("block_mapping_pair", vec![vec![Field("key")]])],
+            injections: None,
         },
         LangProfile {
             name: "TOML",
@@ -416,6 +424,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("pair", vec![vec![ChildType("bare_key")]]),
                 signature("_inline_pair", vec![vec![ChildType("bare_key")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "HTML",
@@ -431,6 +440,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 "attribute",
                 vec![vec![ChildType("attribute_name")]],
             )],
+            injections: Some(tree_sitter_html::INJECTIONS_QUERY),
         },
         LangProfile {
             name: "XML",
@@ -443,6 +453,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::new("STag", "<", " ", ">"),
             ],
             signatures: vec![signature("Attribute", vec![vec![ChildType("Name")]])],
+            injections: None,
         },
         LangProfile {
             name: "C/C++",
@@ -478,6 +489,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 ),
                 signature("field_declaration", vec![vec![Field("declarator")]]), // TODO this isn't quite right, as the "*" of a pointer type will end up in the signature
             ],
+            injections: None,
         },
         LangProfile {
             name: "C#",
@@ -549,6 +561,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // enum_declaration_list
                 signature("enum_member_declaration", vec![vec![Field("name")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "Dart",
@@ -566,6 +579,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("enum_constant", vec![vec![]]),
                 signature("class_definition", vec![vec![Field("name")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "Devicetree Source",
@@ -578,6 +592,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("property", vec![vec![Field("name")]]),
                 signature("node", vec![vec![Field("name")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "Scala",
@@ -587,6 +602,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
+            injections: None,
         },
         LangProfile {
             name: "Typescript",
@@ -596,6 +612,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: typescript_commutative_parents,
             signatures: typescript_signatures,
+            injections: None,
         },
         LangProfile {
             name: "Typescript (TSX)",
@@ -605,6 +622,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: tsx_commutative_parents,
             signatures: tsx_signatures,
+            injections: None,
         },
         LangProfile {
             name: "Python",
@@ -632,6 +650,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("dotted_name", vec![vec![]]),
                 signature("keyword_argument", vec![vec![Field("name")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "PHP",
@@ -668,6 +687,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("enum_case", vec![vec![Field("name")]]),
                 signature("attribute_list", vec![vec![]]),
             ],
+            injections: Some(tree_sitter_php::INJECTIONS_QUERY),
         },
         LangProfile {
             name: "Solidity",
@@ -680,6 +700,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::without_delimiters("contract_body", "\n"),
             ],
             signatures: vec![],
+            injections: None,
         },
         LangProfile {
             name: "Lua",
@@ -689,6 +710,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
+            injections: Some(tree_sitter_lua::INJECTIONS_QUERY),
         },
         LangProfile {
             name: "Ruby",
@@ -698,6 +720,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
+            injections: None,
         },
         LangProfile {
             name: "Nix",
@@ -713,6 +736,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("binding", vec![vec![Field("attrpath")]]),
                 signature("formal", vec![vec![Field("name")]]),
             ],
+            injections: None,
         },
         LangProfile {
             name: "SystemVerilog",
@@ -722,6 +746,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
+            injections: None,
         },
         LangProfile {
             name: "Markdown",
@@ -748,6 +773,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 ),
             ],
             signatures: vec![],
+            injections: Some(tree_sitter_md::INJECTION_QUERY_BLOCK),
         },
     ]
 });
@@ -775,5 +801,17 @@ mod test {
                 .map(|profile| profile.name)
                 .all_unique()
         );
+    }
+
+    #[test]
+    fn injections_are_non_empty() {
+        for lang_profile in &*SUPPORTED_LANGUAGES {
+            if let Some(injection) = lang_profile.injections {
+                assert!(
+                    !injection.trim().is_empty(),
+                    "Injection query for language {lang_profile} set as an empty string, use None instead"
+                );
+            }
+        }
     }
 }

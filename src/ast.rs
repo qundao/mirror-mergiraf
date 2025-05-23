@@ -14,7 +14,9 @@ use either::Either;
 use itertools::Itertools;
 use nu_ansi_term::Color;
 use rustc_hash::FxHashMap;
-use tree_sitter::{Parser, TreeCursor};
+use tree_sitter::{
+    Parser, Query, QueryCursor, Range as TSRange, StreamingIterator, Tree, TreeCursor,
+};
 use typed_arena::Arena;
 
 use crate::{
@@ -70,7 +72,7 @@ impl<'a> AstNode<'a> {
         ref_arena: &'a Arena<&'a Self>,
     ) -> Result<&'a Self, String> {
         let mut next_node_id = 1;
-        let root = Self::parse_root(source, lang_profile, arena, &mut next_node_id)?;
+        let root = Self::parse_root(source, None, lang_profile, arena, &mut next_node_id)?;
         root.internal_precompute_root_dfs(ref_arena);
         Ok(root)
     }
@@ -80,6 +82,7 @@ impl<'a> AstNode<'a> {
     /// allocation of node ids at the supplied counter.
     fn parse_root(
         source: &'a str,
+        range: Option<TSRange>,
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
@@ -88,10 +91,73 @@ impl<'a> AstNode<'a> {
         parser
             .set_language(&lang_profile.language)
             .map_err(|err| format!("Error loading {lang_profile} grammar: {err}"))?;
+        if let Some(range) = range {
+            parser
+                .set_included_ranges(&[range])
+                .map_err(|err| format!("Error while restricting the parser to a range: {err}"))?;
+        }
         let tree = parser
             .parse(source, None)
             .expect("Parsing source code failed");
-        Self::internal_new(&mut tree.walk(), source, lang_profile, arena, next_node_id)
+        let node_id_to_injection_lang = Self::locate_injections(&tree, source, lang_profile);
+        Self::internal_new(
+            &mut tree.walk(),
+            source,
+            lang_profile,
+            arena,
+            next_node_id,
+            &node_id_to_injection_lang,
+        )
+    }
+
+    /// Locate nodes which need re-parsing in a different language
+    fn locate_injections(
+        tree: &Tree,
+        source: &'a str,
+        lang_profile: &'a LangProfile,
+    ) -> FxHashMap<usize, &'static LangProfile> {
+        let Some(query_str) = lang_profile.injections else {
+            return FxHashMap::default();
+        };
+        let mut node_id_to_injection_lang = FxHashMap::default();
+        let query = Query::new(&lang_profile.language, query_str).expect("Invalid injection query");
+        let content_capture_index = query
+            .capture_index_for_name("injection.content")
+            .expect("Injection query without an injection.content capture");
+        // The injection.language can be defined either as a capture (dynamically changing), with value defined by a node in the AST,
+        // or statically defined as a property (fixed by the injection query), in which case the capture below won't be defined.
+        let language_capture_index = query.capture_index_for_name("injection.language");
+        let mut cursor = QueryCursor::new();
+        let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+        matches.for_each(|m| {
+            let pattern_properties = query.property_settings(m.pattern_index);
+            // first, check if the language is statically defined in this clause of the query as a property
+            let lang_property_value = pattern_properties.iter().find_map(|property| {
+                if &*property.key == "injection.language" {
+                    property.value.as_deref()
+                } else {
+                    None
+                }
+            });
+
+            let language = lang_property_value.unwrap_or_else(|| {
+                // otherwise, look if the language is defined via a capture
+                let capture_index = language_capture_index
+                    .expect("injection.language is set neither as a capture nor as a property");
+                let lang_node = m
+                    .nodes_for_capture_index(capture_index)
+                    .next()
+                    .expect("injection.language capture didn't match any node");
+                &source[lang_node.byte_range()]
+            });
+            if let Some(injected_lang) = LangProfile::find_by_name(language) {
+                node_id_to_injection_lang.extend(
+                    m.nodes_for_capture_index(content_capture_index)
+                        .map(|node| (node.id(), injected_lang)),
+                );
+            } // if we can't find a fitting language, then leave the injection contents unparsed, without failing the overarching parsing
+        });
+        node_id_to_injection_lang
     }
 
     fn internal_new<'b>(
@@ -100,16 +166,38 @@ impl<'a> AstNode<'a> {
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
+        node_id_to_injection_lang: &FxHashMap<usize, &'static LangProfile>,
     ) -> Result<&'a Self, String> {
         let mut children = Vec::new();
         let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
         let field_name = cursor.field_name();
-        let atomic = lang_profile.is_atomic_node_type(cursor.node().grammar_name());
-        if !atomic && cursor.goto_first_child() {
+        let node = cursor.node();
+        let atomic = lang_profile.is_atomic_node_type(node.grammar_name());
+
+        // check if the current node is an injection
+        let injection_lang = node_id_to_injection_lang.get(&node.id());
+        if let Some(&injection_lang) = injection_lang {
+            let range = node.range();
+            if let Ok(injected_root) = Self::parse_root(
+                global_source,
+                Some(range),
+                injection_lang,
+                arena,
+                next_node_id,
+            ) {
+                children.push(injected_root);
+            } // if the parsing of the injection fails, keep the injection node as a leaf but don't abort the entire parsing
+        } else if !atomic && cursor.goto_first_child() {
             let mut child_available = true;
             while child_available {
-                let child =
-                    Self::internal_new(cursor, global_source, lang_profile, arena, next_node_id)?;
+                let child = Self::internal_new(
+                    cursor,
+                    global_source,
+                    lang_profile,
+                    arena,
+                    next_node_id,
+                    node_id_to_injection_lang,
+                )?;
                 children.push(child);
                 if let Some(field_name) = cursor.field_name() {
                     field_to_children.entry(field_name).or_default().push(child);
@@ -118,20 +206,24 @@ impl<'a> AstNode<'a> {
             }
             cursor.goto_parent();
         }
-        let node = cursor.node();
+
         // Strip any trailing newlines from the node's source, because we're better
         // off treating this as whitespace between nodes, to keep track of indentation shifts
         let range = node.byte_range();
         let local_source = &global_source[range.start..range.end];
-        let (range, local_source) = if local_source.ends_with('\n') && node.parent().is_some() {
-            let trimmed_source = local_source.trim_end_matches('\n');
-            (
-                range.start..(range.end - local_source.len() + trimmed_source.len()),
-                trimmed_source,
-            )
-        } else {
-            (range, local_source)
-        };
+        let (range, local_source) =
+            // don't trim injections, because their children could expand beyond the node itself.
+            // See examples/markdown/failing/nested_injections which panics if we remove the condition on injections
+            if local_source.ends_with('\n') && node.parent().is_some() && injection_lang.is_none()
+            {
+                let trimmed_source = local_source.trim_end_matches('\n');
+                (
+                    range.start..(range.end - local_source.len() + trimmed_source.len()),
+                    trimmed_source,
+                )
+            } else {
+                (range, local_source)
+            };
         if node.is_error() {
             return Err(format!(
                 "parse error at {range:?}, starting with: {}",
@@ -1371,5 +1463,36 @@ line 3";"#;
         // all the available ids (0-len) are used, i.e. none are skipped
         // not strictly necessary, but nice to have
         assert_eq!(*ids.iter().max().unwrap(), ids.len());
+    }
+
+    #[test]
+    fn parse_html_with_js() {
+        let ctx = ctx();
+        let html = ctx.parse_html("<html><head><script>console.log('hi');</script></head></html>");
+
+        assert_eq!(html.grammar_name, "document");
+        assert_eq!(html.lang_profile.name, "HTML");
+        let script_element = html[0][1][1];
+        assert_eq!(script_element.grammar_name, "script_element");
+        assert_eq!(script_element[1].grammar_name, "raw_text");
+        assert_eq!(script_element[1].lang_profile.name, "HTML");
+        assert_eq!(script_element[1][0].grammar_name, "program");
+        assert_eq!(script_element[1][0].lang_profile.name, "Javascript");
+        assert_eq!(script_element[1][0][0].grammar_name, "expression_statement");
+        assert_eq!(script_element[1][0][0].lang_profile.name, "Javascript");
+    }
+
+    #[test]
+    fn parse_injection_with_syntax_error() {
+        let ctx = ctx();
+        let html = ctx.parse_html("<html><head><script>invalid(][)</script></head></html>");
+
+        assert_eq!(html.grammar_name, "document");
+        assert_eq!(html.lang_profile.name, "HTML");
+        let script_element = html[0][1][1];
+        assert_eq!(script_element.grammar_name, "script_element");
+        assert_eq!(script_element[1].grammar_name, "raw_text");
+        assert_eq!(script_element[1].lang_profile.name, "HTML");
+        assert_eq!(script_element[1].children.len(), 0);
     }
 }

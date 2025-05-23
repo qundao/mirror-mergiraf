@@ -26,6 +26,7 @@ LangProfile {
     atomic_nodes: vec![],
     commutative_parents: vec![],
     signatures: vec![],
+    injections: None,
 },
 ```
 
@@ -281,6 +282,12 @@ The grammar of a tree-sitter parser is defined in [a `grammar.js` file](https://
 Sometimes, the parser analyzes certain constructs with a granularity that is finer than what we need for structured merging. To treat a particular type of node as atomic and ignore any further structure in it, one can add its type to the `atomic_nodes` field.
 
 This is also useful to work around [certain issues with parsers which don't expose the contents of certain string literals in the syntax trees](https://github.com/tree-sitter/tree-sitter-go/issues/150).
+
+## Injections
+
+Certain languages can contain text fragments in other languages. For instance, HTML can contain inline Javascript or CSS code.
+The `injections` field on the `LangProfile` object can be used to provide a [tree-sitter query locating such fragments](https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection).
+Such a query is normally exposed by the Rust crate for the parser as the `INJECTIONS_QUERY` constant if it has been defined by the parser authors, so it just needs wiring up as `injections: Some(tree_sitter_html::INJECTIONS_QUERY)`.
 
 ## Add tests
 

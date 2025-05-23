@@ -21,8 +21,11 @@ pub struct LangProfile {
     pub atomic_nodes: Vec<&'static str>,
     /// list of node types whose child order does not matter
     pub commutative_parents: Vec<CommutativeParent>,
-    // how to extract the signatures of nodes, uniquely identifying children of a commutative parent
+    /// how to extract the signatures of nodes, uniquely identifying children of a commutative parent
     pub signatures: Vec<SignatureDefinition>,
+    /// The injections query to locate nodes that need parsing in other languages.
+    /// See https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection
+    pub injections: Option<&'static str>,
 }
 
 impl PartialEq for LangProfile {
