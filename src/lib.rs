@@ -143,27 +143,6 @@ mod test {
 
     use super::*;
 
-    use std::collections::HashSet;
-
-    #[test]
-    fn languages_gitattributes() {
-        let supported_langs = languages(true);
-        // put both into sets to ignore ordering
-        let supported_langs: HashSet<_> = supported_langs.lines().collect();
-        let expected: HashSet<_> = include_str!("../doc/src/supported_langs.txt")
-            .lines()
-            .collect();
-        assert_eq!(
-            supported_langs,
-            expected,
-            "\
-You were probably adding a language to Mergiraf (thanks!), but forgot to update the documentation.
-Please update `doc/src/languages.md` and `doc/src/supported_langs.txt`.
-The following extensions are missing from the documentation: {:?}",
-            supported_langs.difference(&expected)
-        );
-    }
-
     #[test]
     fn zdiff() {
         let contents = "\

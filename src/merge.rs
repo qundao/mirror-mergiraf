@@ -35,12 +35,8 @@ pub fn line_merge_and_structured_resolution(
     timeout: Duration,
     language: Option<&str>,
 ) -> MergeResult {
-    let lang_profile = match LangProfile::find_by_filename_or_name(fname_base, language) {
-        Ok(lang_profile) => lang_profile,
-        Err(message) => {
-            warn!("{message}. Falling back to a line-based merge.");
-            return line_based_merge(contents_base, contents_left, contents_right, &settings);
-        }
+    let Ok(lang_profile) = LangProfile::find_by_filename_or_name(fname_base, language) else {
+        return line_based_merge(contents_base, contents_left, contents_right, &settings);
     };
 
     let merges = cascading_merge(
