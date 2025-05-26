@@ -691,6 +691,12 @@ impl<'a> MergedTree<'a> {
                     .find_map(|repr| repr.node.preceding_whitespace())
                     .unwrap_or("");
                 output.push_merged(Cow::from(whitespace));
+                // Also add any leading source (content included in the node's source before the first child)
+                let whitespace = representatives
+                    .iter()
+                    .find_map(|repr| repr.node.leading_source())
+                    .unwrap_or("");
+                output.push_merged(Cow::from(whitespace));
                 Cow::from(indentation)
             }
         }

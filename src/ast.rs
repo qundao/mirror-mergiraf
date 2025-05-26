@@ -100,6 +100,11 @@ impl<'a> AstNode<'a> {
             .parse(source, None)
             .expect("Parsing source code failed");
         let node_id_to_injection_lang = Self::locate_injections(&tree, source, lang_profile);
+        let range_for_root = if let Some(range) = range {
+            range.start_byte..range.end_byte
+        } else {
+            0..source.len()
+        };
         Self::internal_new(
             &mut tree.walk(),
             source,
@@ -107,6 +112,7 @@ impl<'a> AstNode<'a> {
             arena,
             next_node_id,
             &node_id_to_injection_lang,
+            Some(range_for_root),
         )
     }
 
@@ -167,6 +173,7 @@ impl<'a> AstNode<'a> {
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
         node_id_to_injection_lang: &FxHashMap<usize, &'static LangProfile>,
+        range_for_root: Option<Range<usize>>,
     ) -> Result<&'a Self, String> {
         let mut children = Vec::new();
         let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
@@ -197,6 +204,7 @@ impl<'a> AstNode<'a> {
                     arena,
                     next_node_id,
                     node_id_to_injection_lang,
+                    None,
                 )?;
                 children.push(child);
                 if let Some(field_name) = cursor.field_name() {
@@ -211,19 +219,37 @@ impl<'a> AstNode<'a> {
         // off treating this as whitespace between nodes, to keep track of indentation shifts
         let range = node.byte_range();
         let local_source = &global_source[range.start..range.end];
-        let (range, local_source) =
-            // don't trim injections, because their children could expand beyond the node itself.
-            // See examples/markdown/failing/nested_injections which panics if we remove the condition on injections
-            if local_source.ends_with('\n') && node.parent().is_some() && injection_lang.is_none()
-            {
-                let trimmed_source = local_source.trim_end_matches('\n');
-                (
-                    range.start..(range.end - local_source.len() + trimmed_source.len()),
-                    trimmed_source,
-                )
+        let (range, local_source) = if let Some(range_for_root) = range_for_root {
+            if children.is_empty() {
+                // This is a root with no children, that is to say an empty source.
+                // If we were to use `range_for_root` here too, then that would mean
+                // that two different source files with a different amount of whitespace
+                // wouldn't be treated as isomorphic by Mergiraf. This is because those roots
+                // are technically leaves as they don't have children.
+                // For leaves, our isomorphism checking logic will require the string contents
+                // of those leaves to be exactly equal to declare two empty trees as isomorphic.
+                // This is rather bad. So to avoid that, we allow for one exception to the rule,
+                // meaning that we won't preserve whitespace when one side to merge is empty,
+                // which should be okay.
+                (0..0, "")
             } else {
-                (range, local_source)
-            };
+                (range_for_root.clone(), &global_source[range_for_root])
+            }
+        }
+        // don't trim injections, because their children could expand beyond the node itself.
+        // See examples/markdown/failing/nested_injections which panics if we remove the condition on injections
+        else if local_source.ends_with('\n')
+            && node.parent().is_some()
+            && injection_lang.is_none()
+        {
+            let trimmed_source = local_source.trim_end_matches('\n');
+            (
+                range.start..(range.end - local_source.len() + trimmed_source.len()),
+                trimmed_source,
+            )
+        } else {
+            (range, local_source)
+        };
         if node.is_error() {
             return Err(format!(
                 "parse error at {range:?}, starting with: {}",
@@ -566,6 +592,20 @@ impl<'a> AstNode<'a> {
             result
         }
         _truncate(self, &predicate, arena)
+    }
+
+    /// Any part of the source between the start of this node and
+    /// the start of its first child (if any). There generally isn't any,
+    /// but it can be present as leading whitespace at the root of a document
+    /// for instance.
+    pub fn leading_source(&'a self) -> Option<&'a str> {
+        let first_child = self.children.first()?;
+        let offset = first_child.byte_range.start - self.byte_range.start;
+        if offset > 0 {
+            Some(&self.source[..offset])
+        } else {
+            None
+        }
     }
 
     /// Any whitespace that precedes this node.
@@ -1021,6 +1061,15 @@ mod tests {
     }
 
     #[test]
+    fn isomorphism_of_empty_roots() {
+        let ctx = ctx();
+        let tree_1 = ctx.parse_rust("    ");
+        let tree_2 = ctx.parse_rust("  ");
+        assert!(tree_1.isomorphic_to(tree_2));
+        assert!(tree_2.isomorphic_to(tree_1));
+    }
+
+    #[test]
     fn isomorphism_for_different_languages() {
         let ctx = ctx();
 
@@ -1150,6 +1199,14 @@ mod tests {
             node_types,
             vec!["{", "pair", ",", "pair", "}", "object", "document"]
         );
+    }
+
+    #[test]
+    fn leading_source() {
+        let ctx = ctx();
+        let tree = ctx.parse_rust("\n let x = 1;\n");
+        assert_eq!(tree.byte_range.start, 0);
+        assert_eq!(tree.leading_source(), Some("\n "));
     }
 
     #[test]
