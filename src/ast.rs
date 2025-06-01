@@ -175,11 +175,13 @@ impl<'a> AstNode<'a> {
         node_id_to_injection_lang: &FxHashMap<usize, &'static LangProfile>,
         range_for_root: Option<Range<usize>>,
     ) -> Result<&'a Self, String> {
-        let mut children = Vec::new();
-        let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
         let field_name = cursor.field_name();
         let node = cursor.node();
         let atomic = lang_profile.is_atomic_node_type(node.grammar_name());
+
+        let mut children = Vec::new();
+        let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
+        let mut last_child_end = node.byte_range().start;
 
         // check if the current node is an injection
         let injection_lang = node_id_to_injection_lang.get(&node.id());
@@ -193,6 +195,7 @@ impl<'a> AstNode<'a> {
                 next_node_id,
             ) {
                 children.push(injected_root);
+                last_child_end = injected_root.byte_range.end;
             } // if the parsing of the injection fails, keep the injection node as a leaf but don't abort the entire parsing
         } else if !atomic && cursor.goto_first_child() {
             let mut child_available = true;
@@ -210,6 +213,15 @@ impl<'a> AstNode<'a> {
                 if let Some(field_name) = cursor.field_name() {
                     field_to_children.entry(field_name).or_default().push(child);
                 }
+                debug_assert!(
+                    child.byte_range.start >= last_child_end,
+                    "Child starts earlier than its previous sibling ends"
+                );
+                debug_assert!(
+                    child.byte_range.end <= node.byte_range().end,
+                    "Child expands further than its parent"
+                );
+                last_child_end = child.byte_range.end;
                 child_available = cursor.goto_next_sibling();
             }
             cursor.goto_parent();
@@ -219,7 +231,7 @@ impl<'a> AstNode<'a> {
         // off treating this as whitespace between nodes, to keep track of indentation shifts
         let range = node.byte_range();
         let local_source = &global_source[range.start..range.end];
-        let (range, local_source) = if let Some(range_for_root) = range_for_root {
+        let range = if let Some(range_for_root) = range_for_root {
             if children.is_empty() {
                 // This is a root with no children, that is to say an empty source.
                 // If we were to use `range_for_root` here too, then that would mean
@@ -231,25 +243,26 @@ impl<'a> AstNode<'a> {
                 // This is rather bad. So to avoid that, we allow for one exception to the rule,
                 // meaning that we won't preserve whitespace when one side to merge is empty,
                 // which should be okay.
-                (0..0, "")
+                0..0
             } else {
-                (range_for_root.clone(), &global_source[range_for_root])
+                range_for_root.clone()
             }
-        }
-        // don't trim injections, because their children could expand beyond the node itself.
-        // See examples/markdown/failing/nested_injections which panics if we remove the condition on injections
-        else if local_source.ends_with('\n')
-            && node.parent().is_some()
-            && injection_lang.is_none()
-        {
+        } else if local_source.ends_with('\n') && node.parent().is_some() {
             let trimmed_source = local_source.trim_end_matches('\n');
-            (
-                range.start..(range.end - local_source.len() + trimmed_source.len()),
-                trimmed_source,
-            )
+            // The range's end is shifted back by as many newlines we can remove
+            // at the end, but may not end before the end of its last child,
+            // to maintain the compatibility between the tree structure and the ranges.
+            // (Some children can have an empty source and so their own trimming
+            // wouldn't keep them contained.)
+            let new_end = max(
+                range.end - local_source.len() + trimmed_source.len(),
+                last_child_end,
+            );
+            range.start..new_end
         } else {
-            (range, local_source)
+            range
         };
+        let local_source = &global_source[range.start..range.end];
         if node.is_error() {
             return Err(format!(
                 "parse error at {range:?}, starting with: {}",
@@ -1551,5 +1564,30 @@ line 3";"#;
         assert_eq!(script_element[1].grammar_name, "raw_text");
         assert_eq!(script_element[1].lang_profile.name, "HTML");
         assert_eq!(script_element[1].children.len(), 0);
+    }
+
+    #[test]
+    fn parse_empty_child_out_of_trimmed_parent() {
+        let ctx = ctx();
+        // Parsing this source with the tree-sitter-md 0.3.2 grammar
+        // gives an empty "block_continuation" node as a child of the
+        // "paragraph" node, after the trailing newline in it.
+        // Because we trim the newline at the end of the paragraph node,
+        // the child ends up falling outside of the new computed range,
+        // which violates the assumption that the ranges of all children
+        // fall into the range of their parent.
+        let source = r#"
+A list:
+- Hello
+
+"#;
+        let markdown = ctx.parse_markdown(source);
+
+        let paragraph = markdown[0][1][0][1];
+        assert_eq!(paragraph.grammar_name, "paragraph");
+        assert_eq!(paragraph.children.len(), 2);
+        assert_eq!(paragraph[0].grammar_name, "paragraph_repeat1");
+        assert_eq!(paragraph[1].grammar_name, "block_continuation");
+        assert_eq!(paragraph[1].preceding_whitespace(), Some("\n"));
     }
 }

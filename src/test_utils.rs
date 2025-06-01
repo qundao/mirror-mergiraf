@@ -36,6 +36,10 @@ impl<'a> TestContext<'a> {
         self.parse_internal("a.html", source)
     }
 
+    pub fn parse_markdown(&'a self, source: &'a str) -> &'a AstNode<'a> {
+        self.parse_internal("a.md", source)
+    }
+
     pub fn parse_java(&'a self, source: &'a str) -> &'a AstNode<'a> {
         self.parse_internal("a.java", source)
     }
