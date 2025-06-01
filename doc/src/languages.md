@@ -25,6 +25,7 @@ and the following declarative file formats:
 * XML (*.xml, *.xhtml)
 * YAML (*.yml, *.yaml)
 * TOML (*.toml)
+* INI (*.ini)
 * Devicetree Source (*.dts)
 * Java properties files (*.properties)
 * HCL (*.hcl, *.tf, *.tfvars)

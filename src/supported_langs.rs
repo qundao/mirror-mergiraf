@@ -368,6 +368,19 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
         },
         LangProfile {
+            name: "INI",
+            alternate_names: &[],
+            extensions: vec!["ini"],
+            language: tree_sitter_ini::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("section", "\n")
+                    .restricted_to_groups(&[&["setting"]]),
+            ],
+            signatures: vec![signature("setting", vec![vec![ChildType("setting_name")]])],
+            injections: None,
+        },
+        LangProfile {
             name: "Javascript",
             alternate_names: &[],
             extensions: vec!["js", "jsx", "mjs"],
