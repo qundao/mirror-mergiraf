@@ -775,6 +775,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: vec![],
             injections: Some(tree_sitter_md::INJECTION_QUERY_BLOCK),
         },
+        LangProfile {
+            name: "HCL",
+            alternate_names: &[],
+            extensions: vec!["hcl", "tf", "tfvars"],
+            language: tree_sitter_hcl::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![],
+            signatures: vec![],
+            injections: None,
+        },
     ]
 });
 

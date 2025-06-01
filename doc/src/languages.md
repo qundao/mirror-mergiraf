@@ -27,6 +27,7 @@ and the following declarative file formats:
 * TOML (*.toml)
 * Devicetree Source (*.dts)
 * Java properties files (*.properties)
+* HCL (*.hcl, *.tf, *.tfvars)
 
 This list can also be obtained with the `mergiraf languages` command.
 
