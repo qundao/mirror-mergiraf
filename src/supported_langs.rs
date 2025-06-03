@@ -47,6 +47,19 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
     ]
     .concat();
 
+    let ocaml_commutative_parents = vec![
+        /* Record fields */
+        CommutativeParent::new("record_expression", "{", "; ", "}")
+            .restricted_to_groups(&[&["field_expression"]]),
+    ];
+    let ocaml_signatures = vec![signature(
+        "field_expression",
+        vec![vec![
+            ChildType("field_path"),
+            ChildType("_lowercase_identifier"),
+        ]],
+    )];
+
     vec![
         LangProfile {
             name: "Java",
@@ -796,6 +809,26 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
+            injections: None,
+        },
+        LangProfile {
+            name: "OCaml",
+            alternate_names: &[],
+            extensions: vec!["ml"],
+            language: tree_sitter_ocaml::LANGUAGE_OCAML.into(),
+            atomic_nodes: vec![],
+            commutative_parents: ocaml_commutative_parents.clone(),
+            signatures: ocaml_signatures.clone(),
+            injections: None,
+        },
+        LangProfile {
+            name: "OCaml interfaces",
+            alternate_names: &[],
+            extensions: vec!["mli"],
+            language: tree_sitter_ocaml::LANGUAGE_OCAML_TYPE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: ocaml_commutative_parents,
+            signatures: ocaml_signatures,
             injections: None,
         },
     ]
