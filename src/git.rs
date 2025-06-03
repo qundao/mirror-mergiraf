@@ -5,8 +5,6 @@ use std::{
     process::Command,
 };
 
-use crate::pcs::Revision;
-
 pub(crate) struct GitTempFile {
     path: PathBuf,
 }
@@ -23,21 +21,21 @@ impl Drop for GitTempFile {
     }
 }
 
-/// Extract the contents of a file at a particular revision, to a temporary file.
-pub(crate) fn extract_revision_from_git(
+pub(crate) struct GitTempFiles {
+    pub base: GitTempFile,
+    pub left: GitTempFile,
+    pub right: GitTempFile,
+}
+
+/// Extract the contents of all revisions (base, left, right) of a file to temporary files.
+pub(crate) fn extract_all_revisions_from_git(
     repo_dir: &Path,
     path: &Path,
-    revision: Revision,
-) -> Result<GitTempFile, String> {
+) -> Result<GitTempFiles, String> {
     let mut command = Command::new("git");
     command
         .arg("checkout-index")
-        .arg("--temp")
-        .arg(match revision {
-            Revision::Base => "--stage=1",
-            Revision::Left => "--stage=2",
-            Revision::Right => "--stage=3",
-        })
+        .arg("--stage=all")
         .arg(path)
         .current_dir(repo_dir);
     let output = command.output().map_err(|err| err.to_string())?;
@@ -45,21 +43,38 @@ pub(crate) fn extract_revision_from_git(
     if !output.status.success() {
         let error_str = str::from_utf8(&output.stderr).map_err(|err| err.to_string())?;
         return Err(format!(
-            "error while retrieving {} revision for {}:\n{}",
-            revision,
+            "error while retrieving all revisions for {}:\n{}",
             path.display(),
             error_str
         ));
     }
     let output_str = str::from_utf8(&output.stdout).map_err(|err| err.to_string())?;
-    let temp_file_path = output_str.split_ascii_whitespace().next().ok_or_else(|| {
+    // The format when using `--stage=all` is `stage1temp SP stage2temp SP stage3tmp TAB path RS`
+    let mut lines = output_str
+        .split_ascii_whitespace()
+        // > stage fields are set to `.` if there is no entry for that stage
+        // so cut off at the first `.` entry
+        .take_while(|&p| p != ".")
+        .map(|p| GitTempFile {
+            path: repo_dir.join(p),
+        });
+    let base = lines.next().ok_or_else(|| {
         format!(
-            "git did not return a temporary file path for {} revision of {}",
-            revision,
+            "git did not return a temporary file path for base revision of {}",
             path.display()
         )
     })?;
-    Ok(GitTempFile {
-        path: repo_dir.join(temp_file_path),
-    })
+    let left = lines.next().ok_or_else(|| {
+        format!(
+            "git did not return a temporary file path for left revision of {}",
+            path.display()
+        )
+    })?;
+    let right = lines.next().ok_or_else(|| {
+        format!(
+            "git did not return a temporary file path for right revision of {}",
+            path.display()
+        )
+    })?;
+    Ok(GitTempFiles { base, left, right })
 }

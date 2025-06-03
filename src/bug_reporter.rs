@@ -9,7 +9,7 @@ use std::{
 use rand::distr::{Alphanumeric, SampleString};
 use zip::{ZipWriter, write::SimpleFileOptions};
 
-use crate::{attempts::AttemptsCache, git::extract_revision_from_git, pcs::Revision};
+use crate::{attempts::AttemptsCache, git::extract_all_revisions_from_git};
 
 /// Creates an archive containing files necessary to reproduce a faulty merge
 pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
@@ -35,10 +35,11 @@ pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
         let current_working_dir = env::current_dir().expect("Invalid current directory");
-        let temp_file_base = extract_revision_from_git(&current_working_dir, path, Revision::Base)?;
-        let temp_file_left = extract_revision_from_git(&current_working_dir, path, Revision::Left)?;
-        let temp_file_right =
-            extract_revision_from_git(&current_working_dir, path, Revision::Right)?;
+        let crate::git::GitTempFiles {
+            base: temp_file_base,
+            left: temp_file_left,
+            right: temp_file_right,
+        } = extract_all_revisions_from_git(&current_working_dir, path)?;
 
         create_archive(
             path.file_name()

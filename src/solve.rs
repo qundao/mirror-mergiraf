@@ -6,8 +6,8 @@ use itertools::Itertools;
 use log::{debug, info, warn};
 
 use crate::{
-    DisplaySettings, LangProfile, MergeResult, PARSED_MERGE_DIFF2_DETECTED, ParsedMerge, Revision,
-    git::extract_revision_from_git, resolve_merge, structured_merge,
+    DisplaySettings, LangProfile, MergeResult, PARSED_MERGE_DIFF2_DETECTED, ParsedMerge,
+    git::extract_all_revisions_from_git, resolve_merge, structured_merge,
 };
 
 const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
@@ -91,9 +91,10 @@ fn structured_merge_from_git_revisions(
     working_dir: &Path,
     lang_profile: &LangProfile,
 ) -> Result<MergeResult, String> {
-    let revision_base = extract_revision(working_dir, fname_base, Revision::Base);
-    let revision_left = extract_revision(working_dir, fname_base, Revision::Left);
-    let revision_right = extract_revision(working_dir, fname_base, Revision::Right);
+    let temp_files = extract_all_revisions_from_git(working_dir, fname_base)?;
+    let revision_base = fs::read_to_string(temp_files.base.path());
+    let revision_left = fs::read_to_string(temp_files.left.path());
+    let revision_right = fs::read_to_string(temp_files.right.path());
 
     // we only attempt a full structured merge if we could extract revisions from Git
     match (revision_base, revision_left, revision_right) {
@@ -107,8 +108,8 @@ fn structured_merge_from_git_revisions(
             debug_dir,
         ),
         (rev_base, _, _) => {
-            if let Err(b) = rev_base {
-                println!("{b}");
+            if let Err(e) = rev_base {
+                println!("{e}");
             }
             Err("Could not retrieve conflict sides from Git.".to_owned())
         }
@@ -141,10 +142,4 @@ fn select_best_solve(mut solves: Vec<MergeResult>) -> Result<MergeResult, String
     } else {
         Ok(best_solve)
     }
-}
-
-fn extract_revision(working_dir: &Path, path: &Path, revision: Revision) -> Result<String, String> {
-    let temp_file = extract_revision_from_git(working_dir, path, revision)?;
-    let contents = fs::read_to_string(temp_file.path()).map_err(|err| err.to_string())?;
-    Ok(contents)
 }
