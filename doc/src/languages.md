@@ -16,6 +16,7 @@ Mergiraf currently supports the following programming languages:
 * Lua (*.lua)
 * Kotlin (*.kt)
 * Ruby (*.rb)
+* Elixir (*.ex, *.exs)
 * Nix (*.nix)
 * SystemVerilog (*.sv, *.svh)
 * OCaml (*.ml, *.mli)

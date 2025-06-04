@@ -749,6 +749,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
         },
         LangProfile {
+            name: "Elixir",
+            alternate_names: &[],
+            extensions: vec!["ex", "exs"],
+            language: tree_sitter_elixir::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![],
+            signatures: vec![],
+            injections: Some(tree_sitter_elixir::INJECTIONS_QUERY),
+        },
+        LangProfile {
             name: "Nix",
             alternate_names: &[],
             extensions: vec!["nix"],
