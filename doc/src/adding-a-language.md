@@ -114,7 +114,7 @@ which gives:
 
 This shows us how our source code is parsed into a tree. We see that the `using` statements are parsed as `using_directive` nodes in the tree.
 
-To let Mergiraf reorder `using` statements to fix conflicts, we declare that their parent is a commutative root, which will by default let them commute with any of their siblings (any other child of their parent in the syntax tree).
+To let Mergiraf reorder `using` statements to fix conflicts, we declare that their parent is a commutative one, which will by default let them commute with any of their siblings (any other child of their parent in the syntax tree).
 In this example, their parent is the root of the tree (with type `compilation_unit`), which means that we'll allow reordering `using` statements with other top-level elements, such as the namespace declaration. 
 We'll see later how to restrict this commutativity by defining children groups.
 
@@ -330,6 +330,6 @@ You can then use an IDE (such as Codium with Rust-analyzer) to set up breakpoint
 
 ## Add documentation
 
-The list of supported languages can be updated in `doc/src/languages.md` and `doc/src/supported_langs.txt`.
+The list of supported languages can be updated in `doc/src/languages.md`.
 
 Mergiraf excitedly awaits your pull request!
