@@ -841,6 +841,19 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: ocaml_signatures,
             injections: None,
         },
+        LangProfile {
+            name: "Haskell",
+            alternate_names: &[],
+            extensions: vec!["hs"],
+            language: tree_sitter_haskell::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("imports", "\n"),
+                CommutativeParent::new("import_list", "(", ", ", ")"),
+            ],
+            signatures: vec![],
+            injections: None,
+        },
     ]
 });
 
