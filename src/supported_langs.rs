@@ -242,7 +242,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             name: "Rust",
             alternate_names: &[],
             extensions: vec!["rs"],
-            language: tree_sitter_rust::LANGUAGE.into(),
+            language: tree_sitter_rust_orchard::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("source_file", "\n").restricted_to_groups(&[
@@ -285,6 +285,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                             "let_declaration",
                             "extern_crate_declaration",
                             "static_item",
+                            "declaration_with_attribute",
                         ],
                     ]),
                 // scoped "use" declaration
@@ -320,6 +321,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("trait_item", vec![vec![Field("name")]]),
                 signature("static_item", vec![vec![Field("name")]]),
                 signature("associated_type", vec![vec![Field("name")]]),
+                signature(
+                    "declaration_with_attribute",
+                    vec![vec![Field("declaration"), Field("name")]],
+                ),
                 // function_modifiers
                 signature("async", vec![vec![]]),
                 signature("default", vec![vec![]]),
@@ -341,7 +346,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("shorthand_field_initializer", vec![vec![]]),
                 signature("base_field_initializer", vec![]), // maximum one per field_initializer_list
             ],
-            injections: Some(tree_sitter_rust::INJECTIONS_QUERY),
+            injections: Some(tree_sitter_rust_orchard::INJECTIONS_QUERY),
         },
         LangProfile {
             name: "Go",
