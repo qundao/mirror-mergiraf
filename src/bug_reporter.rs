@@ -22,9 +22,9 @@ pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
         let path_result = attempt.path(&best_merge_id);
         create_archive(
             attempt.file_name,
-            &path_base,
-            &path_left,
-            &path_right,
+            Some(&path_base),
+            Some(&path_left),
+            Some(&path_right),
             &path_result,
         )
         .map_err(|err| format!("error while creating report archive: {err}"))?
@@ -35,19 +35,16 @@ pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
         let current_working_dir = env::current_dir().expect("Invalid current directory");
-        let crate::git::GitTempFiles {
-            base: temp_file_base,
-            left: temp_file_left,
-            right: temp_file_right,
-        } = extract_all_revisions_from_git(&current_working_dir, path)?;
+        let crate::git::GitTempFiles { base, left, right } =
+            extract_all_revisions_from_git(&current_working_dir, path)?;
 
         create_archive(
             path.file_name()
                 .and_then(|os_str| os_str.to_str())
                 .unwrap_or("no_filename"),
-            temp_file_base.path(),
-            temp_file_left.path(),
-            temp_file_right.path(),
+            base.as_ref().map(super::git::GitTempFile::path),
+            left.as_ref().map(super::git::GitTempFile::path),
+            right.as_ref().map(super::git::GitTempFile::path),
             path,
         )
         .map_err(|err| format!("error while creating report archive: {err}"))?
@@ -66,9 +63,9 @@ Thank you for helping Mergiraf improve!");
 
 fn create_archive(
     filename: &str,
-    path_base: &Path,
-    path_left: &Path,
-    path_right: &Path,
+    path_base: Option<&Path>,
+    path_left: Option<&Path>,
+    path_right: Option<&Path>,
     path_result: &Path,
 ) -> Result<String, io::Error> {
     let extension = filename
@@ -84,16 +81,19 @@ fn create_archive(
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
 
     zip.start_file(format!("{archive_base_name}/Base.{extension}"), options)?;
-    let mut base_file = File::open(path_base)?;
-    io::copy(&mut base_file, &mut zip)?;
+    if let Some(path) = path_base {
+        io::copy(&mut File::open(path)?, &mut zip)?;
+    };
 
     zip.start_file(format!("{archive_base_name}/Left.{extension}"), options)?;
-    let mut left_file = File::open(path_left)?;
-    io::copy(&mut left_file, &mut zip)?;
+    if let Some(path) = path_left {
+        io::copy(&mut File::open(path)?, &mut zip)?;
+    };
 
     zip.start_file(format!("{archive_base_name}/Right.{extension}"), options)?;
-    let mut right_file = File::open(path_right)?;
-    io::copy(&mut right_file, &mut zip)?;
+    if let Some(path) = path_right {
+        io::copy(&mut File::open(path)?, &mut zip)?;
+    };
 
     zip.start_file(format!("{archive_base_name}/Result.{extension}"), options)?;
     let mut right_file = File::open(path_result)?;

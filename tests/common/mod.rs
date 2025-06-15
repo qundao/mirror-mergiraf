@@ -15,8 +15,10 @@ pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
     command.env_remove("HOME"); // disable ~/.gitconfig to isolate the test better
     let output = command.output().expect("Failed to execute git command");
     if !output.status.success() {
-        eprintln!("{}", str::from_utf8(&output.stderr).unwrap());
-        panic!("git command failed: {command_str}");
+        panic!(
+            "git command failed: {command_str}\n{}",
+            str::from_utf8(&output.stdout).unwrap()
+        );
     }
 }
 

@@ -7,7 +7,8 @@ use log::{debug, info, warn};
 
 use crate::{
     DisplaySettings, LangProfile, MergeResult, PARSED_MERGE_DIFF2_DETECTED, ParsedMerge,
-    git::extract_all_revisions_from_git, resolve_merge, structured_merge,
+    git::{GitTempFile, GitTempFiles, extract_all_revisions_from_git},
+    resolve_merge, structured_merge,
 };
 
 const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
@@ -69,7 +70,14 @@ pub fn resolve_merge_cascading<'a>(
         lang_profile,
     ) {
         Ok(structured_merge) => solves.push(structured_merge),
-        Err(err) => warn!("Full structured merge failed: {err}"),
+        Err(FallbackMergeError::MergeError(err)) => warn!("Full structured merge failed: {err}"),
+        Err(FallbackMergeError::GitError(err)) => {
+            debug!("Error while extracting original revisions from Git: {err}");
+            warn!(
+                "Couldn't retrieve the original revisions from Git. This \
+                limits Mergiraf's ability to solve certain types of conflicts."
+            );
+        }
     }
     let best_solve = select_best_solve(solves)?;
 
@@ -78,6 +86,11 @@ pub fn resolve_merge_cascading<'a>(
         n => info!("{n} conflict(s) remaining."),
     }
     Ok(best_solve)
+}
+
+enum FallbackMergeError {
+    GitError(String),
+    MergeError(String),
 }
 
 /// Extracts the original revisions of the file from Git and performs a fully structured merge (see
@@ -90,30 +103,32 @@ fn structured_merge_from_git_revisions(
     debug_dir: Option<&Path>,
     working_dir: &Path,
     lang_profile: &LangProfile,
-) -> Result<MergeResult, String> {
-    let temp_files = extract_all_revisions_from_git(working_dir, fname_base)?;
-    let revision_base = fs::read_to_string(temp_files.base.path());
-    let revision_left = fs::read_to_string(temp_files.left.path());
-    let revision_right = fs::read_to_string(temp_files.right.path());
+) -> Result<MergeResult, FallbackMergeError> {
+    let GitTempFiles { base, left, right } =
+        extract_all_revisions_from_git(working_dir, fname_base)
+            .map_err(FallbackMergeError::GitError)?;
+
+    let read_file = |file: GitTempFile| {
+        fs::read_to_string(file.path()).map_err(|e| FallbackMergeError::GitError(e.to_string()))
+    };
+
+    // If the file is conflicted in the index but one revision is missing,
+    // fallback on an empty string
+    let contents_base = base.map(read_file).transpose()?.unwrap_or_default();
+    let contents_left = left.map(read_file).transpose()?.unwrap_or_default();
+    let contents_right = right.map(read_file).transpose()?.unwrap_or_default();
 
     // we only attempt a full structured merge if we could extract revisions from Git
-    match (revision_base, revision_left, revision_right) {
-        (Ok(contents_base), Ok(contents_left), Ok(contents_right)) => structured_merge(
-            &contents_base,
-            &contents_left,
-            &contents_right,
-            None,
-            settings,
-            lang_profile,
-            debug_dir,
-        ),
-        (rev_base, _, _) => {
-            if let Err(e) = rev_base {
-                println!("{e}");
-            }
-            Err("Could not retrieve conflict sides from Git.".to_owned())
-        }
-    }
+    structured_merge(
+        &contents_base,
+        &contents_left,
+        &contents_right,
+        None,
+        settings,
+        lang_profile,
+        debug_dir,
+    )
+    .map_err(FallbackMergeError::MergeError)
 }
 
 /// Takes a vector of merge results produced by [`resolve_merge_cascading`] and picks the best one

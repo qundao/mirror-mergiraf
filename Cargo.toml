@@ -68,6 +68,7 @@ tree-sitter-verilog = "1.0.3"
 cc = ">=1.2.12" # required for cross-compiling to MacOS X
 
 [dev-dependencies]
+caplog = "0.3.0"
 rstest = {version = "0.25.0", default-features = false}
 tempfile = "3"
 
