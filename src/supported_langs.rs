@@ -272,6 +272,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         &[
                             "const_item",
                             "macro_definition",
+                            "macro_definition_v2",
                             "mod_item",
                             "foreign_mod_item",
                             "struct_item",
@@ -281,11 +282,9 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                             "function_item",
                             "function_signature_item",
                             "trait_item",
-                            "associated_type",
                             "let_declaration",
                             "extern_crate_declaration",
                             "static_item",
-                            "declaration_with_attribute",
                         ],
                     ]),
                 // scoped "use" declaration
@@ -311,6 +310,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // as module member, impls…
                 signature("const_item", vec![vec![Field("name")]]),
                 signature("macro_definition", vec![vec![Field("name")]]),
+                signature("macro_definition_v2", vec![vec![Field("name")]]),
                 signature("mod_item", vec![vec![Field("name")]]),
                 signature("struct_item", vec![vec![Field("name")]]),
                 signature("union_item", vec![vec![Field("name")]]),
@@ -320,11 +320,6 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("function_signature_item", vec![vec![Field("name")]]),
                 signature("trait_item", vec![vec![Field("name")]]),
                 signature("static_item", vec![vec![Field("name")]]),
-                signature("associated_type", vec![vec![Field("name")]]),
-                signature(
-                    "declaration_with_attribute",
-                    vec![vec![Field("declaration"), Field("name")]],
-                ),
                 // function_modifiers
                 signature("async", vec![vec![]]),
                 signature("default", vec![vec![]]),

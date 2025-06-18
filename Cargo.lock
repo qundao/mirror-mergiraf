@@ -1195,9 +1195,9 @@ dependencies = [
 
 [[package]]
 name = "tree-sitter-rust-orchard"
-version = "0.4.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aac78421b9f921804fbda4789aa242997731f2bb868a8a488196e0daa0ccfd5f"
+checksum = "b3a51eed6a0515fcd11e3fd6702592fe0ae73d63b0c3ba5a2ecb52cfad12ed22"
 dependencies = [
  "cc",
  "tree-sitter-language",
