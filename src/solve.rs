@@ -7,7 +7,7 @@ use log::{debug, info, warn};
 
 use crate::{
     DisplaySettings, LangProfile, MergeResult, PARSED_MERGE_DIFF2_DETECTED, ParsedMerge,
-    git::{GitTempFile, GitTempFiles, extract_all_revisions_from_git},
+    git::{GitTempFile, GitTempFiles, extract_all_revisions_from_git, read_content_from_commits},
     resolve_merge, structured_merge,
 };
 
@@ -22,11 +22,11 @@ pub fn resolve_merge_cascading<'a>(
     working_dir: &Path,
     language: Option<&str>,
 ) -> Result<MergeResult, String> {
-    let mut solves = Vec::with_capacity(3);
+    let mut solves = Vec::with_capacity(4);
 
     let lang_profile = LangProfile::find_by_filename_or_name(fname_base, language)?;
 
-    match ParsedMerge::parse(merge_contents, &settings) {
+    let parsed = match ParsedMerge::parse(merge_contents, &settings) {
         Err(err) => {
             if err == PARSED_MERGE_DIFF2_DETECTED {
                 // if parsing the original merge failed because it's done in diff2 mode,
@@ -39,6 +39,7 @@ pub fn resolve_merge_cascading<'a>(
                     "Error while parsing conflicts: {err}. Merging the original conflict sides from scratch instead."
                 );
             }
+            None
         }
         Ok(parsed_merge) => {
             settings.add_revision_names(&parsed_merge);
@@ -46,6 +47,7 @@ pub fn resolve_merge_cascading<'a>(
             match resolve_merge(&parsed_merge, &settings, lang_profile, debug_dir) {
                 Ok(solve) if solve.conflict_count == 0 => {
                     info!("Solved all conflicts.");
+                    debug!("Structured merge from reconstructed revisions.");
                     return Ok(solve);
                 }
                 Ok(solve) => solves.push(solve),
@@ -58,8 +60,9 @@ pub fn resolve_merge_cascading<'a>(
             // and would be syntactically invalid.
             rendered_from_parsed.has_additional_issues = false;
             solves.push(rendered_from_parsed);
+            Some(parsed_merge)
         }
-    }
+    };
 
     // if we didn't manage to solve all conflicts, try again by extracting the original revisions from Git
     match structured_merge_from_git_revisions(
@@ -69,6 +72,11 @@ pub fn resolve_merge_cascading<'a>(
         working_dir,
         lang_profile,
     ) {
+        Ok(structured_merge) if structured_merge.conflict_count == 0 => {
+            info!("Solved all conflicts.");
+            debug!("Structured merge from index conflict information.");
+            return Ok(structured_merge);
+        }
         Ok(structured_merge) => solves.push(structured_merge),
         Err(FallbackMergeError::MergeError(err)) => warn!("Full structured merge failed: {err}"),
         Err(FallbackMergeError::GitError(err)) => {
@@ -79,13 +87,29 @@ pub fn resolve_merge_cascading<'a>(
             );
         }
     }
-    let best_solve = select_best_solve(solves)?;
 
-    match best_solve.conflict_count {
-        0 => info!("Solved all conflicts."),
-        n => info!("{n} conflict(s) remaining."),
+    // if we didn't manage to solve all conflicts, try again by extracting
+    // the original revisions from Git (but differently)
+    match structured_merge_from_oid(
+        fname_base,
+        &settings,
+        debug_dir,
+        working_dir,
+        lang_profile,
+        parsed.as_ref(),
+    ) {
+        Some(Ok(merge)) if merge.conflict_count == 0 => {
+            info!("Solved all conflicts.");
+            debug!("Structured merge from conflict OID information.");
+            return Ok(merge);
+        }
+        Some(Ok(merge)) => solves.push(merge),
+        Some(Err(err)) => warn!("OID-based structured merge failed: {err}"),
+        None => (),
     }
-    Ok(best_solve)
+
+    select_best_solve(solves)
+        .inspect(|best_solve| info!("{} conflict(s) remaining.", best_solve.conflict_count))
 }
 
 enum FallbackMergeError {
@@ -129,6 +153,37 @@ fn structured_merge_from_git_revisions(
         debug_dir,
     )
     .map_err(FallbackMergeError::MergeError)
+}
+
+/// Extracts the original revisions of the file from Git and
+/// performs a fully structured merge (see [`structured_merge`])
+///
+/// Returns:
+/// - `None` if the conflict markers do not contain OIDs
+/// - `Some(Err(err))` in case of structured merge error
+/// - `Some(Ok(merge))` in case of structured merge success
+fn structured_merge_from_oid(
+    fname_base: &Path,
+    settings: &DisplaySettings,
+    debug_dir: Option<&Path>,
+    working_dir: &Path,
+    lang_profile: &LangProfile,
+    parsed: Option<&ParsedMerge<'_>>,
+) -> Option<Result<MergeResult, String>> {
+    parsed
+        .and_then(|p| p.extract_conflict_oids())
+        .and_then(|oids| read_content_from_commits(working_dir, oids, fname_base))
+        .map(|contents| {
+            structured_merge(
+                &contents.0,
+                &contents.1,
+                &contents.2,
+                None,
+                settings,
+                lang_profile,
+                debug_dir,
+            )
+        })
 }
 
 /// Takes a vector of merge results produced by [`resolve_merge_cascading`] and picks the best one

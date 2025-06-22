@@ -77,44 +77,42 @@ impl<'a> ParsedMerge<'a> {
 
         let mut chunks = Vec::new();
 
-        let left_marker = "<".repeat(marker_size);
-        let base_marker = r"\|".repeat(marker_size);
-        let middle_marker = "=".repeat(marker_size);
-        let right_marker = ">".repeat(marker_size);
-
         let diff2conflict = Regex::new(&format!(
             r"(?mx)
-            ^{left_marker} (?:\ (.*))? \r?\n
+            ^
+            <{{{marker_size}}} (?:\ (.*))? \r?\n
             ((?s:.)*? \r?\n)??
-            {middle_marker}            \r?\n
+            ={{{marker_size}}}             \r?\n
             ((?s:.)*? \r?\n)??
-            {right_marker} (?:\ (.*))? \r?\n
+            >{{{marker_size}}} (?:\ (.*))? \r?\n
             "
         ))
         .unwrap();
 
         let diff3conflict = Regex::new(&format!(
             r"(?mx)
-            ^{left_marker} (?:\ (.*))? \r?\n
+            ^
+            <{{{marker_size}}}  (?:\ (.*))? \r?\n
             ((?s:.)*? \r?\n)??
-            {base_marker}  (?:\ (.*))? \r?\n
+            \|{{{marker_size}}} (?:\ (.*))? \r?\n
             ((?s:.)*? \r?\n)??
-            {middle_marker}            \r?\n
+            ={{{marker_size}}}              \r?\n
             ((?s:.)*? \r?\n)??
-            {right_marker} (?:\ (.*))? \r?\n
+            >{{{marker_size}}}  (?:\ (.*))? \r?\n
             "
         ))
         .unwrap();
 
         let diff3conflict_no_newline = Regex::new(&format!(
             r"(?mx)
-            ^{left_marker} (?:\ (.*))? \r?\n
-            (?: ( (?s:.)*? )           \r?\n)?? # the newlines before the markers are
-            {base_marker}  (?:\ (.*))? \r?\n    # no longer part of conflicts sides themselves
-            (?: ( (?s:.)*? )           \r?\n)??
-            {middle_marker}            \r?\n
-            (?: ( (?s:.)*? )           \r?\n)??
-            {right_marker} (?:\ (.*))?     $    # no newline at the end
+            ^
+            <{{{marker_size}}}  (?:\ (.*))? \r?\n
+            (?: ( (?s:.)*? )                \r?\n)?? # the newlines before the markers are
+            \|{{{marker_size}}} (?:\ (.*))? \r?\n    # no longer part of conflicts sides themselves
+            (?: ( (?s:.)*? )                \r?\n)??
+            ={{{marker_size}}}              \r?\n
+            (?: ( (?s:.)*? )                \r?\n)??
+            >{{{marker_size}}}  (?:\ (.*))?     $    # no newline at the end
             "
         ))
         .unwrap();
@@ -453,6 +451,32 @@ impl<'a> ParsedMerge<'a> {
             // and we cautiously assume that it does have issues
             has_additional_issues: true,
         }
+    }
+
+    /// Attempt to extract OIDs from the first conflict's marker names (left, base, right).
+    /// Returns (left_oid, base_oid, right_oid) if all are present and look like OIDs.
+    pub(crate) fn extract_conflict_oids(&self) -> Option<(&str, &str, &str)> {
+        fn is_oid(s: &&str) -> bool {
+            s.len() == 40 && s.chars().all(|c| c.is_ascii_hexdigit())
+        }
+        self.chunks.iter().find_map(|chunk| {
+            if let MergedChunk::Conflict {
+                base_name,
+                left_name,
+                right_name,
+                ..
+            } = chunk
+            {
+                itertools::izip!(
+                    base_name.filter(is_oid),
+                    left_name.filter(is_oid),
+                    right_name.filter(is_oid),
+                )
+                .next()
+            } else {
+                None
+            }
+        })
     }
 }
 

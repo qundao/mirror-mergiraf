@@ -33,13 +33,13 @@ pub(crate) fn extract_all_revisions_from_git(
     repo_dir: &Path,
     path: &Path,
 ) -> Result<GitTempFiles, String> {
-    let mut command = Command::new("git");
-    command
+    let output = Command::new("git")
         .arg("checkout-index")
         .arg("--stage=all")
         .arg(path)
-        .current_dir(repo_dir);
-    let output = command.output().map_err(|err| err.to_string())?;
+        .current_dir(repo_dir)
+        .output()
+        .map_err(|err| err.to_string())?;
 
     if !output.status.success() {
         let error_str = str::from_utf8(&output.stderr).map_err(|err| err.to_string())?;
@@ -69,4 +69,28 @@ pub(crate) fn extract_all_revisions_from_git(
     } else {
         Err(format!("invalid checkout-index output: {output_str}"))
     }
+}
+
+fn read_content_from_commit(repo_dir: &Path, oid: &str, file_name: &Path) -> Option<String> {
+    Command::new("git")
+        .args(["show", &format!("{}:{}", oid, file_name.display())])
+        .current_dir(repo_dir)
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| output.stdout)
+        .and_then(|c| String::from_utf8(c).ok())
+}
+
+/// Extracts the content of all revisions of a file from relevant commits by oid.
+pub(crate) fn read_content_from_commits(
+    repo_dir: &Path,
+    oids: (&str, &str, &str),
+    file_name: &Path,
+) -> Option<(String, String, String)> {
+    Some((
+        read_content_from_commit(repo_dir, oids.0, file_name)?,
+        read_content_from_commit(repo_dir, oids.1, file_name)?,
+        read_content_from_commit(repo_dir, oids.2, file_name)?,
+    ))
 }
