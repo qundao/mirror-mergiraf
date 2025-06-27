@@ -793,13 +793,17 @@ impl<'a> AstNode<'a> {
             &Color::Red.paint(self.grammar_name).to_string()
         };
 
-        let source = (num_children == 0 && self.source != self.grammar_name)
-            .then(|| format!(" {}", Color::Red.paint(self.source.replace('\n', "\\n"))))
-            .unwrap_or_default();
+        let source = if num_children == 0 && self.source != self.grammar_name {
+            format!(" {}", Color::Red.paint(self.source.replace('\n', "\\n")))
+        } else {
+            Default::default()
+        };
 
-        let commutative = (next_parent.is_some())
-            .then(|| Color::LightPurple.paint(" Commutative").to_string())
-            .unwrap_or_default();
+        let commutative = if next_parent.is_some() {
+            Color::LightPurple.paint(" Commutative").to_string()
+        } else {
+            Default::default()
+        };
 
         let sig = (parent.is_some())
             .then(|| {
