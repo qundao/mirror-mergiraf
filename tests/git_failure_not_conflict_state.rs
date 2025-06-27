@@ -36,8 +36,6 @@ fn not_in_repo() {
         result.is_ok(),
         "Structured resolution errors are not terminal."
     );
-    // nb: git error so could be localized?
-    assert!(handle.any_msg_contains("not a git repository"));
     assert!(handle.any_msg_contains("Couldn't retrieve the original revisions from Git. This limits Mergiraf's ability to solve certain types of conflicts."));
 }
 

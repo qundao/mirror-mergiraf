@@ -2,8 +2,8 @@ use std::fs;
 use std::process::Command;
 
 use itertools::Itertools as _;
-use mergiraf::resolve_merge_cascading;
 use mergiraf::settings::DisplaySettings;
+use mergiraf::{DISABLING_ENV_VAR, resolve_merge_cascading};
 
 mod common;
 use common::run_git;
@@ -56,13 +56,19 @@ fn oid_fallback_extracts_revisions_and_solves() {
     let out = String::from_utf8_lossy(&output.stdout);
     let (base_oid, left_oid, right_oid) = out.lines().collect_tuple().unwrap();
     //Generate the merge result with OID markers
-    let merge_tree_output = Command::new("git")
-        .args(["-c", "merge.conflictStyle=diff3"])
-        .arg("merge-tree")
-        .args(["--merge-base", base_oid, left_oid, right_oid])
-        .current_dir(repo_dir)
-        .output()
-        .unwrap();
+    let mut command = Command::new("git");
+    command.args([
+        "-c",
+        "merge.conflictStyle=diff3",
+        "merge-tree",
+        "--merge-base",
+        base_oid,
+        left_oid,
+        right_oid,
+    ]);
+    command.current_dir(repo_dir);
+    command.env(DISABLING_ENV_VAR, "0");
+    let merge_tree_output = command.output().unwrap();
     assert!(
         !merge_tree_output.status.success(),
         "git merge-tree succeeded unexpectedly"
