@@ -1,0 +1,61 @@
+on:
+  push:
+    tags: 'v*'
+jobs:
+  release:
+    runs-on: my-ubuntu-22.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # for changelog generation
+          $fetch-tags: true # for changelog generation
+      - name: Install Rust
+        uses: https://code.forgejo.org/msrd0/rust-toolchain@stable
+        id: rust-toolchain
+        with:
+          components: clippy, rustfmt
+      - name: Cache build dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}} lock ${{ hashFiles('**/Cargo.lock') }}"
+      - name: Set up git-cliff
+        run: |
+          if [ ! -e ~/.cargo/bin/git-cliff ]; then
+            cargo install git-cliff --features gitea --version 2.9.1
+          fi
+      - name: Run tests
+        run: cargo test
+      - name: Create release_artifacts dir and generate release notes
+        run: |
+          mkdir target/release_artifacts
+          touch target/release_artifacts/empty.txt
+          # store the release notes into $RELEASE_NOTES
+          {
+            echo 'RELEASE_NOTES<<EOF'
+            git-cliff --latest
+            echo EOF
+          } >> "$GITHUB_ENV"
+      - name: Create release
+        uses: https://code.forgejo.org/actions/forgejo-release@v2.6.0
+        with:
+          direction: upload
+          url: https://codeberg.org
+          repo: mergiraf/mergiraf
+          token: ${{ secrets.CODEBERG_WRITE_TOKEN }}
+          tag: "${{ github.ref_name }}"
+          sha: "${{ github.sha }}"
+          release-dir: ./target/release_artifacts
+          # read the release notes from $RELEASE_NOTES
+          release-notes: ${{ env.RELEASE_NOTES }}
+          override: true
+      - name: Login on crates.io
+        run: echo "${{ secrets.CRATES_IO_API_TOKEN }}" | cargo login
+      - name: Publish on crates.io
+        run: cargo publish
