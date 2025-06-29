@@ -1032,8 +1032,8 @@ mod tests {
     fn trailing_newlines_are_stripped_from_nodes() {
         let ctx = ctx();
         let tree = ctx.parse_rust("  /// test\n  fn foo() {\n    ()\n  }\n");
-        let comment = tree.child(0).unwrap();
-        assert_eq!(comment.grammar_name, "line_comment");
+        let comment = tree[0][0][0];
+        assert_eq!(comment.grammar_name, "line_outer_doc_comment");
         // tree-sitter-rust includes a newline at the end of the source for this node,
         // but we strip it when converting the tree to our own data structure (`AstNode`)
         assert_eq!(comment.source, "/// test");
