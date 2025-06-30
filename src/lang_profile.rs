@@ -1,5 +1,6 @@
 use std::{collections::HashSet, ffi::OsStr, fmt::Display, hash::Hash, path::Path};
 
+use itertools::Itertools;
 use tree_sitter::Language;
 
 use crate::{signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
@@ -109,7 +110,7 @@ impl LangProfile {
     pub(crate) fn get_commutative_parent(&self, grammar_type: &str) -> Option<&CommutativeParent> {
         self.commutative_parents
             .iter()
-            .find(|cr| cr.parent_type == grammar_type)
+            .find(|cr| cr.parent_type == ParentType::ByGrammarName(grammar_type))
     }
 
     pub(crate) fn find_signature_definition_by_grammar_name(
@@ -127,19 +128,56 @@ impl LangProfile {
     }
 }
 
+/// Ways to specify the type of the parent node in a [`CommutativeParent`]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) enum ParentType<'a> {
+    /// Specified using the grammar node defined in the grammar
+    ///
+    /// This is used when a node is a commutative parent independent of the context, e.g. for sets
+    ByGrammarName(&'a str),
+    /// Specified using a tree-sitter query:
+    ///
+    /// ```tree-sitter
+    /// (expression_statement (assignment
+    ///   left: (identifier) @variable (#eq? @variable "__all__")
+    ///   right: (list) @commutative
+    /// ))
+    /// ```
+    ///
+    /// This allows designating a node as a commutative parent only in certain contexts.
+    ///
+    /// For example, Python lists aren't commutative in general (the order matters for iteration,
+    /// indexing etc.), but they can be seen as commutative in an [`__all__` declaration][1] -- and
+    /// the query above encodes exactly this latter case
+    ///
+    /// [1]: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
+    ByQuery(&'a str),
+}
+
+impl Display for ParentType<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ByGrammarName(name) => write!(f, "specified by grammar name: {name}"),
+            // flatten the query to one line, since our logger doesn't handle multiline messages
+            // too well
+            Self::ByQuery(query) => write!(f, "specified by query: {}", query.lines().format(" ")),
+        }
+    }
+}
+
 /// Specification for a commutative parent in a given language.
 #[derive(Debug, Clone)]
 pub struct CommutativeParent {
-    // the type of the root node
-    pub parent_type: &'static str,
-    // any separator that needs to be inserted between the children.
-    // It can be overridden by specifying separators in each children group.
+    /// the type of the root node
+    parent_type: ParentType<'static>,
+    /// any separator that needs to be inserted between the children.
+    /// It can be overridden by specifying separators in each children group.
     separator: &'static str,
-    // any left delimiter that can come before all children
+    /// any left delimiter that can come before all children
     pub left_delim: Option<&'static str>,
-    // any right delimiter that can come after all children
+    /// any right delimiter that can come after all children
     pub right_delim: Option<&'static str>,
-    // any restrictions on which types of children are allowed to commute together. If empty, all children can commute together.
+    /// any restrictions on which types of children are allowed to commute together. If empty, all children can commute together.
     pub children_groups: Vec<ChildrenGroup>,
 }
 
@@ -147,7 +185,7 @@ impl CommutativeParent {
     /// Short-hand function to declare a commutative parent without any delimiters.
     pub(crate) fn without_delimiters(root_type: &'static str, separator: &'static str) -> Self {
         Self {
-            parent_type: root_type,
+            parent_type: ParentType::ByGrammarName(root_type),
             separator,
             left_delim: None,
             right_delim: None,
@@ -163,7 +201,7 @@ impl CommutativeParent {
         right_delim: &'static str,
     ) -> Self {
         Self {
-            parent_type,
+            parent_type: ParentType::ByGrammarName(parent_type),
             separator,
             left_delim: Some(left_delim),
             right_delim: Some(right_delim),
@@ -178,7 +216,7 @@ impl CommutativeParent {
         separator: &'static str,
     ) -> Self {
         Self {
-            parent_type,
+            parent_type: ParentType::ByGrammarName(parent_type),
             separator,
             left_delim: Some(left_delim),
             right_delim: None,
@@ -191,6 +229,26 @@ impl CommutativeParent {
         Self {
             children_groups: groups.iter().copied().map(ChildrenGroup::new).collect(),
             ..self
+        }
+    }
+
+    /// Short-hand function to create a commutative parent with delimiters and separator, with the
+    /// parent node specified using a tree-sitter query
+    ///
+    /// See [`ParentType::ByQuery`] for more information
+    #[expect(dead_code)]
+    pub(crate) fn from_query(
+        query: &'static str,
+        left_delim: &'static str,
+        separator: &'static str,
+        right_delim: &'static str,
+    ) -> Self {
+        Self {
+            parent_type: ParentType::ByQuery(query),
+            separator,
+            left_delim: Some(left_delim),
+            right_delim: Some(right_delim),
+            children_groups: Vec::new(),
         }
     }
 
@@ -214,6 +272,11 @@ impl CommutativeParent {
             children_groups,
             ..self
         }
+    }
+
+    /// the type of the root node
+    pub(crate) fn parent_type(&self) -> &ParentType {
+        &self.parent_type
     }
 
     /// Can children with the supplied types commute together?

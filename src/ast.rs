@@ -54,6 +54,8 @@ pub struct AstNode<'a> {
     descendant_count: usize,
     /// The parent of this node, if any.
     parent: UnsafeCell<Option<&'a Self>>,
+    /// The commutative merging settings associated with this node.
+    commutative_parent: Option<&'a CommutativeParent>,
     /// As the DFS of a child is a subslice of the DFS of its parent, we compute the entire DFS of
     /// the root once and slice all child DFS into this slice.
     /// This is computed right after construction and then never written to again.
@@ -290,6 +292,9 @@ impl<'a> AstNode<'a> {
                     id: *next_node_id,
                     descendant_count: 1,
                     parent: UnsafeCell::new(None),
+                    // `@virtual_line@` isn't an actual grammar type, so it cannot be present in
+                    // the grammar and thus can't have a commutative parent defined
+                    commutative_parent: None,
                     dfs: UnsafeCell::new(None),
                     lang_profile,
                 }));
@@ -298,9 +303,11 @@ impl<'a> AstNode<'a> {
             }
         }
 
+        let grammar_name = node.grammar_name();
+
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
-        node.grammar_name().hash(&mut hasher);
+        grammar_name.hash(&mut hasher);
         lang_profile.hash(&mut hasher);
         if children.is_empty() {
             local_source.hash(&mut hasher);
@@ -322,13 +329,14 @@ impl<'a> AstNode<'a> {
             children,
             field_to_children,
             source: local_source,
-            grammar_name: node.grammar_name(),
+            grammar_name,
             field_name,
             // parse-specific fields not included in hash/isomorphism
             byte_range: range,
             id: *next_node_id,
             descendant_count,
             parent: UnsafeCell::new(None),
+            commutative_parent: lang_profile.get_commutative_parent(grammar_name),
             dfs: UnsafeCell::new(None),
             lang_profile,
         });
@@ -470,7 +478,7 @@ impl<'a> AstNode<'a> {
 
     /// The commutative merging settings associated with this node.
     pub fn commutative_parent_definition(&self) -> Option<&CommutativeParent> {
-        self.lang_profile.get_commutative_parent(self.grammar_name)
+        self.commutative_parent
     }
 
     /// The signature definition associated with this node.
@@ -1066,6 +1074,7 @@ mod tests {
         let fake_hash_collision = AstNode {
             hash: node_1.hash,
             parent: UnsafeCell::new(None),
+            commutative_parent: node_2.commutative_parent,
             dfs: UnsafeCell::new(None),
             children: node_2.children.to_owned(),
             field_to_children: FxHashMap::default(),

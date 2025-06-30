@@ -75,7 +75,8 @@ fn highlight_duplicate_signatures<'a>(
             conflict_found = true;
             debug!(
                 "signature conflict found in {}: {}",
-                commutative_parent.parent_type, signature
+                commutative_parent.parent_type(),
+                signature
             );
         });
     if !conflict_found {
