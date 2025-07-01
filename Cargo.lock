@@ -579,6 +579,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "mgf_dev"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "mergiraf",
+ "stderrlog",
+ "tempfile",
+ "typed-arena",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"

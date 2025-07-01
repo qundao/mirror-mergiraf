@@ -133,8 +133,8 @@ mod tests {
             real_main(&CliArgs::parse_from([
                 "mgf_dev",
                 "compare",
-                "examples/java/working/demo/Base.java",
-                "examples/java/working/demo/Base.java",
+                "../examples/java/working/demo/Base.java",
+                "../examples/java/working/demo/Base.java",
             ])),
             Ok(0)
         );
@@ -146,8 +146,8 @@ mod tests {
             real_main(&CliArgs::parse_from([
                 "mgf_dev",
                 "compare",
-                "examples/java/working/reformat/Base.java",
-                "examples/java/working/reformat/Left.java",
+                "../examples/java/working/reformat/Base.java",
+                "../examples/java/working/reformat/Left.java",
             ])),
             Ok(0)
         );
@@ -159,8 +159,8 @@ mod tests {
             real_main(&CliArgs::parse_from([
                 "mgf_dev",
                 "compare",
-                "examples/java/working/demo/Base.java",
-                "examples/java/working/demo/Left.java",
+                "../examples/java/working/demo/Base.java",
+                "../examples/java/working/demo/Left.java",
             ])),
             Ok(1)
         );
@@ -172,8 +172,8 @@ mod tests {
             real_main(&CliArgs::parse_from([
                 "mgf_dev",
                 "compare",
-                "examples/rust/working/reordering_use_statements/Base.rs",
-                "examples/rust/working/reordering_use_statements/Left.rs",
+                "../examples/rust/working/reordering_use_statements/Base.rs",
+                "../examples/rust/working/reordering_use_statements/Left.rs",
             ])),
             Ok(1)
         );
@@ -186,8 +186,8 @@ mod tests {
                 "mgf_dev",
                 "compare",
                 "--commutative",
-                "examples/rust/working/reordering_use_statements/Base.rs",
-                "examples/rust/working/reordering_use_statements/Left.rs",
+                "../examples/rust/working/reordering_use_statements/Base.rs",
+                "../examples/rust/working/reordering_use_statements/Left.rs",
             ])),
             Ok(0)
         );
@@ -197,7 +197,7 @@ mod tests {
     fn set_language() {
         let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
         let test_file = repo_dir.path().join("file.txt");
-        fs::copy("examples/java/working/demo/Base.java", &test_file)
+        fs::copy("../examples/java/working/demo/Base.java", &test_file)
             .expect("Failed to copy the Java file to the temporary directory");
         assert_eq!(
             real_main(&CliArgs::parse_from([

@@ -1,0 +1,14 @@
+[package]
+name = "mgf_dev"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+clap.workspace = true
+mergiraf.path = ".."
+stderrlog.workspace = true
+typed-arena.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

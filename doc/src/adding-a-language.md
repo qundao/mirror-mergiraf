@@ -70,7 +70,7 @@ namespace HelloWorld {
 
 You can inspect how this file is parsed with, either with the [Syntax Tree Playground](https://tree-sitter.github.io/tree-sitter/playground) if the language is supported there, or directly via Mergiraf:
 ```console
-$ cargo run --bin mgf_dev parse test_file.cs
+$ cargo run -p mgf_dev parse test_file.cs
 ```
 
 which gives:
@@ -170,7 +170,7 @@ using System.IO;
 </div>
 
 This will be merged to include all three `using` statements.
-When inspecting how a file is parsed with `cargo run --bin mgf_dev parse test_file.cs`, commutative parents are highlighted in the tree, which also helps validate our definitions.
+When inspecting how a file is parsed with `cargo run -p mgf_dev parse test_file.cs`, commutative parents are highlighted in the tree, which also helps validate our definitions.
 
 We can add other commutative parent definitions in the language profile. For instance, the declarations in the body of a class (such as `field_declaration` or `method_declaration`) can be freely reordered. This can be modeled by marking `declaration_list` nodes as being commutative parents:
 ```rust
@@ -247,7 +247,7 @@ This gives rise to the following signatures:
 | `field_declaration`  | `public int familySize;`             | `[[familySize]]`       |
 | `method_declaration` | `void Run(int times, bool fast) { }` | `[[Run], [int, bool]]` |
 
-Again, this can be checked with `cargo run --bin mgf_dev parse test_file.cs`, which shows the computed signatures in the tree.
+Again, this can be checked with `cargo run -p mgf_dev parse test_file.cs`, which shows the computed signatures in the tree.
 
 To understand the difference between `Field` and `ChildType` in the signature definition for `method_declaration`, consider the structure of a method declaration as parsed by tree-sitter:
 
