@@ -289,6 +289,33 @@ Certain languages can contain text fragments in other languages. For instance, H
 The `injections` field on the `LangProfile` object can be used to provide a [tree-sitter query locating such fragments](https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection).
 Such a query is normally exposed by the Rust crate for the parser as the `INJECTIONS_QUERY` constant if it has been defined by the parser authors, so it just needs wiring up as `injections: Some(tree_sitter_html::INJECTIONS_QUERY)`.
 
+## Commutative parents via tree-sitter queries
+
+Sometimes, commutative parents can't be defined just by specifying a node type inside which children should commute. It depends from the context whether this particular node should be treated as commutative or not.
+For example, Python lists aren't commutative in general (the order matters for iteration,
+indexing etc.), but they can be seen as commutative in an [`__all__` declaration](https://docs.python.org/3/tutorial/modules.html#importing-from-a-package).
+
+We can define a [tree-sitter query](https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html) to select which nodes should be treated as commutative.
+The [tree-sitter playground](https://tree-sitter.github.io/tree-sitter/7-playground.html) can be useful to experiment with queries and find one that matches the desired set of nodes.
+In the example above, the following query selects the relevant lists:
+```tree-sitter
+(expression_statement (assignment
+  left: (identifier) @variable (#eq? @variable "__all__")
+  right: (list) @commutative
+))
+```
+Note the use of the `@commutative` capture to select which node matched by the query should be treated as commutative.
+This query can then be used to define a commutative parent as part of the language profile:
+```rust
+CommutativeParent::from_query(
+  r#"(expression_statement (assignment
+     left: (identifier) @variable (#eq? @variable "__all__")
+     right: (list) @commutative)
+  )"#,
+  "[", ", ", "]",
+)
+```
+
 ## Add tests
 
 We didn't write any code, just declarative things, but it's still worth checking that the merging that they enable works as expected, and that it keeps doing so in the future.

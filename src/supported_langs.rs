@@ -668,6 +668,15 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::new("argument_list", "(", ", ", ")")
                     .restricted_to_groups(&[&["keyword_argument"]]),
                 CommutativeParent::new("set", "{", ", ", "}"),
+                CommutativeParent::from_query(
+                    r#"(expression_statement (assignment
+   left: (identifier) @variable (#eq? @variable "__all__")
+   right: (list) @commutative)
+ )"#,
+                    "[",
+                    ", ",
+                    "]",
+                ),
             ],
             signatures: vec![
                 signature("import_from_statement", vec![vec![]]),

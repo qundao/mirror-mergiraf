@@ -20,7 +20,7 @@ use tree_sitter::{
 use typed_arena::Arena;
 
 use crate::{
-    lang_profile::{CommutativeParent, LangProfile},
+    lang_profile::{CommutativeParent, LangProfile, ParentType},
     signature::{Signature, SignatureDefinition},
 };
 
@@ -102,6 +102,8 @@ impl<'a> AstNode<'a> {
             .parse(source, None)
             .expect("Parsing source code failed");
         let node_id_to_injection_lang = Self::locate_injections(&tree, source, lang_profile);
+        let node_id_to_commutative_parent =
+            Self::locate_commutative_parents_by_query(&tree, source, lang_profile);
         let range_for_root = if let Some(range) = range {
             range.start_byte..range.end_byte
         } else {
@@ -114,8 +116,40 @@ impl<'a> AstNode<'a> {
             arena,
             next_node_id,
             &node_id_to_injection_lang,
+            &node_id_to_commutative_parent,
             Some(range_for_root),
         )
+    }
+
+    /// Locate all nodes which are marked as commutative via a tree-sitter query.
+    /// This returns a map from node ids to the their commutative parent definition.
+    fn locate_commutative_parents_by_query<'b>(
+        tree: &Tree,
+        source: &'a str,
+        lang_profile: &'b LangProfile,
+    ) -> FxHashMap<usize, &'b CommutativeParent> {
+        let mut node_id_to_commutative_parent = FxHashMap::default();
+        // For each commutative parent that is defined by a tree-sitter query
+        for commutative_parent in &lang_profile.commutative_parents {
+            if let ParentType::ByQuery(query_str) = commutative_parent.parent_type() {
+                // Execute this query over the tree
+                let query = Query::new(&lang_profile.language, query_str)
+                    .expect("Invalid commutative parent query");
+                let commutative_capture_index = query
+                    .capture_index_for_name("commutative")
+                    .expect("Commutative parent query without a '@commutative' capture");
+                let mut cursor = QueryCursor::new();
+                let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+                // For each match, mark the captured node(s) as commutative
+                matches.for_each(|m| {
+                    node_id_to_commutative_parent.extend(
+                        m.nodes_for_capture_index(commutative_capture_index)
+                            .map(|node| (node.id(), commutative_parent)),
+                    );
+                });
+            }
+        }
+        node_id_to_commutative_parent
     }
 
     /// Locate nodes which need re-parsing in a different language
@@ -168,6 +202,7 @@ impl<'a> AstNode<'a> {
         node_id_to_injection_lang
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn internal_new<'b>(
         cursor: &mut TreeCursor<'b>,
         global_source: &'a str,
@@ -175,6 +210,7 @@ impl<'a> AstNode<'a> {
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
         node_id_to_injection_lang: &FxHashMap<usize, &'static LangProfile>,
+        node_id_to_commutative_parent: &FxHashMap<usize, &'a CommutativeParent>,
         range_for_root: Option<Range<usize>>,
     ) -> Result<&'a Self, String> {
         let field_name = cursor.field_name();
@@ -209,6 +245,7 @@ impl<'a> AstNode<'a> {
                     arena,
                     next_node_id,
                     node_id_to_injection_lang,
+                    node_id_to_commutative_parent,
                     None,
                 )?;
                 children.push(child);
@@ -324,6 +361,11 @@ impl<'a> AstNode<'a> {
             .map(|child| child.descendant_count)
             .sum::<usize>();
 
+        // pre-compute the commutative parent, either by node type or via a query.
+        let commutative_parent = lang_profile
+            .get_commutative_parent_by_grammar_name(grammar_name)
+            .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
+
         let result = arena.alloc(Self {
             hash: hasher.finish(),
             children,
@@ -336,7 +378,7 @@ impl<'a> AstNode<'a> {
             id: *next_node_id,
             descendant_count,
             parent: UnsafeCell::new(None),
-            commutative_parent: lang_profile.get_commutative_parent(grammar_name),
+            commutative_parent,
             dfs: UnsafeCell::new(None),
             lang_profile,
         });
@@ -1602,5 +1644,21 @@ A list:
         assert_eq!(paragraph[0].grammar_name, "paragraph_repeat1");
         assert_eq!(paragraph[1].grammar_name, "block_continuation");
         assert_eq!(paragraph[1].preceding_whitespace(), Some("\n"));
+    }
+
+    #[test]
+    fn commutative_parent_via_query() {
+        let ctx = ctx();
+        let python = ctx.parse_python("__all__ = [ 'foo', 'bar' ]\nother = [ 1, 2 ]\n");
+
+        let first_list = python[0][0][2];
+        let second_list = python[1][0][2];
+        assert_eq!(first_list.grammar_name, "list");
+        assert_eq!(second_list.grammar_name, "list");
+
+        // the __all__ assignment is captured by the query defining the commutative parent
+        assert!(first_list.commutative_parent_definition().is_some());
+        // the other list isn't captured, so it's not associated to any commutative parent
+        assert!(second_list.commutative_parent_definition().is_none());
     }
 }

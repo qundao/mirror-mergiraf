@@ -107,7 +107,12 @@ impl LangProfile {
     }
 
     /// Do all the children of this parent commute?
-    pub(crate) fn get_commutative_parent(&self, grammar_type: &str) -> Option<&CommutativeParent> {
+    /// This will return any CommutativeParent defined on this grammar type.
+    /// CommutativeParents defined by queries are ignored.
+    pub(crate) fn get_commutative_parent_by_grammar_name(
+        &self,
+        grammar_type: &str,
+    ) -> Option<&CommutativeParent> {
         self.commutative_parents
             .iter()
             .find(|cr| cr.parent_type == ParentType::ByGrammarName(grammar_type))
@@ -236,13 +241,16 @@ impl CommutativeParent {
     /// parent node specified using a tree-sitter query
     ///
     /// See [`ParentType::ByQuery`] for more information
-    #[expect(dead_code)]
     pub(crate) fn from_query(
         query: &'static str,
         left_delim: &'static str,
         separator: &'static str,
         right_delim: &'static str,
     ) -> Self {
+        debug_assert!(
+            query.contains("@commutative"),
+            "A '@commutative' capture is needed to identify which of the captured nodes is commutative, in query '{query:?}'",
+        );
         Self {
             parent_type: ParentType::ByQuery(query),
             separator,
