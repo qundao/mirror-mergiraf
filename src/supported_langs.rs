@@ -861,12 +861,14 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::new("import_list", "(", ", ", ")"),
                 CommutativeParent::new("record", "{", ",\n", "}")
                     .restricted_to_groups(&[&["field_update"]]),
+                CommutativeParent::from_query("(deriving (tuple) @commutative)", "(", ", ", ")"),
             ],
             signatures: vec![
                 signature("field_update", vec![vec![Field("field")]]),
                 signature("field", vec![vec![Field("name")]]),
                 signature("import_name", vec![vec![]]),
                 signature("signature", vec![vec![Field("name")]]),
+                signature("name", vec![vec![]]),
             ],
             injections: None,
         },
