@@ -684,6 +684,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("function_definition", vec![vec![Field("name")]]),
                 signature("dotted_name", vec![vec![]]),
                 signature("keyword_argument", vec![vec![Field("name")]]),
+                signature("string", vec![vec![]]), // for elements of __all__ lists
             ],
             injections: None,
         },
