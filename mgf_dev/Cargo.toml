@@ -9,6 +9,8 @@ clap.workspace = true
 mergiraf.path = ".."
 stderrlog.workspace = true
 typed-arena.workspace = true
+tempfile.workspace = true
+rand = "0.9"
 
 [dev-dependencies]
 tempfile.workspace = true

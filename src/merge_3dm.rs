@@ -82,7 +82,7 @@ pub fn three_way_merge<'a>(
     (postprocessed_tree, class_mapping)
 }
 
-fn generate_matchings<'a>(
+pub fn generate_matchings<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
     right: &'a AstNode<'a>,
@@ -163,7 +163,7 @@ fn generate_matchings<'a>(
     (base_left_matching, base_right_matching, left_right_matching)
 }
 
-fn create_class_mapping<'a>(
+pub fn create_class_mapping<'a>(
     base_left_matching: &DetailedMatching<'a>,
     base_right_matching: &DetailedMatching<'a>,
     left_right_matching: &DetailedMatching<'a>,

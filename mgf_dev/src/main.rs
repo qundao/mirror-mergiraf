@@ -12,6 +12,7 @@ use mergiraf::{
     // XXX: move the uses to lib to avoid making these public?
     newline::normalize_to_lf,
 };
+use mgf_dev::minimize::minimize;
 use typed_arena::Arena;
 
 /// Dev helper for contributing to Mergiraf
@@ -43,6 +44,22 @@ enum Command {
         /// Enable commutative isomorphism checking, disregarding the order of nodes where it's not significant.
         #[arg(short, long)]
         commutative: bool,
+    },
+    /// Minimize a test case while maintaining a specific behaviour from a supplied script
+    Minimize {
+        /// Path to a directory containing Base, Left and Right files (with some extension)
+        test_case: PathBuf,
+        /// Command to execute on the test case. It will be supplied with the path to the minimized test case as only argument.
+        script: String,
+        /// Exit status code expected from the script.
+        #[arg(short = 'e', long, default_value_t = 0)]
+        expected_exit_code: i32,
+        /// Output path of the minimized test case
+        #[arg(short = 'o', long)]
+        output: Option<PathBuf>,
+        /// Seed for all randomness involved
+        #[arg(long)]
+        seed: Option<u64>,
     },
 }
 
@@ -113,6 +130,22 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             } else {
                 1
             }
+        }
+        Command::Minimize {
+            test_case,
+            script,
+            expected_exit_code,
+            output,
+            seed,
+        } => {
+            minimize(
+                test_case,
+                script,
+                *expected_exit_code,
+                output.as_ref(),
+                *seed,
+            );
+            0
         }
     };
     Ok(exit_code)
