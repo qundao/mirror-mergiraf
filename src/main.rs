@@ -304,10 +304,13 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 stdout = keep;
             }
             // Check if user is using Jujutsu instead of Git, which can lead to issues.
-            if Command::new("jj")
-                .arg("root")
-                .output()
-                .is_ok_and(|o| o.status.success())
+            if let Ok(canonical_path) = fname_conflicts.canonicalize()
+                && let Some(conflict_dir) = canonical_path.parent()
+                && Command::new("jj")
+                    .arg("root")
+                    .current_dir(conflict_dir)
+                    .output()
+                    .is_ok_and(|o| o.status.success())
             {
                 return Err(
                     "\
