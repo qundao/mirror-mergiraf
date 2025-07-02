@@ -15,7 +15,7 @@ use crate::{
 /// layout of the resulting text is not known yet as it depends on
 /// the output settings.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct MergedText<'a> {
+pub struct MergedText<'a> {
     sections: Vec<MergeSection<'a>>,
 }
 
@@ -182,7 +182,7 @@ impl<'a> MergedText<'a> {
     }
 
     /// Renders the full file according to the supplied [`DisplaySettings`]
-    pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
+    pub fn render(&self, settings: &DisplaySettings) -> String {
         // if all the chunks are `Merged`, just concatenate them all
         if let Some(contents) = self
             .sections

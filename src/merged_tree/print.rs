@@ -7,10 +7,8 @@ use crate::{
     merged_text::MergedText,
     merged_tree::{Conflict, MergedTree},
     pcs::Revision,
+    settings::DisplaySettings,
 };
-
-#[cfg(test)]
-use crate::settings::DisplaySettings;
 
 #[derive(Debug, Clone)]
 enum PreviousSibling<'a> {
@@ -26,7 +24,6 @@ impl<'a> MergedTree<'a> {
         merged_text
     }
 
-    #[cfg(test)]
     /// Pretty-prints the result tree into its final output. Exciting!
     pub fn pretty_print<'u: 'a>(
         &'u self,

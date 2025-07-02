@@ -589,6 +589,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "mergiraf",
+ "rand",
  "stderrlog",
  "tempfile",
  "typed-arena",
