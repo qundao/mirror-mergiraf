@@ -3,10 +3,6 @@ If you are looking into adding support for a new language, check out [the tutori
 
 We try to invite recurring contributors to join the team following our [governance model](./GOVERNANCE.md). You can also apply on your own.
 
-### Code style
-
-To format your code, run `cargo fmt`. 
-
 ### Helpers for testing
 
 The `examples/` directory collects end-to-end test cases. Each test case is defined by a directory containing the inputs and expected output as separate files.
