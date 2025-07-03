@@ -4,4 +4,6 @@ A syntax-aware git merge driver for a growing collection of programming language
 
 See the [documentation](https://mergiraf.org/).
 
+We welcome contributions and new team members, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 License: GPLv3
