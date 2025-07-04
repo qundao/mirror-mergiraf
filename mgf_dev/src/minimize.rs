@@ -321,8 +321,9 @@ fn pick_nodes_to_delete<'a>(
     let can_recurse = !child.is_leaf();
 
     let probability_to_recurse = 0.8;
+    let mut will_recurse = || rng.random_bool(probability_to_recurse);
 
-    if can_recurse && (!can_delete || rng.random_range(0.0..1.0) < probability_to_recurse) {
+    if can_recurse && (!can_delete || will_recurse()) {
         pick_nodes_to_delete(revision, child, only_unchanged, class_mapping, results, rng)
     } else if can_delete {
         // Let's delete this node
