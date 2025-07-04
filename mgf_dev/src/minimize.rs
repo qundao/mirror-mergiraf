@@ -16,7 +16,7 @@ use mergiraf::{
     settings::DisplaySettings,
     tree_matcher::TreeMatcher,
 };
-use rand::{Rng, SeedableRng, rngs::StdRng};
+use rand::{Rng, SeedableRng, rngs::StdRng, seq::IndexedRandom};
 use tempfile::tempdir;
 use typed_arena::Arena;
 
@@ -307,11 +307,11 @@ fn pick_nodes_to_delete<'a>(
     results: &mut HashSet<Leader<'a>>,
     rng: &mut StdRng,
 ) -> Result<(), AttemptFailure> {
-    if tree.is_leaf() {
-        return Err(AttemptFailure::LostInTree(format!("{tree}")));
-    }
-    let child_idx = rng.random_range(0..tree.children.len());
-    let child = tree.children[child_idx];
+    let child = tree
+        .children
+        .choose(rng)
+        .ok_or_else(|| AttemptFailure::LostInTree(format!("{tree}")))?;
+
     let leader = class_mapping.map_to_leader(RevNode::new(revision, child));
 
     // We have two choices:
