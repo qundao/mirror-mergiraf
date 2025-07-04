@@ -93,11 +93,9 @@ pub fn minimize(
         .output()
         .expect("Failed to clear the output path");
     Command::new("cp")
-        .args([
-            "-r",
-            current_best.to_str().expect("Invalid path"),
-            final_output,
-        ])
+        .arg("-r")
+        .arg(current_best)
+        .arg(final_output)
         .output()
         .expect("Failed to copy the result to the output path");
 }
@@ -420,13 +418,10 @@ fn run_testing_command(
         format!("{script} $1")
     };
     let testing_result = Command::new("bash")
-        .args([
-            "-c",
-            &full_script,
-            "testing_script",
-            path.to_str()
-                .expect("Failed to convert the current test case path to a string"),
-        ])
+        .arg("-c")
+        .arg(&full_script)
+        .arg("testing_script")
+        .arg(path)
         .output()
         .expect("failed to execute testing program via bash");
     let exit_code = testing_result
