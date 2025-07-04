@@ -31,6 +31,7 @@ pub fn minimize(
     seed: Option<u64>,
     max_steps: i32,
     max_failures: i32,
+    only_unchanged: bool,
 ) {
     let mut rng = if let Some(seed) = seed {
         StdRng::seed_from_u64(seed)
@@ -59,6 +60,7 @@ pub fn minimize(
                 &current_best,
                 script,
                 expected_exit_code,
+                only_unchanged,
                 &new_test_case,
                 &mut rng,
             ) {
@@ -137,6 +139,7 @@ fn attempt_minimization_step(
     test_case: &Path,
     script: &str,
     expected_exit_code: i32,
+    only_unchanged: bool,
     output_dir: &Path,
     rng: &mut StdRng,
 ) -> Result<(), AttemptFailure> {
@@ -203,7 +206,14 @@ fn attempt_minimization_step(
         (Revision::Left, &tree_left),
         (Revision::Right, &tree_right),
     ][revision_idx];
-    pick_nodes_to_delete(rev, tree, &class_mapping, &mut nodes_to_delete, rng)?;
+    pick_nodes_to_delete(
+        rev,
+        tree,
+        only_unchanged,
+        &class_mapping,
+        &mut nodes_to_delete,
+        rng,
+    )?;
 
     // Delete the nodes and check that the corresponding trees still parse.
     // More than parsing, we want them to be faithful to the intended AST.
@@ -291,6 +301,7 @@ fn attempt_minimization_step(
 fn pick_nodes_to_delete<'a>(
     revision: Revision,
     tree: &'a AstNode<'a>,
+    only_unchanged: bool,
     class_mapping: &ClassMapping<'a>,
     results: &mut HashSet<Leader<'a>>,
     rng: &mut StdRng,
@@ -300,17 +311,41 @@ fn pick_nodes_to_delete<'a>(
     }
     let child_idx = rng.random_range(0..tree.children.len());
     let child = tree.children[child_idx];
+    let leader = class_mapping.map_to_leader(RevNode::new(revision, child));
+
+    // We have two choices:
+    // - either delete the child we picked
+    // - or recurse into the child to delete a descendant of theirs
+    let can_delete = !only_unchanged || is_unchanged(&leader, class_mapping);
+    let can_recurse = !child.is_leaf();
 
     let probability_to_recurse = 0.8;
-    let draw = rng.random_range(0.0..1.0);
-    if draw < probability_to_recurse && !child.is_leaf() {
-        pick_nodes_to_delete(revision, child, class_mapping, results, rng)
-    } else {
+
+    if can_recurse && (!can_delete || rng.random_range(0.0..1.0) < probability_to_recurse) {
+        pick_nodes_to_delete(revision, child, only_unchanged, class_mapping, results, rng)
+    } else if can_delete {
         // Let's delete this node
-        let leader = class_mapping.map_to_leader(RevNode::new(revision, child));
         results.insert(leader);
         // TODO delete the following siblings if they have the same revision set?
         Ok(())
+    } else {
+        let revset = class_mapping.revision_set(&leader);
+        Err(AttemptFailure::LostInTree(format!(
+            "can't delete {leader}, present in {revset}"
+        )))
+    }
+}
+
+/// Check if a node is unchanged in all three revisions
+fn is_unchanged<'a>(leader: &Leader<'a>, class_mapping: &ClassMapping<'a>) -> bool {
+    if let (Some(base), Some(left), Some(right)) = (
+        class_mapping.node_at_rev(leader, Revision::Base),
+        class_mapping.node_at_rev(leader, Revision::Left),
+        class_mapping.node_at_rev(leader, Revision::Right),
+    ) {
+        base.isomorphic_to(left) && base.isomorphic_to(right)
+    } else {
+        false
     }
 }
 
