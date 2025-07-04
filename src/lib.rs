@@ -43,6 +43,7 @@ pub mod supported_langs;
 pub(crate) mod test_utils;
 pub(crate) mod tree_builder;
 pub mod tree_matcher;
+pub mod util;
 pub(crate) mod visualizer;
 
 use core::fmt::Write;
