@@ -2,7 +2,7 @@ use std::{
     borrow::Cow,
     collections::HashSet,
     fmt::Display,
-    fs::{self, read_dir},
+    fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -16,6 +16,7 @@ use mergiraf::{
     pcs::Revision,
     settings::DisplaySettings,
     tree_matcher::TreeMatcher,
+    util::detect_suffix,
 };
 use rand::{Rng, SeedableRng, rngs::StdRng, seq::IndexedRandom};
 use tempfile::tempdir;
@@ -444,20 +445,4 @@ fn run_testing_command(
 /// TODO copied from src/main.rs
 fn read_file_to_string(path: &Path) -> Result<String, String> {
     fs::read_to_string(path).map_err(|err| format!("Could not read {}: {err}", path.display()))
-}
-
-/// TODO Copied from tests/common/mod.rs - is there a sensible place where to put this so it can be shared?
-pub(crate) fn detect_suffix(test_dir: &Path) -> String {
-    read_dir(test_dir)
-        .expect("Could not list files in test directory")
-        .find_map(|filename| {
-            filename
-                .unwrap()
-                .file_name()
-                .into_string()
-                .expect("Unable to read filename in test directory")
-                .strip_prefix("Base")
-                .map(String::from)
-        })
-        .expect("Could not find a Base.* file in the test directory")
 }
