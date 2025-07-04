@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     collections::HashSet,
     fmt::Display,
     fs::{self, read_dir},
@@ -416,14 +417,14 @@ fn run_testing_command(
     path: &Path,
 ) -> Result<(), AttemptFailure> {
     let full_script = if script.contains("$1") {
-        script.to_owned()
+        Cow::Borrowed(script)
     } else {
         // if the script doesn't contain a $1, add one at the end so that it captures the path we give it
-        format!("{script} $1")
+        Cow::Owned(format!("{script} $1"))
     };
     let testing_result = Command::new("bash")
         .arg("-c")
-        .arg(&full_script)
+        .arg(&*full_script)
         .arg("testing_script")
         .arg(path)
         .output()
