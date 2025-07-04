@@ -69,6 +69,9 @@ enum Command {
         /// Maximum number of failures to accept when attempting a minimization step
         #[arg(long, default_value_t = 100)]
         max_failures: i32,
+        /// Only delete nodes which are identical in all three revisions (up to reformatting)
+        #[arg(long, default_value_t = false)]
+        only_unchanged: bool,
     },
 }
 
@@ -148,6 +151,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             seed,
             max_steps,
             max_failures,
+            only_unchanged,
         } => {
             minimize(
                 test_case,
@@ -157,6 +161,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
                 *seed,
                 *max_steps,
                 *max_failures,
+                *only_unchanged,
             );
             0
         }
