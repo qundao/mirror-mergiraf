@@ -197,21 +197,24 @@ fn attempt_minimization_step(
         &left_right_matching,
     );
 
-    let mut nodes_to_delete = HashSet::new();
-    let revision_idx = rng.random_range(0..3);
-    let (rev, tree) = [
-        (Revision::Base, &tree_base),
-        (Revision::Left, &tree_left),
-        (Revision::Right, &tree_right),
-    ][revision_idx];
-    pick_nodes_to_delete(
-        rev,
-        tree,
-        only_unchanged,
-        &class_mapping,
-        &mut nodes_to_delete,
-        rng,
-    )?;
+    let nodes_to_delete = {
+        let mut nodes_to_delete = HashSet::new();
+        let revision_idx = rng.random_range(0..3);
+        let (rev, tree) = [
+            (Revision::Base, &tree_base),
+            (Revision::Left, &tree_left),
+            (Revision::Right, &tree_right),
+        ][revision_idx];
+        pick_nodes_to_delete(
+            rev,
+            tree,
+            only_unchanged,
+            &class_mapping,
+            &mut nodes_to_delete,
+            rng,
+        )?;
+        Ok(nodes_to_delete)
+    }?;
 
     // Delete the nodes and check that the corresponding trees still parse.
     // More than parsing, we want them to be faithful to the intended AST.
