@@ -701,7 +701,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // which encompasses non-declarative statements too.
                 CommutativeParent::without_delimiters("program", "\n")
                     .restricted_to_groups(&[&["namespace_use_declaration"]]),
-                CommutativeParent::new("declaration_list", "{", "\n\n", "}"),
+                CommutativeParent::new("declaration_list", "{", "\n\n", "}").restricted_to_groups(
+                    &[
+                        &["use_declaration"],
+                        &[
+                            "const_declaration",
+                            "property_declaration",
+                            "method_declaration",
+                        ],
+                    ],
+                ),
                 CommutativeParent::new("enum_declaration_list", "{", "\n\n", "}"),
             ],
             signatures: vec![
