@@ -52,10 +52,10 @@ enum Command {
         /// Command to execute on the test case. It will be supplied with the path to the minimized test case as only argument.
         script: String,
         /// Exit status code expected from the script.
-        #[arg(short = 'e', long, default_value_t = 0)]
+        #[arg(short, long, default_value_t = 0)]
         expected_exit_code: i32,
         /// Output path of the minimized test case
-        #[arg(short = 'o', long)]
+        #[arg(short, long)]
         output: Option<PathBuf>,
         /// Seed for all randomness involved
         #[arg(long)]
