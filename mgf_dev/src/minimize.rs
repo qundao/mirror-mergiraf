@@ -29,6 +29,8 @@ pub fn minimize(
     expected_exit_code: i32,
     output: Option<&PathBuf>,
     seed: Option<u64>,
+    max_steps: i32,
+    max_failures: i32,
 ) {
     let mut rng = if let Some(seed) = seed {
         StdRng::seed_from_u64(seed)
@@ -36,8 +38,6 @@ pub fn minimize(
         StdRng::from_os_rng()
     };
 
-    let max_failures = 100;
-    let max_steps = 50;
     let mut progress_made = true;
     let mut step = 0;
     let mut current_best = test_case.to_path_buf();
