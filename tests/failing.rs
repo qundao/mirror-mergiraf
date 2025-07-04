@@ -8,7 +8,9 @@ use mergiraf::{PathBufExt, line_merge_and_structured_resolution};
 use rstest::rstest;
 
 mod common;
-use common::detect_extension;
+use common::detect_test_suffix;
+
+use crate::common::language_override_for_test;
 
 #[derive(Clone, Copy)]
 enum FailingTestResult {
@@ -39,25 +41,25 @@ enum FailingTestResult {
 /// in compact and non-compact versions -- but that would mean duplicating `{Base,Left,Right}.{ext}`, which is not ideal
 #[rstest]
 fn integration_failing(#[files("examples/*/failing/*")] test_dir: PathBuf) {
-    let ext = detect_extension(&test_dir);
+    let suffix = detect_test_suffix(&test_dir);
     #[expect(unstable_name_collisions)]
-    let fname_base = test_dir.join(format!("Base.{ext}")).leak();
+    let fname_base = test_dir.join(format!("Base{suffix}")).leak();
     let contents_base = fs::read_to_string(&fname_base)
         .expect("Unable to read left file")
         .leak();
-    let fname_left = test_dir.join(format!("Left.{ext}"));
+    let fname_left = test_dir.join(format!("Left{suffix}"));
     let contents_left = fs::read_to_string(fname_left)
         .expect("Unable to read left file")
         .leak();
-    let fname_right = test_dir.join(format!("Right.{ext}"));
+    let fname_right = test_dir.join(format!("Right{suffix}"));
     let contents_right = fs::read_to_string(fname_right)
         .expect("Unable to read right file")
         .leak();
 
-    let fname_expected_currently = test_dir.join(format!("ExpectedCurrently.{ext}"));
+    let fname_expected_currently = test_dir.join(format!("ExpectedCurrently{suffix}"));
     let contents_expected_currently = fs::read_to_string(&fname_expected_currently)
         .expect("Unable to read expected-currently file");
-    let fname_expected_ideally = test_dir.join(format!("ExpectedIdeally.{ext}"));
+    let fname_expected_ideally = test_dir.join(format!("ExpectedIdeally{suffix}"));
     let contents_expected_ideally =
         fs::read_to_string(fname_expected_ideally).expect("Unable to read expected-ideally file");
 
@@ -71,7 +73,7 @@ fn integration_failing(#[files("examples/*/failing/*")] test_dir: PathBuf) {
         None,
         None,
         Duration::from_millis(0),
-        None,
+        language_override_for_test(&test_dir),
     );
 
     let actual = &merge_result.contents;
@@ -89,7 +91,8 @@ fn integration_failing(#[files("examples/*/failing/*")] test_dir: PathBuf) {
     };
 
     // only run the following part if the file exists
-    let fname_expected_compact_currently = test_dir.join(format!("ExpectedCompactCurrently.{ext}"));
+    let fname_expected_compact_currently =
+        test_dir.join(format!("ExpectedCompactCurrently{suffix}"));
     let Ok(contents_expected_compact_currently) =
         fs::read_to_string(&fname_expected_compact_currently)
     else {
@@ -114,7 +117,7 @@ fn integration_failing(#[files("examples/*/failing/*")] test_dir: PathBuf) {
                 eprintln!(
                     "\
 non-compact test for {} failed, but output differs from what we currently expect
-please examine the new output and update ExpectedCurrently.{ext} if it looks okay",
+please examine the new output and update ExpectedCurrently{suffix} if it looks okay",
                     test_dir.display(),
                 );
                 panic!();
@@ -122,7 +125,7 @@ please examine the new output and update ExpectedCurrently.{ext} if it looks oka
         }
         return;
     };
-    let fname_expected_compact_ideally = test_dir.join(format!("ExpectedCompactIdeally.{ext}"));
+    let fname_expected_compact_ideally = test_dir.join(format!("ExpectedCompactIdeally{suffix}"));
     let contents_expected_compact_ideally = fs::read_to_string(fname_expected_compact_ideally)
         .expect("could not read expected-compact-ideally file");
 
@@ -165,9 +168,9 @@ please examine the new output and update ExpectedCurrently.{ext} if it looks oka
             panic!(
                 "both compact and non-compact cases are now correct!
 the test can now be moved to under `working` as follows:
-1. rename `ExpectedIdeally.{ext}` to `Expected.{ext}`
-2. rename `ExpectedCompactIdeally.{ext}` to `ExpectedCompact.{ext}`
-3. delete `ExpectedCurrently.{ext}` and `ExpectedCompactCurrently.{ext}`
+1. rename `ExpectedIdeally{suffix}` to `Expected{suffix}`
+2. rename `ExpectedCompactIdeally{suffix}` to `ExpectedCompact{suffix}`
+3. delete `ExpectedCurrently{suffix}` and `ExpectedCompactCurrently{suffix}`
 "
             )
         }
@@ -179,7 +182,7 @@ the test can now be moved to under `working` as follows:
                 let f = PatchFormatter::new().with_color();
                 println!(
                     "the non-compact test fails, but in a new way
-please examine the new output and update ExpectedCurrently.{ext} if it looks okay:
+please examine the new output and update ExpectedCurrently{suffix} if it looks okay:
 {}",
                     f.fmt_patch(&patch)
                 );
@@ -190,7 +193,7 @@ please examine the new output and update ExpectedCurrently.{ext} if it looks oka
                 let f = PatchFormatter::new().with_color();
                 println!(
                     "the compact test fails, but in a new way
-please examine the new output and update ExpectedCompactCurrently.{ext} if it looks okay:
+please examine the new output and update ExpectedCompactCurrently{suffix} if it looks okay:
 {}",
                     f.fmt_patch(&patch)
                 );

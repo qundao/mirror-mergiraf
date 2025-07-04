@@ -8,7 +8,9 @@ use mergiraf::{DISABLING_ENV_VAR, resolve_merge_cascading};
 use rstest::rstest;
 
 mod common;
-use common::{detect_extension, run_git, write_file_from_rev};
+use common::{detect_test_suffix, run_git, write_file_from_rev};
+
+use crate::common::language_override_for_test;
 
 /// End-to-end test for the "mergiraf solve" command
 #[rstest]
@@ -16,7 +18,7 @@ use common::{detect_extension, run_git, write_file_from_rev};
 #[case("diff3")]
 fn solve_command(#[case] conflict_style: &str) {
     let test_dir = Path::new("examples/java/working/demo");
-    let extension = detect_extension(test_dir);
+    let suffix = detect_test_suffix(test_dir);
 
     // create temp directory
     let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
@@ -24,7 +26,7 @@ fn solve_command(#[case] conflict_style: &str) {
     // init git repository
     run_git(&["init", "."], repo_dir);
     run_git(&["checkout", "-b", "first_branch"], repo_dir);
-    let file_name = write_file_from_rev(repo_dir, test_dir, "Base", &extension);
+    let file_name = write_file_from_rev(repo_dir, test_dir, "Base", &suffix);
     run_git(&["add", &file_name.to_string_lossy()], repo_dir);
     run_git(
         &[
@@ -39,7 +41,7 @@ fn solve_command(#[case] conflict_style: &str) {
         ],
         repo_dir,
     );
-    write_file_from_rev(repo_dir, test_dir, "Left", &extension);
+    write_file_from_rev(repo_dir, test_dir, "Left", &suffix);
     run_git(
         &[
             "-c",
@@ -55,7 +57,7 @@ fn solve_command(#[case] conflict_style: &str) {
     );
     run_git(&["checkout", "HEAD~"], repo_dir);
     run_git(&["checkout", "-b", "second_branch"], repo_dir);
-    write_file_from_rev(repo_dir, test_dir, "Right", &extension);
+    write_file_from_rev(repo_dir, test_dir, "Right", &suffix);
     run_git(
         &[
             "-c",
@@ -95,11 +97,11 @@ fn solve_command(#[case] conflict_style: &str) {
         DisplaySettings::default(),
         None,
         repo_dir,
-        None,
+        language_override_for_test(test_dir),
     )
     .expect("solving the conflicts returned an error");
 
-    let expected_result = fs::read_to_string(test_dir.join(format!("Expected.{extension}")))
+    let expected_result = fs::read_to_string(test_dir.join(format!("Expected{suffix}")))
         .expect("could not read the expected results");
     let expected_result = normalize_to_lf(expected_result);
     assert_eq!(merge_result.contents, expected_result);
