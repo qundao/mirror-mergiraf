@@ -63,6 +63,12 @@ enum Command {
         /// Seed for all randomness involved
         #[arg(long)]
         seed: Option<u64>,
+        /// Maximum number of minimization steps to take
+        #[arg(long, default_value_t = 100)]
+        max_steps: i32,
+        /// Maximum number of failures to accept when attempting a minimization step
+        #[arg(long, default_value_t = 100)]
+        max_failures: i32,
     },
 }
 
@@ -140,6 +146,8 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             expected_exit_code,
             output,
             seed,
+            max_steps,
+            max_failures,
         } => {
             minimize(
                 test_case,
@@ -147,6 +155,8 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
                 *expected_exit_code,
                 output.as_ref(),
                 *seed,
+                *max_steps,
+                *max_failures,
             );
             0
         }
