@@ -659,7 +659,7 @@ impl<'a> MergedTree<'a> {
                                 Some((Cow::from(new_whitespace), indentation_shift))
                             })
                         })
-                        .unwrap_or((Cow::from(""), ""))
+                        .unwrap_or_default()
                 };
 
                 output.push_merged(preceding_whitespace);

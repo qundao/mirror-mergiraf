@@ -305,12 +305,12 @@ impl TreeMatcher {
                 )
             })
             .collect();
-        let right_children: MultiMap<(&'static str, &Option<Signature>), &'a AstNode<'a>> = right
+        let right_children: MultiMap<(&'static str, Option<&Signature>), &'a AstNode<'a>> = right
             .children
             .iter()
             .map(|node| {
                 (
-                    (node.grammar_name, &None), // self.lang_profile.extract_signature(node)),
+                    (node.grammar_name, None), // self.lang_profile.extract_signature(node)),
                     *node,
                 )
             })
@@ -320,7 +320,7 @@ impl TreeMatcher {
             if children_l.len() != 1 {
                 continue;
             }
-            let children_r = right_children.get(&(node_type, signature));
+            let children_r = right_children.get(&(node_type, signature.as_ref()));
             if children_r.len() != 1 {
                 continue;
             }
@@ -398,8 +398,8 @@ impl TreeMatcher {
                         matching.add(left_node.node, right_node.node);
                         recovery_matching.add(left_node.node, right_node.node);
                         Self::convert_tree_edits_to_matches(
-                            left_node.children.as_slice(),
-                            right_node.children.as_slice(),
+                            &left_node.children,
+                            &right_node.children,
                             child_edits,
                             recovery_matching,
                             matching,

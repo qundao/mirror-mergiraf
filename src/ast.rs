@@ -411,7 +411,7 @@ impl<'a> AstNode<'a> {
                 process_node(child, result, i);
             }
             let end = *i;
-            unsafe { (*node.dfs.get()) = Some(&result[start..end]) };
+            unsafe { *node.dfs.get() = Some(&result[start..end]) };
         }
 
         let mut i = 0;
@@ -774,7 +774,7 @@ impl<'a> AstNode<'a> {
 
     /// The source of this node, stripped from any indentation inherited by the node or its ancestors
     pub fn unindented_source(&'a self) -> Cow<'a, str> {
-        match self.preceding_indentation().or(self.ancestor_indentation()) {
+        match (self.preceding_indentation()).or_else(|| self.ancestor_indentation()) {
             Some(indentation) => {
                 // TODO FIXME this is invalid for multiline string literals!
                 Cow::from(self.source.replace(&format!("\n{indentation}"), "\n"))
@@ -787,7 +787,7 @@ impl<'a> AstNode<'a> {
     /// and shifted back to the desired indentation.
     pub fn reindented_source(&'a self, new_indentation: &str) -> Cow<'a, str> {
         let indentation = (self.preceding_indentation())
-            .or(self.ancestor_indentation())
+            .or_else(|| self.ancestor_indentation())
             .unwrap_or("");
         if indentation == new_indentation {
             return Cow::from(self.source);

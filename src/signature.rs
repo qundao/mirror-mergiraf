@@ -175,9 +175,11 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                         let mut hasher = crate::fxhasher();
                         self.hash(&mut hasher);
                         let hash_a = hasher.finish();
+
                         hasher = crate::fxhasher();
                         other.hash(&mut hasher);
                         let hash_b = hasher.finish();
+
                         hash_a == hash_b
                     }
                 }
@@ -287,7 +289,7 @@ impl SignatureDefinition {
         self.extract_internal(AstNodeEquiv::Original(node), &ClassMapping::new())
     }
 
-    /// Extracts a signature for the supplied original node
+    /// Extracts a signature for the supplied merged node
     pub(crate) fn extract_signature_from_merged_node<'a, 'b: 'a>(
         &self,
         node: &'a MergedTree<'b>,

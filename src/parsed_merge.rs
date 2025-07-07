@@ -391,7 +391,7 @@ impl<'a> ParsedMerge<'a> {
         let mut left = 0;
         let mut right = slice.len();
         while left < right {
-            let guess = (left + right) / 2;
+            let guess = left.midpoint(right);
             let offset = slice
                 .get(guess)
                 .expect("Programming error in binary search, oops!");
