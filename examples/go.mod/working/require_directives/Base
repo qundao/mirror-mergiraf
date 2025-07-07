@@ -1,0 +1,3 @@
+require (
+	code.forgejo.org/f3/gof3/v3 v3.11.0
+)

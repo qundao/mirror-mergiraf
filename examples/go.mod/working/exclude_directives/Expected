@@ -1,0 +1,5 @@
+exclude github.com/foo/foo v0.1.0
+
+exclude github.com/bar/bar v1.0.0
+
+exclude github.com/baz/baz v2.0.0

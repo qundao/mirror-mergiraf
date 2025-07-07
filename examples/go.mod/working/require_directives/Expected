@@ -1,0 +1,5 @@
+require (
+	code.forgejo.org/f3/gof3/v3 v3.11.0
+	mvdan.cc/xurls/v2 v2.5.0
+	xorm.io/builder v0.3.13
+)
