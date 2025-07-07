@@ -488,8 +488,13 @@ mod tests {
 
     use super::*;
 
+    #[track_caller]
+    fn parse(source: &str) -> ParsedMerge {
+        ParsedMerge::parse(source, &DisplaySettings::default()).expect("unexpected parse error")
+    }
+
     #[test]
-    fn parse() {
+    fn it_works() {
         let source = "
 we reached a junction.
 <<<<<<< left
@@ -501,8 +506,7 @@ turn right please!
 >>>>>>>
 rest of file
 ";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("unexpected parse error");
+        let parsed = parse(source);
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
@@ -605,9 +609,12 @@ rest of file
         );
     }
 
-    #[test]
-    fn parse_start_with_conflict() {
-        let source = "\
+    mod parse {
+        use super::*;
+
+        #[test]
+        fn start_with_conflict() {
+            let source = "\
 <<<<<<< left
 let's go to the left!
 ||||||| base
@@ -617,42 +624,41 @@ turn right please!
 >>>>>>>
 rest of file
 ";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("unexpected parse error");
+            let parsed = parse(source);
 
-        let expected_parse = ParsedMerge::new(vec![
-            MergedChunk::Conflict {
-                left: Some("let's go to the left!\n"),
-                base: Some("where should we go?\n"),
-                right: Some("turn right please!\n"),
-                left_name: Some("left"),
-                base_name: Some("base"),
-                right_name: None,
-            },
-            MergedChunk::Resolved {
-                offset: 103,
-                contents: "rest of file\n",
-            },
-        ]);
+            let expected_parse = ParsedMerge::new(vec![
+                MergedChunk::Conflict {
+                    left: Some("let's go to the left!\n"),
+                    base: Some("where should we go?\n"),
+                    right: Some("turn right please!\n"),
+                    left_name: Some("left"),
+                    base_name: Some("base"),
+                    right_name: None,
+                },
+                MergedChunk::Resolved {
+                    offset: 103,
+                    contents: "rest of file\n",
+                },
+            ]);
 
-        assert_eq!(parsed, expected_parse);
-        assert_eq!(
-            parsed.reconstruct_revision(Revision::Base),
-            "where should we go?\nrest of file\n"
-        );
-        assert_eq!(
-            parsed.reconstruct_revision(Revision::Left),
-            "let's go to the left!\nrest of file\n"
-        );
-        assert_eq!(
-            parsed.reconstruct_revision(Revision::Right),
-            "turn right please!\nrest of file\n"
-        );
-    }
+            assert_eq!(parsed, expected_parse);
+            assert_eq!(
+                parsed.reconstruct_revision(Revision::Base),
+                "where should we go?\nrest of file\n"
+            );
+            assert_eq!(
+                parsed.reconstruct_revision(Revision::Left),
+                "let's go to the left!\nrest of file\n"
+            );
+            assert_eq!(
+                parsed.reconstruct_revision(Revision::Right),
+                "turn right please!\nrest of file\n"
+            );
+        }
 
-    #[test]
-    fn parse_end_with_conflict() {
-        let source = "
+        #[test]
+        fn end_with_conflict() {
+            let source = "
 we reached a junction.
 <<<<<<< left
 let's go to the left!
@@ -662,41 +668,487 @@ where should we go?
 turn right please!
 >>>>>>>
 ";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("unexpected parse error");
+            let parsed = parse(source);
 
-        let expected_parse = ParsedMerge::new(vec![
-            MergedChunk::Resolved {
+            let expected_parse = ParsedMerge::new(vec![
+                MergedChunk::Resolved {
+                    offset: 0,
+                    contents: "\nwe reached a junction.\n",
+                },
+                MergedChunk::Conflict {
+                    left: Some("let's go to the left!\n"),
+                    base: Some("where should we go?\n"),
+                    right: Some("turn right please!\n"),
+                    left_name: Some("left"),
+                    base_name: Some("base"),
+                    right_name: None,
+                },
+            ]);
+
+            assert_eq!(parsed, expected_parse);
+            assert_eq!(
+                parsed.reconstruct_revision(Revision::Base),
+                "\nwe reached a junction.\nwhere should we go?\n"
+            );
+            assert_eq!(
+                parsed.reconstruct_revision(Revision::Left),
+                "\nwe reached a junction.\nlet's go to the left!\n"
+            );
+            assert_eq!(
+                parsed.reconstruct_revision(Revision::Right),
+                "\nwe reached a junction.\nturn right please!\n"
+            );
+        }
+
+        #[test]
+        fn diff2() {
+            let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+=======
+>>>>>>> RIGHT
+};
+";
+
+            let parse_err = ParsedMerge::parse(source, &DisplaySettings::default())
+                .expect_err("expected a parse failure for diff2 conflicts");
+
+            assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
+        }
+
+        #[test]
+        fn non_standard_conflict_marker_size() {
+            let parsed_expected = ParsedMerge::new(vec![
+                MergedChunk::Resolved {
+                    offset: 0,
+                    contents: "resolved line\n",
+                },
+                MergedChunk::Conflict {
+                    left: Some("left line\n"),
+                    base: Some("base line\n"),
+                    right: Some("right line\n"),
+                    left_name: Some("LEFT"),
+                    base_name: Some("BASE"),
+                    right_name: Some("RIGHT"),
+                },
+            ]);
+
+            let conflict_with_4 = "\
+resolved line
+<<<< LEFT
+left line
+|||| BASE
+base line
+====
+right line
+>>>> RIGHT
+";
+            let parsed_with_4 = ParsedMerge::parse(
+                conflict_with_4,
+                &DisplaySettings {
+                    conflict_marker_size: Some(4),
+                    ..Default::default()
+                },
+            )
+            .expect("could not parse a conflict with `conflict_marker_size=4`");
+            assert_eq!(parsed_with_4, parsed_expected);
+
+            let conflict_with_9 = "\
+resolved line
+<<<<<<<<< LEFT
+left line
+||||||||| BASE
+base line
+=========
+right line
+>>>>>>>>> RIGHT
+";
+            let parsed_with_9 = ParsedMerge::parse(
+                conflict_with_9,
+                &DisplaySettings {
+                    conflict_marker_size: Some(9),
+                    ..Default::default()
+                },
+            )
+            .expect("could not parse a conflict with `conflict_marker_size=9`");
+            assert_eq!(parsed_with_9, parsed_expected);
+        }
+
+        #[test]
+        fn left_marker_not_at_line_start() {
+            let source = "\
+my_struct_t instance = {
+ <<<<<<< LIAR LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+=======
+>>>>>>> RIGHT
+};
+";
+            let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+                .expect("should just not see this conflict at all");
+
+            let expected_parse = ParsedMerge::new(vec![MergedChunk::Resolved {
                 offset: 0,
-                contents: "\nwe reached a junction.\n",
-            },
-            MergedChunk::Conflict {
-                left: Some("let's go to the left!\n"),
-                base: Some("where should we go?\n"),
-                right: Some("turn right please!\n"),
-                left_name: Some("left"),
-                base_name: Some("base"),
-                right_name: None,
-            },
-        ]);
+                contents: source,
+            }]);
 
-        assert_eq!(parsed, expected_parse);
-        assert_eq!(
-            parsed.reconstruct_revision(Revision::Base),
-            "\nwe reached a junction.\nwhere should we go?\n"
-        );
-        assert_eq!(
-            parsed.reconstruct_revision(Revision::Left),
-            "\nwe reached a junction.\nlet's go to the left!\n"
-        );
-        assert_eq!(
-            parsed.reconstruct_revision(Revision::Right),
-            "\nwe reached a junction.\nturn right please!\n"
-        );
+            assert_eq!(parsed, expected_parse);
+        }
+
+        #[test]
+        fn base_marker_not_at_line_start() {
+            let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+ ||||||| LIAR BASE
+    .foo = 3,
+=======
+>>>>>>> RIGHT
+};
+";
+            let parse_err = ParsedMerge::parse(source, &DisplaySettings::default()).expect_err(
+                "because of the missing base marker, this should like a diff2-style conflict",
+            );
+
+            assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
+        }
+
+        #[test]
+        fn middle_marker_not_at_line_start() {
+            let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+ =======
+>>>>>>> RIGHT
+};
+";
+            let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+                .expect("should ignore the malformed conflict");
+
+            let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
+                offset: 0,
+                contents: source,
+            }]);
+
+            assert_eq!(parsed, expected);
+        }
+
+        #[test]
+        fn right_marker_not_at_line_start() {
+            let source = "\
+my_struct_t instance = {
+<<<<<<< LEFT
+    .foo = 3,
+    .bar = 2,
+||||||| BASE
+    .foo = 3,
+=======
+ >>>>>>> LIAR RIGHT
+};
+";
+            let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+                .expect("should ignore the malformed conflict");
+
+            let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
+                offset: 0,
+                contents: source,
+            }]);
+
+            assert_eq!(parsed, expected);
+        }
+
+        #[test]
+        fn diff3_then_diff3_is_lazy() {
+            let source = "\
+<<<<<<< LEFT
+// a comment
+||||||| BASE
+=======
+// hi
+>>>>>>> RIGHT
+<<<<<<< LEFT
+use bytes;
+||||||| BASE
+use io;
+=======
+use os;
+>>>>>>> RIGHT
+";
+
+            let parsed = parse(source);
+
+            let unwanted_non_lazy = ParsedMerge::new(vec![MergedChunk::Conflict {
+                left_name: Some("LEFT"),
+                left: Some("// a comment\n"),
+                base_name: Some("BASE"),
+                base: Some(
+                    "=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n",
+                ),
+                right: Some("use os;\n"),
+                right_name: Some("RIGHT"),
+            }]);
+
+            assert_ne!(
+                parsed, unwanted_non_lazy,
+                "the regex is greedy -- it should've stopped after the first 'RIGHT'!"
+            );
+
+            let expected = ParsedMerge::new(vec![
+                MergedChunk::Conflict {
+                    left_name: Some("LEFT"),
+                    left: Some("// a comment\n"),
+                    base_name: Some("BASE"),
+                    base: None,
+                    right: Some("// hi\n"),
+                    right_name: Some("RIGHT"),
+                },
+                MergedChunk::Conflict {
+                    left_name: Some("LEFT"),
+                    left: Some("use bytes;\n"),
+                    base_name: Some("BASE"),
+                    base: Some("use io;\n"),
+                    right: Some("use os;\n"),
+                    right_name: Some("RIGHT"),
+                },
+            ]);
+
+            assert_eq!(parsed, expected);
+        }
+
+        #[test]
+        fn diff3_then_diff3_wo_newline() {
+            let source = "\
+<<<<<<< LEFT
+// a comment
+||||||| BASE
+=======
+// hi
+>>>>>>> RIGHT
+<<<<<<< LEFT
+use bytes;
+||||||| BASE
+use io;
+=======
+use os;
+>>>>>>> RIGHT";
+
+            let parsed = parse(source);
+
+            let expected = ParsedMerge::new(vec![
+                MergedChunk::Conflict {
+                    left_name: Some("LEFT"),
+                    left: Some("// a comment\n"),
+                    base_name: Some("BASE"),
+                    base: None,
+                    right: Some("// hi\n"),
+                    right_name: Some("RIGHT"),
+                },
+                MergedChunk::Conflict {
+                    left_name: Some("LEFT"),
+                    left: Some("use bytes;"),
+                    base_name: Some("BASE"),
+                    base: Some("use io;"),
+                    right: Some("use os;"),
+                    right_name: Some("RIGHT"),
+                },
+            ]);
+
+            assert_eq!(parsed, expected);
+        }
+
+        #[test]
+        fn diff3_is_with_final_newline_when_possible() {
+            let source = "\
+<<<<<<< left
+let's go to the left!
+||||||| base
+where should we go?
+=======
+turn right please!
+>>>>>>>
+";
+
+            let parsed = parse(source);
+
+            let unwanted_wo_final_newline = ParsedMerge::new(vec![
+                MergedChunk::Conflict {
+                    left_name: Some("left"),
+                    left: Some("let's go to the left!"),
+                    base_name: Some("base"),
+                    base: Some("where should we go?"),
+                    right: Some("turn right please!"),
+                    right_name: None,
+                },
+                MergedChunk::Resolved {
+                    offset: 102,
+                    contents: "\n",
+                },
+            ]);
+
+            assert_ne!(parsed, unwanted_wo_final_newline);
+        }
+    }
+
+    mod render {
+        use super::*;
+        #[test]
+        fn non_standard_conflict_marker_size() {
+            let merge = ParsedMerge::new(vec![
+                MergedChunk::Resolved {
+                    offset: 0,
+                    contents: "resolved line\n",
+                },
+                MergedChunk::Conflict {
+                    left_name: None,
+                    left: Some("left line\n"),
+                    base: Some("base line\n"),
+                    right: Some("right line\n"),
+                    right_name: None,
+                    base_name: None,
+                },
+            ]);
+
+            let rendered_with_4 = merge.render(&DisplaySettings {
+                conflict_marker_size: Some(4),
+                ..Default::default()
+            });
+            let expected_with_4 = "\
+resolved line
+<<<< LEFT
+left line
+|||| BASE
+base line
+====
+right line
+>>>> RIGHT
+";
+            assert_eq!(rendered_with_4, expected_with_4);
+
+            let rendered_with_9 = merge.render(&DisplaySettings {
+                conflict_marker_size: Some(9),
+                ..Default::default()
+            });
+            let expected_with_9 = "\
+resolved line
+<<<<<<<<< LEFT
+left line
+||||||||| BASE
+base line
+=========
+right line
+>>>>>>>>> RIGHT
+";
+            assert_eq!(rendered_with_9, expected_with_9);
+        }
+
+        #[test]
+        fn no_final_newline() {
+            // meanings of the used shortenings:
+            // - wo              - without final newline
+            // - w               - with final newline
+            // - expected_w_wo_w - expected from base_w, left_wo, right_w
+
+            let base_wo = "base";
+            let base_w = "base\n";
+
+            let left_wo = "left";
+            let left_w = "left\n";
+
+            let right_wo = "right";
+            let right_w = "right\n";
+
+            fn chunk(base: &str, left: &str, right: &str) -> String {
+                ParsedMerge::new(vec![MergedChunk::Conflict {
+                    left: Some(left),
+                    base: Some(base),
+                    right: Some(right),
+                    left_name: None,
+                    base_name: None,
+                    right_name: None,
+                }])
+                .render(&DisplaySettings::default())
+            }
+
+            let expected_wo_wo_wo = "\
+<<<<<<< LEFT
+left
+||||||| BASE
+base
+=======
+right
+>>>>>>> RIGHT";
+            let rendered = chunk(base_wo, left_wo, right_wo);
+            assert_eq!(rendered, expected_wo_wo_wo);
+
+            let expected_wo_w_wo = "\
+<<<<<<< LEFT
+left
+
+||||||| BASE
+base
+=======
+right
+>>>>>>> RIGHT";
+            let rendered = chunk(base_wo, left_w, right_wo);
+            assert_eq!(rendered, expected_wo_w_wo);
+
+            // wo_wo_w case should be symmetrical to wo_w_wo
+
+            let expected_wo_w_w = "\
+<<<<<<< LEFT
+left
+
+||||||| BASE
+base
+=======
+right
+
+>>>>>>> RIGHT";
+            let rendered = chunk(base_wo, left_w, right_w);
+            assert_eq!(rendered, expected_wo_w_w);
+
+            let expected_w_wo_wo = "\
+<<<<<<< LEFT
+left
+||||||| BASE
+base
+
+=======
+right
+>>>>>>> RIGHT";
+            let rendered = chunk(base_w, left_wo, right_wo);
+            assert_eq!(rendered, expected_w_wo_wo);
+
+            let expected_w_w_wo = "\
+<<<<<<< LEFT
+left
+
+||||||| BASE
+base
+
+=======
+right
+>>>>>>> RIGHT";
+            let rendered_w_w_wo = chunk(base_w, left_w, right_wo);
+            assert_eq!(rendered_w_w_wo, expected_w_w_wo);
+
+            // w_wo_w should be symmetrical to w_w_wo
+        }
     }
 
     #[test]
-    fn parse_diffy_imara() {
+    fn parse_then_render_is_identity() {
         let source = "\
 my_struct_t instance = {
 <<<<<<< LEFT
@@ -709,8 +1161,7 @@ my_struct_t instance = {
 };
 ";
 
-        let parsed =
-            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
+        let parsed = parse(source);
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
@@ -741,311 +1192,13 @@ my_struct_t instance = {
         assert_eq!(rendered, source);
     }
 
-    #[test]
-    fn parse_diff2() {
-        let source = "\
-my_struct_t instance = {
-<<<<<<< LEFT
-    .foo = 3,
-    .bar = 2,
-=======
->>>>>>> RIGHT
-};
-";
+    mod matching {
+        use super::*;
 
-        let parse_err = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect_err("expected a parse failure for diff2 conflicts");
-
-        assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
-    }
-
-    #[test]
-    fn parse_non_standard_conflict_marker_size() {
-        let parsed_expected = ParsedMerge::new(vec![
-            MergedChunk::Resolved {
-                offset: 0,
-                contents: "resolved line\n",
-            },
-            MergedChunk::Conflict {
-                left: Some("left line\n"),
-                base: Some("base line\n"),
-                right: Some("right line\n"),
-                left_name: Some("LEFT"),
-                base_name: Some("BASE"),
-                right_name: Some("RIGHT"),
-            },
-        ]);
-
-        let conflict_with_4 = "\
-resolved line
-<<<< LEFT
-left line
-|||| BASE
-base line
-====
-right line
->>>> RIGHT
-";
-        let parsed_with_4 = ParsedMerge::parse(
-            conflict_with_4,
-            &DisplaySettings {
-                conflict_marker_size: Some(4),
-                ..Default::default()
-            },
-        )
-        .expect("could not parse a conflict with `conflict_marker_size=4`");
-        assert_eq!(parsed_with_4, parsed_expected);
-
-        let conflict_with_9 = "\
-resolved line
-<<<<<<<<< LEFT
-left line
-||||||||| BASE
-base line
-=========
-right line
->>>>>>>>> RIGHT
-";
-        let parsed_with_9 = ParsedMerge::parse(
-            conflict_with_9,
-            &DisplaySettings {
-                conflict_marker_size: Some(9),
-                ..Default::default()
-            },
-        )
-        .expect("could not parse a conflict with `conflict_marker_size=9`");
-        assert_eq!(parsed_with_9, parsed_expected);
-    }
-
-    #[test]
-    fn parse_left_marker_not_at_line_start() {
-        let source = "\
-my_struct_t instance = {
- <<<<<<< LIAR LEFT
-    .foo = 3,
-    .bar = 2,
-||||||| BASE
-    .foo = 3,
-=======
->>>>>>> RIGHT
-};
-";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("should just not see this conflict at all");
-
-        let expected_parse = ParsedMerge::new(vec![MergedChunk::Resolved {
-            offset: 0,
-            contents: source,
-        }]);
-
-        assert_eq!(parsed, expected_parse);
-    }
-
-    #[test]
-    fn parse_base_marker_not_at_line_start() {
-        let source = "\
-my_struct_t instance = {
-<<<<<<< LEFT
-    .foo = 3,
-    .bar = 2,
- ||||||| LIAR BASE
-    .foo = 3,
-=======
->>>>>>> RIGHT
-};
-";
-        let parse_err = ParsedMerge::parse(source, &DisplaySettings::default()).expect_err(
-            "because of the missing base marker, this should like a diff2-style conflict",
-        );
-
-        assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
-    }
-
-    #[test]
-    fn parse_middle_marker_not_at_line_start() {
-        let source = "\
-my_struct_t instance = {
-<<<<<<< LEFT
-    .foo = 3,
-    .bar = 2,
-||||||| BASE
-    .foo = 3,
- =======
->>>>>>> RIGHT
-};
-";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("should ignore the malformed conflict");
-
-        let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
-            offset: 0,
-            contents: source,
-        }]);
-
-        assert_eq!(parsed, expected);
-    }
-
-    #[test]
-    fn parse_right_marker_not_at_line_start() {
-        let source = "\
-my_struct_t instance = {
-<<<<<<< LEFT
-    .foo = 3,
-    .bar = 2,
-||||||| BASE
-    .foo = 3,
-=======
- >>>>>>> LIAR RIGHT
-};
-";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("should ignore the malformed conflict");
-
-        let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
-            offset: 0,
-            contents: source,
-        }]);
-
-        assert_eq!(parsed, expected);
-    }
-
-    #[test]
-    fn parse_diff3_then_diff3_is_lazy() {
-        let source = "\
-<<<<<<< LEFT
-// a comment
-||||||| BASE
-=======
-// hi
->>>>>>> RIGHT
-<<<<<<< LEFT
-use bytes;
-||||||| BASE
-use io;
-=======
-use os;
->>>>>>> RIGHT
-";
-
-        let parsed =
-            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
-
-        let unwanted_non_lazy = ParsedMerge::new(vec![MergedChunk::Conflict {
-            left_name: Some("LEFT"),
-            left: Some("// a comment\n"),
-            base_name: Some("BASE"),
-            base: Some(
-                "=======\n// hi\n>>>>>>> RIGHT\n<<<<<<< LEFT\nuse bytes;\n||||||| BASE\nuse io;\n",
-            ),
-            right: Some("use os;\n"),
-            right_name: Some("RIGHT"),
-        }]);
-
-        assert_ne!(
-            parsed, unwanted_non_lazy,
-            "the regex is greedy -- it should've stopped after the first 'RIGHT'!"
-        );
-
-        let expected = ParsedMerge::new(vec![
-            MergedChunk::Conflict {
-                left_name: Some("LEFT"),
-                left: Some("// a comment\n"),
-                base_name: Some("BASE"),
-                base: None,
-                right: Some("// hi\n"),
-                right_name: Some("RIGHT"),
-            },
-            MergedChunk::Conflict {
-                left_name: Some("LEFT"),
-                left: Some("use bytes;\n"),
-                base_name: Some("BASE"),
-                base: Some("use io;\n"),
-                right: Some("use os;\n"),
-                right_name: Some("RIGHT"),
-            },
-        ]);
-
-        assert_eq!(parsed, expected);
-    }
-
-    #[test]
-    fn parse_diff3_then_diff3_wo_newline() {
-        let source = "\
-<<<<<<< LEFT
-// a comment
-||||||| BASE
-=======
-// hi
->>>>>>> RIGHT
-<<<<<<< LEFT
-use bytes;
-||||||| BASE
-use io;
-=======
-use os;
->>>>>>> RIGHT";
-        let parsed =
-            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
-
-        let expected = ParsedMerge::new(vec![
-            MergedChunk::Conflict {
-                left_name: Some("LEFT"),
-                left: Some("// a comment\n"),
-                base_name: Some("BASE"),
-                base: None,
-                right: Some("// hi\n"),
-                right_name: Some("RIGHT"),
-            },
-            MergedChunk::Conflict {
-                left_name: Some("LEFT"),
-                left: Some("use bytes;"),
-                base_name: Some("BASE"),
-                base: Some("use io;"),
-                right: Some("use os;"),
-                right_name: Some("RIGHT"),
-            },
-        ]);
-
-        assert_eq!(parsed, expected);
-    }
-
-    #[test]
-    fn parse_diff3_is_with_final_newline_when_possible() {
-        let source = "\
-<<<<<<< left
-let's go to the left!
-||||||| base
-where should we go?
-=======
-turn right please!
->>>>>>>
-";
-
-        let parsed =
-            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
-
-        let unwanted_wo_final_newline = ParsedMerge::new(vec![
-            MergedChunk::Conflict {
-                left_name: Some("left"),
-                left: Some("let's go to the left!"),
-                base_name: Some("base"),
-                base: Some("where should we go?"),
-                right: Some("turn right please!"),
-                right_name: None,
-            },
-            MergedChunk::Resolved {
-                offset: 102,
-                contents: "\n",
-            },
-        ]);
-
-        assert_ne!(parsed, unwanted_wo_final_newline);
-    }
-
-    #[test]
-    fn matching() {
-        let ctx = ctx();
-        let source = "\
+        #[test]
+        fn it_works() {
+            let ctx = ctx();
+            let source = "\
 struct MyType {
     field: bool,
 <<<<<<< LEFT
@@ -1057,33 +1210,37 @@ struct MyType {
 >>>>>>> RIGHT
 };
 ";
-        let parsed =
-            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
-        let left_rev = parsed.reconstruct_revision(Revision::Left);
-        let right_rev = parsed.reconstruct_revision(Revision::Right);
+            let parsed = parse(source);
 
-        let parsed_left = ctx.parse_rust(&left_rev);
-        let parsed_right = ctx.parse_rust(&right_rev);
+            let left_rev = parsed.reconstruct_revision(Revision::Left);
+            let right_rev = parsed.reconstruct_revision(Revision::Right);
 
-        let matching =
-            parsed.generate_matching(Revision::Left, Revision::Right, parsed_left, parsed_right);
+            let parsed_left = ctx.parse_rust(&left_rev);
+            let parsed_right = ctx.parse_rust(&right_rev);
 
-        let mytype_left = parsed_left[0][1];
-        let mytype_right = parsed_right[0][1];
-        let closing_bracket_left = parsed_left[0][2][7];
-        let closing_bracket_right = parsed_right[0][2][3];
+            let matching = parsed.generate_matching(
+                Revision::Left,
+                Revision::Right,
+                parsed_left,
+                parsed_right,
+            );
 
-        assert!(matching.are_matched(mytype_left, mytype_right));
-        assert!(matching.are_matched(closing_bracket_left, closing_bracket_right));
+            let mytype_left = parsed_left[0][1];
+            let mytype_right = parsed_right[0][1];
+            let closing_bracket_left = parsed_left[0][2][7];
+            let closing_bracket_right = parsed_right[0][2][3];
 
-        assert_eq!(matching.len(), 7);
-    }
+            assert!(matching.are_matched(mytype_left, mytype_right));
+            assert!(matching.are_matched(closing_bracket_left, closing_bracket_right));
 
-    #[test]
-    fn identical_ranges_but_different_grammar_names() {
-        let ctx = ctx();
-        let source = "\
+            assert_eq!(matching.len(), 7);
+        }
+
+        #[test]
+        fn identical_ranges_but_different_grammar_names() {
+            let ctx = ctx();
+            let source = "\
 {
 }:
 
@@ -1097,177 +1254,37 @@ struct MyType {
 >>>>>>> RIGHT
 }
 ";
-        let parsed =
-            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
-        let base_rev = parsed.reconstruct_revision(Revision::Base);
-        let left_rev = parsed.reconstruct_revision(Revision::Left);
+            let parsed = parse(source);
 
-        let parsed_base = ctx.parse_nix(&base_rev);
-        let parsed_left = ctx.parse_nix(&left_rev);
+            let base_rev = parsed.reconstruct_revision(Revision::Base);
+            let left_rev = parsed.reconstruct_revision(Revision::Left);
 
-        let binding_set_base = parsed_base[0][2][1];
-        assert_eq!(binding_set_base.grammar_name, "binding_set");
-        let binding_left = parsed_left[0][2][1][0];
-        assert_eq!(binding_left.grammar_name, "binding");
-        // two nodes of different types have the same range
-        assert_eq!(binding_set_base.byte_range, binding_left.byte_range);
+            let parsed_base = ctx.parse_nix(&base_rev);
+            let parsed_left = ctx.parse_nix(&left_rev);
 
-        let matching =
-            parsed.generate_matching(Revision::Base, Revision::Left, parsed_base, parsed_left);
+            let binding_set_base = parsed_base[0][2][1];
+            assert_eq!(binding_set_base.grammar_name, "binding_set");
+            let binding_left = parsed_left[0][2][1][0];
+            assert_eq!(binding_left.grammar_name, "binding");
+            // two nodes of different types have the same range
+            assert_eq!(binding_set_base.byte_range, binding_left.byte_range);
 
-        // the two nodes are not matched despite having the same range
-        assert!(matching.get_from_left(binding_set_base).is_none());
-        assert!(matching.get_from_right(binding_left).is_none());
-    }
+            let matching =
+                parsed.generate_matching(Revision::Base, Revision::Left, parsed_base, parsed_left);
 
-    #[test]
-    fn render_non_standard_conflict_marker_size() {
-        let merge = ParsedMerge::new(vec![
-            MergedChunk::Resolved {
-                offset: 0,
-                contents: "resolved line\n",
-            },
-            MergedChunk::Conflict {
-                left_name: None,
-                left: Some("left line\n"),
-                base: Some("base line\n"),
-                right: Some("right line\n"),
-                right_name: None,
-                base_name: None,
-            },
-        ]);
-
-        let rendered_with_4 = merge.render(&DisplaySettings {
-            conflict_marker_size: Some(4),
-            ..Default::default()
-        });
-        let expected_with_4 = "\
-resolved line
-<<<< LEFT
-left line
-|||| BASE
-base line
-====
-right line
->>>> RIGHT
-";
-        assert_eq!(rendered_with_4, expected_with_4);
-
-        let rendered_with_9 = merge.render(&DisplaySettings {
-            conflict_marker_size: Some(9),
-            ..Default::default()
-        });
-        let expected_with_9 = "\
-resolved line
-<<<<<<<<< LEFT
-left line
-||||||||| BASE
-base line
-=========
-right line
->>>>>>>>> RIGHT
-";
-        assert_eq!(rendered_with_9, expected_with_9);
-    }
-
-    #[test]
-    fn render_no_final_newline() {
-        // meanings of the used shortenings:
-        // - wo              - without final newline
-        // - w               - with final newline
-        // - expected_w_wo_w - expected from base_w, left_wo, right_w
-
-        let base_wo = "base";
-        let base_w = "base\n";
-
-        let left_wo = "left";
-        let left_w = "left\n";
-
-        let right_wo = "right";
-        let right_w = "right\n";
-
-        fn chunk(base: &str, left: &str, right: &str) -> String {
-            ParsedMerge::new(vec![MergedChunk::Conflict {
-                left: Some(left),
-                base: Some(base),
-                right: Some(right),
-                left_name: None,
-                base_name: None,
-                right_name: None,
-            }])
-            .render(&DisplaySettings::default())
+            // the two nodes are not matched despite having the same range
+            assert!(matching.get_from_left(binding_set_base).is_none());
+            assert!(matching.get_from_right(binding_left).is_none());
         }
-
-        let expected_wo_wo_wo = "\
-<<<<<<< LEFT
-left
-||||||| BASE
-base
-=======
-right
->>>>>>> RIGHT";
-        let rendered = chunk(base_wo, left_wo, right_wo);
-        assert_eq!(rendered, expected_wo_wo_wo);
-
-        let expected_wo_w_wo = "\
-<<<<<<< LEFT
-left
-
-||||||| BASE
-base
-=======
-right
->>>>>>> RIGHT";
-        let rendered = chunk(base_wo, left_w, right_wo);
-        assert_eq!(rendered, expected_wo_w_wo);
-
-        // wo_wo_w case should be symmetrical to wo_w_wo
-
-        let expected_wo_w_w = "\
-<<<<<<< LEFT
-left
-
-||||||| BASE
-base
-=======
-right
-
->>>>>>> RIGHT";
-        let rendered = chunk(base_wo, left_w, right_w);
-        assert_eq!(rendered, expected_wo_w_w);
-
-        let expected_w_wo_wo = "\
-<<<<<<< LEFT
-left
-||||||| BASE
-base
-
-=======
-right
->>>>>>> RIGHT";
-        let rendered = chunk(base_w, left_wo, right_wo);
-        assert_eq!(rendered, expected_w_wo_wo);
-
-        let expected_w_w_wo = "\
-<<<<<<< LEFT
-left
-
-||||||| BASE
-base
-
-=======
-right
->>>>>>> RIGHT";
-        let rendered_w_w_wo = chunk(base_w, left_w, right_wo);
-        assert_eq!(rendered_w_w_wo, expected_w_w_wo);
-
-        // w_wo_w should be symmetrical to w_w_wo
     }
 
-    #[test]
-    fn add_revision_names_to_settings() {
-        let source = "\
+    mod add_revision_names {
+        use super::*;
+
+        #[test]
+        fn it_works() {
+            let source = "\
 <<<<<<< my_left
 let's go to the left!
 ||||||| my_base
@@ -1277,28 +1294,27 @@ turn right please!
 >>>>>>> my_right
 rest of file
 ";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("unexpected parse error");
+            let parsed = parse(source);
 
-        let initial_settings = DisplaySettings::default();
+            let initial_settings = DisplaySettings::default();
 
-        let mut enriched_settings = initial_settings.clone();
-        enriched_settings.add_revision_names(&parsed);
+            let mut enriched_settings = initial_settings.clone();
+            enriched_settings.add_revision_names(&parsed);
 
-        assert_eq!(
-            enriched_settings,
-            DisplaySettings {
-                left_revision_name: Some(Cow::Borrowed("my_left")),
-                base_revision_name: Some(Cow::Borrowed("my_base")),
-                right_revision_name: Some(Cow::Borrowed("my_right")),
-                ..initial_settings
-            }
-        );
-    }
+            assert_eq!(
+                enriched_settings,
+                DisplaySettings {
+                    left_revision_name: Some(Cow::Borrowed("my_left")),
+                    base_revision_name: Some(Cow::Borrowed("my_base")),
+                    right_revision_name: Some(Cow::Borrowed("my_right")),
+                    ..initial_settings
+                }
+            );
+        }
 
-    #[test]
-    fn add_revision_names_to_settings_no_names() {
-        let source = "\
+        #[test]
+        fn no_names() {
+            let source = "\
 <<<<<<<
 let's go to the left!
 |||||||
@@ -1308,31 +1324,30 @@ turn right please!
 >>>>>>>
 rest of file
 ";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("unexpected parse error");
+            let parsed = parse(source);
 
-        let initial_settings = DisplaySettings::default();
+            let initial_settings = DisplaySettings::default();
 
-        let mut enriched_settings = initial_settings.clone();
-        enriched_settings.add_revision_names(&parsed);
+            let mut enriched_settings = initial_settings.clone();
+            enriched_settings.add_revision_names(&parsed);
 
-        assert_eq!(enriched_settings, initial_settings);
-    }
+            assert_eq!(enriched_settings, initial_settings);
+        }
 
-    #[test]
-    fn add_revision_names_to_settings_no_conflict() {
-        let source = "\
+        #[test]
+        fn no_conflict() {
+            let source = "\
 start of file
 rest of file
 ";
-        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
-            .expect("unexpected parse error");
+            let parsed = parse(source);
 
-        let initial_settings = DisplaySettings::default();
+            let initial_settings = DisplaySettings::default();
 
-        let mut enriched_settings = initial_settings.clone();
-        enriched_settings.add_revision_names(&parsed);
+            let mut enriched_settings = initial_settings.clone();
+            enriched_settings.add_revision_names(&parsed);
 
-        assert_eq!(enriched_settings, initial_settings);
+            assert_eq!(enriched_settings, initial_settings);
+        }
     }
 }
