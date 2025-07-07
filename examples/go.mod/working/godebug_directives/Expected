@@ -1,0 +1,9 @@
+<<<<<<< LEFT
+godebug mode=fast
+||||||| BASE
+=======
+godebug mode=slow
+>>>>>>> RIGHT
+godebug default=go1.21
+godebug foo=buenos_dias
+godebug bar=hello

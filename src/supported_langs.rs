@@ -399,6 +399,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         &["replace_directive_single"],
                         &["exclude_directive_single"],
                         &["retract_directive_single"],
+                        &["ignore_directive_single"],
+                        &["godebug_directive_single"],
                     ],
                 ),
                 CommutativeParent::new("require_directive_multi", "(", "\n", ")")
@@ -409,6 +411,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     .restricted_to_groups(&[&["exclude_spec"]]),
                 CommutativeParent::new("retract_directive_multi", "(", "\n", ")")
                     .restricted_to_groups(&[&["retract_spec"]]),
+                CommutativeParent::new("ignore_directive_multi", "(", "\n", ")")
+                    .restricted_to_groups(&[&["ignore_spec"]]),
+                CommutativeParent::new("godebug_directive_multi", "(", "\n", ")")
+                    .restricted_to_groups(&[&["godebug_spec"]]),
             ],
             signatures: vec![
                 signature(
@@ -430,6 +436,14 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     "retract_directive_single",
                     vec![vec![ChildType("retract_spec")]],
                 ),
+                signature(
+                    "ignore_directive_single",
+                    vec![vec![ChildType("ignore_spec")]],
+                ),
+                signature(
+                    "godebug_directive_single",
+                    vec![vec![ChildType("godebug_spec"), Field("key")]],
+                ),
                 signature("require_spec", vec![vec![Field("path")]]),
                 signature(
                     "replace_spec",
@@ -437,6 +451,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 ),
                 signature("exclude_spec", vec![vec![]]),
                 signature("retract_spec", vec![vec![]]),
+                signature("ignore_spec", vec![vec![]]),
+                signature("godebug_spec", vec![vec![Field("key")]]),
             ],
             injections: None,
         },

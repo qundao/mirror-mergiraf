@@ -1,0 +1,4 @@
+godebug mode=fast
+godebug default=go1.21
+godebug foo=buenos_dias
+godebug bar=hello

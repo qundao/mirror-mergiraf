@@ -1,0 +1,4 @@
+ignore (
+    static
+    ./third_party/javascript
+)
