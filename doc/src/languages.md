@@ -32,7 +32,7 @@ and the following declarative file formats:
 * Devicetree Source (*.dts)
 * Java properties files (*.properties)
 * HCL (*.hcl, *.tf, *.tfvars)
-* `go.mod` files
+* `go.mod` and `go.sum` files
 
 This list can also be obtained with the `mergiraf languages` command.
 

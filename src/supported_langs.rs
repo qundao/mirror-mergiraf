@@ -457,6 +457,31 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
         },
         LangProfile {
+            name: "go.sum",
+            alternate_names: &[],
+            extensions: vec![],
+            file_names: vec!["go.sum"],
+            language: tree_sitter_gosum_orchard::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("checksum_database", "\n")
+                    .restricted_to_groups(&[&["checksum"]]),
+            ],
+            signatures: vec![
+                // the same module can appear multiple times in go.sum with the same version,
+                // so the version needs to be part of the signature.
+                signature(
+                    "checksum",
+                    vec![
+                        vec![Field("path")],
+                        vec![Field("version")],
+                        vec![Field("go_mod")],
+                    ],
+                ),
+            ],
+            injections: None,
+        },
+        LangProfile {
             name: "INI",
             alternate_names: &[],
             extensions: vec!["ini"],

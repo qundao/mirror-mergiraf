@@ -551,6 +551,7 @@ dependencies = [
  "tree-sitter-elixir",
  "tree-sitter-go",
  "tree-sitter-gomod-orchard",
+ "tree-sitter-gosum-orchard",
  "tree-sitter-haskell",
  "tree-sitter-hcl",
  "tree-sitter-html",
@@ -1044,6 +1045,16 @@ name = "tree-sitter-gomod-orchard"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0b61e7e2bbf91a29f93ba7379a48d78a9b5a596d19a833783244e4a4db4e4cd"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-gosum-orchard"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54ef55f106957e8e0f570fe26092d698bb97a415aa98810b359d7495757ff441"
 dependencies = [
  "cc",
  "tree-sitter-language",
