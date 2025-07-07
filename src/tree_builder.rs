@@ -251,30 +251,18 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         unreachable!("`build_conflict` should return a conflict")
                     };
 
-                    // reason: the following two `if`s should really be `&&`-ed,
-                    // but https://github.com/rust-lang/rust/issues/53667
-                    // until then, collapsing one but not the other looks misleading
-                    // TODO(if-let-chains): use them here
-                    #[allow(clippy::collapsible_if)]
-                    if let PCSNode::Node { node: leader, .. } = node {
-                        if let Some(commutative_parent) = leader.commutative_parent_definition() {
-                            // knowing that the order of all elements of the conflict does not matter, solve the conflict
-                            let solved_conflict = self.commutatively_merge_lists(
-                                &base,
-                                &left,
-                                &right,
-                                commutative_parent,
-                                visiting_state,
-                            )?;
-                            children.extend(solved_conflict);
-                        } else {
-                            children.extend(MergedTree::new_conflict(
-                                base,
-                                left,
-                                right,
-                                self.class_mapping,
-                            ));
-                        }
+                    if let PCSNode::Node { node: leader, .. } = node
+                        && let Some(commutative_parent) = leader.commutative_parent_definition()
+                    {
+                        // knowing that the order of all elements of the conflict does not matter, solve the conflict
+                        let solved_conflict = self.commutatively_merge_lists(
+                            &base,
+                            &left,
+                            &right,
+                            commutative_parent,
+                            visiting_state,
+                        )?;
+                        children.extend(solved_conflict);
                     } else {
                         children.extend(MergedTree::new_conflict(
                             base,
@@ -394,16 +382,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         }
                     }
                 }
-                if !common_revisions.is_empty() &&
+                if let Some(common_revisions) = common_revisions.as_nonempty() &&
                     // if one of the left/right revisions is doing a reformatting, we make sure it's included in the merged result
                     (!self.class_mapping.is_reformatting(revnode, Revision::Left) || common_revisions.contains(Revision::Left)) &&
                     (!self.class_mapping.is_reformatting(revnode, Revision::Right) || common_revisions.contains(Revision::Right))
                 {
                     Ok(MergedTree::new_exact(
                         revnode,
-                        common_revisions
-                            .as_nonempty()
-                            .expect("Unexpected empty set (checked above)"),
+                        common_revisions,
                         self.class_mapping,
                     ))
                 } else {
@@ -548,19 +534,18 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             ));
         };
         // If the root happens to be commutative, we can merge all children accordingly.
-        if let Some(commutative_parent) = node.commutative_parent_definition() {
-            // TODO(if-let-chains): if let Some() && if let Ok() {...}
-            let commutative_merge =
-                self.commutatively_merge_children(node, commutative_parent, visiting_state);
-            if let Ok(successful_merge) = commutative_merge {
-                return Ok(MergedTree::new_mixed(node, successful_merge));
-            }
+        if let Some(commutative_parent) = node.commutative_parent_definition()
+            && let Ok(commutative_merge) =
+                self.commutatively_merge_children(node, commutative_parent, visiting_state)
+        {
+            Ok(MergedTree::new_mixed(node, commutative_merge))
+        } else {
+            Ok(MergedTree::line_based_local_fallback_for_revnode(
+                node,
+                self.class_mapping,
+                self.settings,
+            ))
         }
-        Ok(MergedTree::line_based_local_fallback_for_revnode(
-            node,
-            self.class_mapping,
-            self.settings,
-        ))
     }
 
     /// From a list of children of a commutative node, filter out separators

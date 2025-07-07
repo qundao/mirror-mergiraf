@@ -196,8 +196,8 @@ impl<'tree> Matching<'tree> {
         let mapping_right = Self::index_tree(new_right);
         let mut matching = Matching::new();
         for (right, left) in self.iter_right_to_left() {
-            if let (Some(right_mapped), Some(left_mapped)) =
-                (mapping_right.get(&right.id), mapping_left.get(&left.id))
+            if let Some(right_mapped) = mapping_right.get(&right.id)
+                && let Some(left_mapped) = mapping_left.get(&left.id)
             {
                 matching.add(left_mapped, right_mapped);
             }

@@ -833,9 +833,11 @@ impl<'a> AstNode<'a> {
 
         let tree_sym = if last_child { "└" } else { "├" };
 
-        let key = (self.field_name)
-            .map(|key| format!("{key}: "))
-            .unwrap_or_default();
+        let key = if let Some(key) = self.field_name {
+            format!("{key}: ")
+        } else {
+            Default::default()
+        };
 
         let grammar_name = if self.source != self.grammar_name {
             self.grammar_name
@@ -855,13 +857,13 @@ impl<'a> AstNode<'a> {
             Default::default()
         };
 
-        let sig = (parent.is_some())
-            .then(|| {
-                self.signature()
-                    .map(|sig| format!(" {}", Color::LightCyan.paint(sig.to_string())))
-            })
-            .flatten()
-            .unwrap_or_default();
+        let sig = if parent.is_some()
+            && let Some(sig) = self.signature()
+        {
+            format!(" {}", Color::LightCyan.paint(sig.to_string()))
+        } else {
+            Default::default()
+        };
 
         std::iter::once(format!(
             "{prefix}{tree_sym}{key}\x1b[0m{grammar_name}{source}{commutative}{sig}\n"
