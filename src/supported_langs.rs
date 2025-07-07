@@ -386,6 +386,61 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
         },
         LangProfile {
+            name: "go.mod",
+            alternate_names: &[],
+            extensions: vec![],
+            file_names: vec!["go.mod"],
+            language: tree_sitter_gomod_orchard::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("source_file", "\n\n").restricted_to_groups(
+                    &[
+                        &["require_directive_single"],
+                        &["replace_directive_single"],
+                        &["exclude_directive_single"],
+                        &["retract_directive_single"],
+                    ],
+                ),
+                CommutativeParent::new("require_directive_multi", "(", "\n", ")")
+                    .restricted_to_groups(&[&["require_spec"]]),
+                CommutativeParent::new("replace_directive_multi", "(", "\n", ")")
+                    .restricted_to_groups(&[&["replace_spec"]]),
+                CommutativeParent::new("exclude_directive_multi", "(", "\n", ")")
+                    .restricted_to_groups(&[&["exclude_spec"]]),
+                CommutativeParent::new("retract_directive_multi", "(", "\n", ")")
+                    .restricted_to_groups(&[&["retract_spec"]]),
+            ],
+            signatures: vec![
+                signature(
+                    "require_directive_single",
+                    vec![vec![ChildType("require_spec"), Field("path")]],
+                ),
+                signature(
+                    "replace_directive_single",
+                    vec![
+                        vec![ChildType("replace_spec"), Field("from_path")],
+                        vec![ChildType("replace_spec"), Field("from_version")],
+                    ],
+                ),
+                signature(
+                    "exclude_directive_single",
+                    vec![vec![ChildType("exclude_spec")]],
+                ),
+                signature(
+                    "retract_directive_single",
+                    vec![vec![ChildType("retract_spec")]],
+                ),
+                signature("require_spec", vec![vec![Field("path")]]),
+                signature(
+                    "replace_spec",
+                    vec![vec![Field("from_path")], vec![Field("from_version")]],
+                ),
+                signature("exclude_spec", vec![vec![]]),
+                signature("retract_spec", vec![vec![]]),
+            ],
+            injections: None,
+        },
+        LangProfile {
             name: "INI",
             alternate_names: &[],
             extensions: vec!["ini"],
