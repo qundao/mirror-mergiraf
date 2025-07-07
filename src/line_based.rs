@@ -123,7 +123,7 @@ func foo(){}"#;
             contents_base,
             contents_left,
             contents_right,
-            &Default::default(),
+            &DisplaySettings::default(),
             lang_profile,
         );
 

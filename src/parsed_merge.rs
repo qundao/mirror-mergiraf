@@ -501,8 +501,8 @@ turn right please!
 >>>>>>>
 rest of file
 ";
-        let parsed =
-            ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+            .expect("unexpected parse error");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
@@ -617,8 +617,8 @@ turn right please!
 >>>>>>>
 rest of file
 ";
-        let parsed =
-            ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+            .expect("unexpected parse error");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Conflict {
@@ -662,8 +662,8 @@ where should we go?
 turn right please!
 >>>>>>>
 ";
-        let parsed =
-            ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+            .expect("unexpected parse error");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
@@ -709,7 +709,8 @@ my_struct_t instance = {
 };
 ";
 
-        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+        let parsed =
+            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
         let expected_parse = ParsedMerge::new(vec![
             MergedChunk::Resolved {
@@ -752,7 +753,7 @@ my_struct_t instance = {
 };
 ";
 
-        let parse_err = ParsedMerge::parse(source, &Default::default())
+        let parse_err = ParsedMerge::parse(source, &DisplaySettings::default())
             .expect_err("expected a parse failure for diff2 conflicts");
 
         assert_eq!(parse_err, PARSED_MERGE_DIFF2_DETECTED);
@@ -829,7 +830,7 @@ my_struct_t instance = {
 >>>>>>> RIGHT
 };
 ";
-        let parsed = ParsedMerge::parse(source, &Default::default())
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
             .expect("should just not see this conflict at all");
 
         let expected_parse = ParsedMerge::new(vec![MergedChunk::Resolved {
@@ -853,7 +854,7 @@ my_struct_t instance = {
 >>>>>>> RIGHT
 };
 ";
-        let parse_err = ParsedMerge::parse(source, &Default::default()).expect_err(
+        let parse_err = ParsedMerge::parse(source, &DisplaySettings::default()).expect_err(
             "because of the missing base marker, this should like a diff2-style conflict",
         );
 
@@ -873,7 +874,7 @@ my_struct_t instance = {
 >>>>>>> RIGHT
 };
 ";
-        let parsed = ParsedMerge::parse(source, &Default::default())
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
             .expect("should ignore the malformed conflict");
 
         let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
@@ -897,7 +898,7 @@ my_struct_t instance = {
  >>>>>>> LIAR RIGHT
 };
 ";
-        let parsed = ParsedMerge::parse(source, &Default::default())
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
             .expect("should ignore the malformed conflict");
 
         let expected = ParsedMerge::new(vec![MergedChunk::Resolved {
@@ -926,7 +927,8 @@ use os;
 >>>>>>> RIGHT
 ";
 
-        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+        let parsed =
+            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
         let unwanted_non_lazy = ParsedMerge::new(vec![MergedChunk::Conflict {
             left_name: Some("LEFT"),
@@ -982,7 +984,8 @@ use io;
 =======
 use os;
 >>>>>>> RIGHT";
-        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+        let parsed =
+            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
         let expected = ParsedMerge::new(vec![
             MergedChunk::Conflict {
@@ -1018,7 +1021,8 @@ turn right please!
 >>>>>>>
 ";
 
-        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+        let parsed =
+            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
         let unwanted_wo_final_newline = ParsedMerge::new(vec![
             MergedChunk::Conflict {
@@ -1053,7 +1057,8 @@ struct MyType {
 >>>>>>> RIGHT
 };
 ";
-        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+        let parsed =
+            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
         let left_rev = parsed.reconstruct_revision(Revision::Left);
         let right_rev = parsed.reconstruct_revision(Revision::Right);
@@ -1092,7 +1097,8 @@ struct MyType {
 >>>>>>> RIGHT
 }
 ";
-        let parsed = ParsedMerge::parse(source, &Default::default()).expect("could not parse!");
+        let parsed =
+            ParsedMerge::parse(source, &DisplaySettings::default()).expect("could not parse!");
 
         let base_rev = parsed.reconstruct_revision(Revision::Base);
         let left_rev = parsed.reconstruct_revision(Revision::Left);
@@ -1190,7 +1196,7 @@ right line
                 base_name: None,
                 right_name: None,
             }])
-            .render(&Default::default())
+            .render(&DisplaySettings::default())
         }
 
         let expected_wo_wo_wo = "\
@@ -1271,8 +1277,8 @@ turn right please!
 >>>>>>> my_right
 rest of file
 ";
-        let parsed =
-            ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+            .expect("unexpected parse error");
 
         let initial_settings = DisplaySettings::default();
 
@@ -1302,8 +1308,8 @@ turn right please!
 >>>>>>>
 rest of file
 ";
-        let parsed =
-            ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+            .expect("unexpected parse error");
 
         let initial_settings = DisplaySettings::default();
 
@@ -1319,8 +1325,8 @@ rest of file
 start of file
 rest of file
 ";
-        let parsed =
-            ParsedMerge::parse(source, &Default::default()).expect("unexpected parse error");
+        let parsed = ParsedMerge::parse(source, &DisplaySettings::default())
+            .expect("unexpected parse error");
 
         let initial_settings = DisplaySettings::default();
 

@@ -836,7 +836,7 @@ impl<'a> AstNode<'a> {
         let key = if let Some(key) = self.field_name {
             format!("{key}: ")
         } else {
-            Default::default()
+            String::new()
         };
 
         let grammar_name = if self.source != self.grammar_name {
@@ -848,13 +848,13 @@ impl<'a> AstNode<'a> {
         let source = if num_children == 0 && self.source != self.grammar_name {
             format!(" {}", Color::Red.paint(self.source.replace('\n', "\\n")))
         } else {
-            Default::default()
+            String::new()
         };
 
         let commutative = if next_parent.is_some() {
             Color::LightPurple.paint(" Commutative").to_string()
         } else {
-            Default::default()
+            String::new()
         };
 
         let sig = if parent.is_some()
@@ -862,7 +862,7 @@ impl<'a> AstNode<'a> {
         {
             format!(" {}", Color::LightCyan.paint(sig.to_string()))
         } else {
-            Default::default()
+            String::new()
         };
 
         std::iter::once(format!(
