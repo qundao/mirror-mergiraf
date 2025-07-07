@@ -16,6 +16,8 @@ pub struct LangProfile {
     pub alternate_names: &'static [&'static str],
     /// the file extensions of files in this language
     pub extensions: Vec<&'static str>,
+    /// the full file names that this language should be used for
+    pub file_names: Vec<&'static str>,
     /// `tree_sitter` parser
     pub language: Language,
     /// list of node types which should be treated as leaves (atomic parts of the syntax tree)
@@ -57,6 +59,7 @@ impl LangProfile {
             lang_profile.name.eq_ignore_ascii_case(name)
                 || (lang_profile.alternate_names.iter())
                     .chain(&lang_profile.extensions)
+                    .chain(&lang_profile.file_names)
                     .any(|aname| aname.eq_ignore_ascii_case(name))
         })
     }
@@ -91,18 +94,22 @@ impl LangProfile {
         }
     }
 
-    fn _detect_from_filename(filename: &Path) -> Option<&'static Self> {
+    fn _detect_from_filename(path: &Path) -> Option<&'static Self> {
         // TODO make something more advanced like in difftastic
         // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
-        let extension = filename.extension()?;
+        let extension = path.extension()?;
+        let name = path.file_name()?;
         SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
             lang_profile
                 .extensions
                 .iter()
-                .copied()
                 // NOTE: the comparison should be case-insensitive, see
                 // https://rust-lang.github.io/rust-clippy/master/index.html#case_sensitive_file_extension_comparisons
                 .any(|ext| extension.eq_ignore_ascii_case(OsStr::new(ext)))
+                || lang_profile
+                    .file_names
+                    .iter()
+                    .any(|file_name| name == OsStr::new(file_name))
         })
     }
 

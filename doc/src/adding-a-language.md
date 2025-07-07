@@ -21,6 +21,7 @@ LangProfile {
     name: "C#", // used for the --language CLI option, and generating the list of supported languages
     alternate_names: vec![], // other possible values for --language
     extensions: vec!["cs"], // all file extensions for this language (note the lack of `.`!)
+    file_names: vec![], // the full file names which should be handled with this language
     language: tree_sitter_c_sharp::LANGUAGE.into(), // the tree-sitter parser
     // optional settings, explained below
     atomic_nodes: vec![],

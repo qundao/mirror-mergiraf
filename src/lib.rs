@@ -123,6 +123,9 @@ pub fn languages(gitattributes: bool) -> String {
             for extension in &lang_profile.extensions {
                 let _ = writeln!(res, "*.{extension} merge=mergiraf");
             }
+            for file_name in &lang_profile.file_names {
+                let _ = writeln!(res, "{file_name} merge=mergiraf");
+            }
         } else {
             let _ = writeln!(
                 res,
@@ -160,5 +163,17 @@ mod test {
         let parsed = ParsedMerge::parse(contents, &settings).unwrap();
         let result = resolve_merge(&parsed, &settings, LangProfile::rust(), None);
         assert_eq!(result, Err(ZDIFF3_DETECTED.to_string()));
+    }
+
+    #[test]
+    fn languages_plain() {
+        let plain_text = languages(false);
+        assert!(plain_text.contains("Rust (*.rs)"));
+    }
+
+    #[test]
+    fn languages_gitattributes() {
+        let gitattributes_config = languages(true);
+        assert!(gitattributes_config.contains("*.rs merge=mergiraf"));
     }
 }
