@@ -1,0 +1,5 @@
+ignore (
+    static
+    content/html
+    ./third_party/javascript
+)
