@@ -3,7 +3,7 @@ resolver = "3"
 members = ["mgf_dev"]
 
 [workspace.dependencies]
-clap = { version = "4.5.38", features = ["derive"] }
+clap = { version = "4.5.40", features = ["derive"] }
 stderrlog = "0.6"
 tempfile = "3"
 typed-arena = "2"
@@ -30,7 +30,7 @@ tree-sitter = "0.25"
 tree-sitter-ocaml = "0.24.2"
 tree-sitter-rust-orchard = "0.10"
 tree-sitter-json = "0.24"
-tree-sitter-yaml = "0.7.0"
+tree-sitter-yaml = "0.7.1"
 tree-sitter-toml-ng = "0.7.0"
 tree-sitter-java = "0.23"
 tree-sitter-kotlin-ng = "1.1.0"
@@ -65,8 +65,8 @@ stderrlog.workspace = true
 log = "0.4"
 rand = "0.9.1"
 etcetera = "0.10.0"
-zip = { version = "3.0.0", features = ["deflate"], default-features = false }
-tree-sitter-scala = "0.23.4"
+zip = { version = "4.2.0", features = ["deflate"], default-features = false }
+tree-sitter-scala = "0.24"
 either = "1.15.0"
 rustc-hash = "2.1.1"
 diffy-imara = "0.3.2"
