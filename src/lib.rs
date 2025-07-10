@@ -35,7 +35,6 @@ pub mod newline;
 pub(crate) mod parsed_merge;
 mod path_buf_ext;
 pub(crate) mod pcs;
-pub(crate) mod priority_list;
 pub mod settings;
 pub(crate) mod signature;
 mod solve;

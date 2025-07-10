@@ -9,10 +9,10 @@ use std::{
 use tree_edit_distance::{Edit, diff};
 use typed_arena::Arena;
 
-use crate::{
-    ast::AstNode, matching::Matching, multimap::MultiMap, priority_list::PriorityList,
-    signature::Signature,
-};
+use crate::{ast::AstNode, matching::Matching, multimap::MultiMap, signature::Signature};
+
+mod priority_list;
+use priority_list::PriorityList;
 
 #[derive(Debug)]
 pub struct TreeMatcher {
