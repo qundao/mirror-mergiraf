@@ -105,7 +105,8 @@ enum CliCommand {
         #[command(flatten)]
         merge_or_solve: MergeOrSolveArgs,
         /// Keep file untouched and show the results of resolution on standard output instead
-        #[arg(short = 'p', long)]
+        // TODO(0.13.0): remove the alias
+        #[arg(short = 'p', long, alias = "keep")]
         stdout: bool,
         /// Create a copy of the original file by adding the `.orig` suffix to it
         #[arg(
@@ -115,14 +116,9 @@ enum CliCommand {
             num_args = 0..=1,
             require_equals = true,
             action = ArgAction::Set,
-            conflicts_with_all = ["stdout", "keep"]
+            conflicts_with = "stdout",
         )]
         keep_backup: bool,
-        /// DEPRECATED(use `--stdout`): Keep file untouched and show the results of resolution on standard output instead
-        // TODO(0.8.0): hide the option by turning it into a hidden alias of `stdout`
-        // TODO(?): remove the alias
-        #[arg(short, long, conflicts_with = "stdout")]
-        keep: bool,
     },
     /// Review the resolution of a merge by showing the differences with a line-based merge
     Review {
@@ -293,16 +289,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     conflict_marker_size,
                     language,
                 },
-            keep,
-            mut stdout,
+            stdout,
             keep_backup,
         } => {
-            if keep {
-                warn!("-k/--keep is DEPRECATED, use -p/--stdout instead");
-                // since we only use `stdout` in the actual logic below,
-                // update its value with what of `--keep`
-                stdout = keep;
-            }
             // Check if user is using Jujutsu instead of Git, which can lead to issues.
             if let Ok(canonical_path) = fname_conflicts.canonicalize()
                 && let Some(conflict_dir) = canonical_path.parent()
