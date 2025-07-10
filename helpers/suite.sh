@@ -21,11 +21,8 @@ failed=0
 total_count=0
 failed_count=0
 for testid in `find $suite -type d`; do
-    ext=`ls $testid | grep Base. | sed -e 's/Base.//'`
-    if [ -z "$ext" ]; then
-        continue
-    fi
-    if [ ! -e "$testid/Expected.$ext" ]; then
+    ext=`ls $testid | grep Base | sed -e 's/Base//'`
+    if [ ! -e "$testid/Expected$ext" ]; then
         continue
     fi
     total_count=$((total_count+1))
@@ -35,32 +32,32 @@ for testid in `find $suite -type d`; do
         continue
     fi
 
-    NO_DEBUG="true" /usr/bin/time -o /tmp/timings -f "%e" ${script_dir}/run.sh $testid > /tmp/our_merge_raw.$ext 2> /dev/null
+    NO_DEBUG="true" /usr/bin/time -o /tmp/timings -f "%e" ${script_dir}/run.sh $testid > /tmp/our_merge_raw$ext 2> /dev/null
     retcode=$?
-    cat /tmp/our_merge_raw.$ext | sed -e '$a\' > /tmp/our_merge.$ext
-    if [ -e "$testid/Better.$ext" ]; then
-        expected_orig="$testid/Better.$ext"
-    elif [ -e "$testid/ExpectedDiff3.$ext" ]; then
-        expected_orig="$testid/ExpectedDiff3.$ext"
+    cat /tmp/our_merge_raw$ext | sed -e '$a\' > /tmp/our_merge$ext
+    if [ -e "$testid/Better$ext" ]; then
+        expected_orig="$testid/Better$ext"
+    elif [ -e "$testid/ExpectedDiff3$ext" ]; then
+        expected_orig="$testid/ExpectedDiff3$ext"
     else
-        expected_orig="$testid/Expected.$ext"
+        expected_orig="$testid/Expected$ext"
     fi
-    cat $expected_orig | sed -e '$a\' > /tmp/expected_merge.$ext
+    cat $expected_orig | sed -e '$a\' > /tmp/expected_merge$ext
 
     # Count conflicts in both files
     expected_conflicts=`cat $expected_orig | grep "<<<<<<<" | wc -l`
-    our_conflicts=`cat /tmp/our_merge_raw.$ext | grep "<<<<<<<" | wc -l`
-    line_base_conflicts=`git merge-file -p $testid/Left.$ext $testid/Base.$ext $testid/Right.$ext | grep "<<<<<<<" | wc -l`
+    our_conflicts=`cat /tmp/our_merge_raw$ext | grep "<<<<<<<" | wc -l`
+    line_base_conflicts=`git merge-file -p $testid/Left$ext $testid/Base$ext $testid/Right$ext | grep "<<<<<<<" | wc -l`
     conflict_summary="$expected_conflicts -> $our_conflicts -> $line_base_conflicts"
     timing=`tail -1 /tmp/timings`
     conflict_summary="$conflict_summary, $timing"
     
-    if diff -B /tmp/our_merge.$ext /tmp/expected_merge.$ext > /dev/null 2>&1; then
+    if diff -B /tmp/our_merge$ext /tmp/expected_merge$ext > /dev/null 2>&1; then
         echo -e "${GREEN}PASS${NC}: (${conflict_summary}) ${testid}"
     else
         failed=1
         failed_count=$((failed_count+1))
-        if cargo run -p mgf_dev -- compare --commutative /tmp/our_merge.$ext /tmp/expected_merge.$ext > /dev/null 2>&1; then
+        if cargo run -p mgf_dev -- compare --commutative /tmp/our_merge$ext /tmp/expected_merge$ext > /dev/null 2>&1; then
             echo -e "${PURPLE}FORM${NC}: (${conflict_summary}) ${testid}"
             continue
         fi
