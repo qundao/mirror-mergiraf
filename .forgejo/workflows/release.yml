@@ -26,7 +26,7 @@ jobs:
             cargo install git-cliff --features gitea --version 2.9.1
           fi
       - name: Run tests
-        run: cargo test --workspace
+        run: cargo test --workspace --locked
       - name: Create release_artifacts dir and generate release notes
         run: |
           mkdir target/release_artifacts
