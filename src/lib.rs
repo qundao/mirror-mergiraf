@@ -118,21 +118,28 @@ fn fxhasher() -> rustc_hash::FxHasher {
 pub fn languages(gitattributes: bool) -> String {
     let mut res = String::new();
     for lang_profile in &*SUPPORTED_LANGUAGES {
+        let extensions = &lang_profile.extensions;
+        let file_names = &lang_profile.file_names;
         if gitattributes {
-            for extension in &lang_profile.extensions {
+            for extension in extensions {
                 let _ = writeln!(res, "*.{extension} merge=mergiraf");
             }
-            for file_name in &lang_profile.file_names {
+            for file_name in file_names {
                 let _ = writeln!(res, "{file_name} merge=mergiraf");
             }
         } else {
             let _ = writeln!(
                 res,
-                "{lang_profile} ({})",
-                lang_profile
-                    .extensions
+                "{lang_profile} ({}{}{})",
+                extensions
                     .iter()
-                    .format_with(", ", |ext, f| f(&format_args!("*.{ext}")))
+                    .format_with(", ", |ext, f| f(&format_args!("*.{ext}"))),
+                if extensions.is_empty() || file_names.is_empty() {
+                    ""
+                } else {
+                    ", "
+                },
+                file_names.iter().format(", "),
             );
         }
     }
@@ -168,11 +175,13 @@ mod test {
     fn languages_plain() {
         let plain_text = languages(false);
         assert!(plain_text.contains("Rust (*.rs)"));
+        assert!(plain_text.contains("go.mod (go.mod)"));
     }
 
     #[test]
     fn languages_gitattributes() {
         let gitattributes_config = languages(true);
         assert!(gitattributes_config.contains("*.rs merge=mergiraf"));
+        assert!(gitattributes_config.contains("go.mod merge=mergiraf"));
     }
 }
