@@ -26,7 +26,6 @@ pub mod line_based;
 pub(crate) mod matching;
 mod merge;
 pub(crate) mod merge_3dm;
-pub(crate) mod merge_postprocessor;
 pub(crate) mod merge_result;
 pub(crate) mod merged_text;
 pub(crate) mod merged_tree;
