@@ -30,7 +30,7 @@ impl<'a> MergedTree<'a> {
                 let commutative_parent = node.commutative_parent_definition();
                 if let Some(commutative_parent) = commutative_parent {
                     let highlighted = highlight_duplicate_signatures(
-                        node,
+                        &node,
                         recursively_processed,
                         class_mapping,
                         commutative_parent,
@@ -50,7 +50,7 @@ impl<'a> MergedTree<'a> {
 
 /// Checks for duplicate signatures among the children of the given commutative parent.
 fn highlight_duplicate_signatures<'a>(
-    parent: Leader<'a>,
+    parent: &Leader<'a>,
     elements: Vec<MergedTree<'a>>,
     class_mapping: &ClassMapping<'a>,
     commutative_parent: &CommutativeParent,
@@ -308,7 +308,7 @@ fn filter_by_revision<'a>(
         .filter_map(|element| match element {
             MergedTree::ExactTree { node, .. }
             | MergedTree::MixedTree { node, .. }
-            | MergedTree::LineBasedMerge { node, .. } => class_mapping.node_at_rev(*node, revision),
+            | MergedTree::LineBasedMerge { node, .. } => class_mapping.node_at_rev(node, revision),
             MergedTree::Conflict { .. } | MergedTree::CommutativeChildSeparator { .. } => None,
         })
         .collect()
@@ -341,7 +341,7 @@ fn add_separators<T: Clone + Copy>(
 
 /// Find an example of a separator among the list of children of the parent in all three revisions
 fn find_separator<'a>(
-    parent: Leader<'a>,
+    parent: &Leader<'a>,
     trimmed_separator: &'static str,
     class_mapping: &ClassMapping<'a>,
 ) -> Option<RevNode<'a>> {

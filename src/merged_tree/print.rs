@@ -50,11 +50,11 @@ impl<'a> MergedTree<'a> {
             } => {
                 let picked_revision = revisions.any();
                 let tree_at_rev = class_mapping
-                    .node_at_rev(*node, picked_revision)
+                    .node_at_rev(node, picked_revision)
                     .expect("specified revision is not available for class leader");
                 let new_indentation = Self::add_preceding_whitespace(
                     output,
-                    *node,
+                    node,
                     previous_sibling,
                     indentation,
                     class_mapping,
@@ -68,7 +68,7 @@ impl<'a> MergedTree<'a> {
             } => {
                 let new_indentation = Self::add_preceding_whitespace(
                     output,
-                    *leader,
+                    leader,
                     previous_sibling,
                     indentation,
                     class_mapping,
@@ -94,7 +94,7 @@ impl<'a> MergedTree<'a> {
                     };
                 }
 
-                if let Some(whitespace) = Self::trailing_whitespace(*leader, class_mapping) {
+                if let Some(whitespace) = Self::trailing_whitespace(leader, class_mapping) {
                     output.push_merged(Cow::from(whitespace));
                 }
             }
@@ -114,7 +114,7 @@ impl<'a> MergedTree<'a> {
                 .expect("The conflict should contain at least one node");
                 Self::add_preceding_whitespace(
                     output,
-                    first_leader,
+                    &first_leader,
                     previous_sibling,
                     indentation,
                     class_mapping,
@@ -132,7 +132,7 @@ impl<'a> MergedTree<'a> {
                 }
                 Self::add_preceding_whitespace(
                     output,
-                    *node,
+                    node,
                     previous_sibling,
                     indentation,
                     class_mapping,
@@ -165,7 +165,7 @@ impl<'a> MergedTree<'a> {
     /// first line of the node).
     fn add_preceding_whitespace<'b>(
         output: &mut MergedText<'a>,
-        rev_node: Leader<'a>,
+        rev_node: &Leader<'a>,
         previous_sibling: Option<&PreviousSibling<'a>>,
         indentation: &'b str,
         class_mapping: &ClassMapping<'a>,
@@ -177,7 +177,7 @@ impl<'a> MergedTree<'a> {
             representatives
         };
         match previous_sibling {
-            Some(&PreviousSibling::RealNode(previous_node)) => {
+            Some(PreviousSibling::RealNode(previous_node)) => {
                 let previous_revisions = class_mapping.revision_set(previous_node);
                 let revisions = class_mapping.revision_set(rev_node);
                 let common_revisions = previous_revisions.intersection(revisions.set());
@@ -290,8 +290,8 @@ impl<'a> MergedTree<'a> {
     ///   the parent node's indentation and the current node's indentation)
     fn whitespace_at_rev(
         rev: Revision,
-        previous_node: Leader<'a>,
-        current_node: Leader<'a>,
+        previous_node: &Leader<'a>,
+        current_node: &Leader<'a>,
         indentation: &str,
         class_mapping: &ClassMapping<'a>,
     ) -> Option<(Cow<'a, str>, &'a str)> {
@@ -330,7 +330,7 @@ impl<'a> MergedTree<'a> {
     }
 
     /// Computes the best trailing whitespace to keep at the end of a node
-    fn trailing_whitespace(node: Leader<'a>, class_mapping: &ClassMapping<'a>) -> Option<&'a str> {
+    fn trailing_whitespace(node: &Leader<'a>, class_mapping: &ClassMapping<'a>) -> Option<&'a str> {
         let nodes = [Revision::Left, Revision::Right, Revision::Base]
             .map(|rev| class_mapping.node_at_rev(node, rev));
 

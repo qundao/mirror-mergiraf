@@ -78,7 +78,7 @@ impl<'a> MergedTree<'a> {
         class_mapping: &ClassMapping<'a>,
     ) -> Self {
         let representative = class_mapping
-            .node_at_rev(node, revisions.any())
+            .node_at_rev(&node, revisions.any())
             .expect("Revision set for ExactTree inconsistent with class mapping");
         Self::ExactTree {
             node,
@@ -170,7 +170,7 @@ impl<'a> MergedTree<'a> {
         match self {
             Self::ExactTree { node, .. }
             | Self::LineBasedMerge { node, .. }
-            | Self::MixedTree { node, .. } => class_mapping.field_name(*node),
+            | Self::MixedTree { node, .. } => class_mapping.field_name(node),
             Self::Conflict { .. } | Self::CommutativeChildSeparator { .. } => None,
         }
     }
@@ -191,9 +191,9 @@ impl<'a> MergedTree<'a> {
         class_mapping: &ClassMapping<'a>,
         settings: &DisplaySettings,
     ) -> Self {
-        let base_src = class_mapping.node_at_rev(node, Revision::Base);
-        let left_src = class_mapping.node_at_rev(node, Revision::Left);
-        let right_src = class_mapping.node_at_rev(node, Revision::Right);
+        let base_src = class_mapping.node_at_rev(&node, Revision::Base);
+        let left_src = class_mapping.node_at_rev(&node, Revision::Left);
+        let right_src = class_mapping.node_at_rev(&node, Revision::Right);
         match (base_src, left_src, right_src) {
             (None, None, None) => {
                 unreachable!("A node that does not belong to any revision, how curious!")
@@ -256,7 +256,7 @@ impl<'a> MergedTree<'a> {
             } => {
                 let picked_revision = revisions.any();
                 let children = class_mapping
-                    .children_at_revision(node, picked_revision)
+                    .children_at_revision(&node, picked_revision)
                     .expect("non-existent children for revision in revset of ExactTree");
                 let cloned_children: Vec<MergedTree<'a>> = children
                     .into_iter()
@@ -296,34 +296,34 @@ impl<'a> MergedTree<'a> {
     }
 
     /// Checks if a particular node is contained in the result tree
-    pub fn contains(&self, leader: Leader<'a>, class_mapping: &ClassMapping<'a>) -> bool {
+    pub fn contains(&self, leader: &Leader<'a>, class_mapping: &ClassMapping<'a>) -> bool {
         match self {
             Self::ExactTree {
                 node, revisions, ..
             } => {
                 let picked_revision = revisions.any();
-                let ast_node = class_mapping.node_at_rev(*node, picked_revision).expect(
+                let ast_node = class_mapping.node_at_rev(node, picked_revision).expect(
                     "inconsistency between revision set of ExactTree and the class mapping",
                 );
                 let chosen_revnode = RevNode::new(picked_revision, ast_node);
-                chosen_revnode.contains(&leader, class_mapping)
+                chosen_revnode.contains(leader, class_mapping)
             }
             Self::MixedTree { node, children, .. } => {
-                *node == leader || children.iter().any(|c| c.contains(leader, class_mapping))
+                node == leader || children.iter().any(|c| c.contains(leader, class_mapping))
             }
             // TODO here we could look for all representatives in their corresponding conflict side, that would be more accurate.
             Self::Conflict { base, left, right } => match leader.as_representative().rev {
                 Revision::Base => base
                     .iter()
-                    .any(|n| RevNode::new(Revision::Base, n).contains(&leader, class_mapping)),
+                    .any(|n| RevNode::new(Revision::Base, n).contains(leader, class_mapping)),
                 Revision::Left => left
                     .iter()
-                    .any(|n| RevNode::new(Revision::Left, n).contains(&leader, class_mapping)),
+                    .any(|n| RevNode::new(Revision::Left, n).contains(leader, class_mapping)),
                 Revision::Right => right
                     .iter()
-                    .any(|n| RevNode::new(Revision::Right, n).contains(&leader, class_mapping)),
+                    .any(|n| RevNode::new(Revision::Right, n).contains(leader, class_mapping)),
             },
-            Self::LineBasedMerge { node, .. } => *node == leader,
+            Self::LineBasedMerge { node, .. } => node == leader,
             Self::CommutativeChildSeparator { .. } => false,
         }
     }
@@ -344,7 +344,7 @@ impl<'a> MergedTree<'a> {
             MergedTree::ExactTree {
                 node, revisions, ..
             } => {
-                let ast_node = class_mapping.node_at_rev(*node, revisions.any()).expect(
+                let ast_node = class_mapping.node_at_rev(node, revisions.any()).expect(
                     "inconsistency between revision set of ExactTree and the class mapping",
                 );
                 ast_node.isomorphic_to(other_node)
@@ -403,7 +403,7 @@ impl<'a> MergedTree<'a> {
                                 !children.is_empty()
                             },
                             MergedChild::Merged(MergedTree::ExactTree { node, revisions, .. }) => {
-                                let node = class_mapping.node_at_rev(*node, revisions.any()).expect(
+                                let node = class_mapping.node_at_rev(node, revisions.any()).expect(
                                     "inconsistency between revision set of ExactTree and the class mapping",
                                 );
                                 !node.source.is_empty()

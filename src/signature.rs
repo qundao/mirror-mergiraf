@@ -56,7 +56,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                 } => {
                     let rev = revisions.any();
                     let representative = class_mapping
-                        .node_at_rev(*node, rev)
+                        .node_at_rev(node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
                     Self::Original(representative).children_by_field_name(field_name, class_mapping)
                 }
@@ -92,7 +92,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                 } => {
                     let rev = revisions.any();
                     let representative = class_mapping
-                        .node_at_rev(*node, rev)
+                        .node_at_rev(node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
                     Self::Original(representative)
                         .children_by_grammar_name(grammar_name, class_mapping)
@@ -121,7 +121,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     } => {
                         if let Some(class_mapping) = class_mapping {
                             let representative = class_mapping
-                                .node_at_rev(*node, revisions.any())
+                                .node_at_rev(node, revisions.any())
                                 .expect("inconsistent class mapping and ExactTree revisions");
                             representative.isomorphic_to(a)
                         } else {
@@ -166,7 +166,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                 ) => {
                     if let Some(class_mapping) = class_mapping {
                         let representative = class_mapping
-                            .node_at_rev(*node, revisions.any())
+                            .node_at_rev(node, revisions.any())
                             .expect("inconsistent class mapping and ExactTree::revisions");
                         Self::Merged(b)
                             .isomorphic(&Self::Original(representative), Some(class_mapping))

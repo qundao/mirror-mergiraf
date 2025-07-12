@@ -60,7 +60,7 @@ impl<'a> ChangeSet<'a> {
     ) -> PCSNode<'a> {
         let rev_node = RevNode::new(revision, node);
         let leader = classmapping.map_to_leader(rev_node);
-        let mut revision_set = classmapping.revision_set(leader);
+        let mut revision_set = classmapping.revision_set(&leader);
         revision_set.add(revision); // just in case the node hadn't been mapped at all before
 
         let wrapped = PCSNode::Node {
@@ -77,7 +77,7 @@ impl<'a> ChangeSet<'a> {
 
         // If the node happens to be a cluster where all three revisions are present and isomorphic,
         // then no need to do convert its subtree into PCS triples, we can just pretend it's a leaf
-        if classmapping.is_isomorphic_in_all_revisions(leader) {
+        if classmapping.is_isomorphic_in_all_revisions(&leader) {
             return wrapped;
         }
 

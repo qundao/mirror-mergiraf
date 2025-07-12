@@ -174,10 +174,10 @@ impl<'a> ClassMapping<'a> {
 
     /// Are the representatives of this leader all isomorphic?
     /// In this case, it's not worth trying to merge their contents.
-    pub fn is_isomorphic_in_all_revisions(&self, leader: Leader<'a>) -> bool {
+    pub fn is_isomorphic_in_all_revisions(&self, leader: &Leader<'a>) -> bool {
         // if we know that at least two isomorphisms exist in the cluster, then by transitivity there are three of them
         // and all revisions are isomorphic for this node
-        self.exact_matchings.get(&leader).is_some_and(|n| *n >= 2)
+        self.exact_matchings.get(leader).is_some_and(|n| *n >= 2)
     }
 
     /// Maps a node from some revision to its class representative
@@ -187,14 +187,12 @@ impl<'a> ClassMapping<'a> {
 
     /// Finds all the representatives in a cluster designated by its leader.
     /// This can return an empty map if the cluster only contains this node!
-    fn internal_representatives(&self, leader: Leader<'a>) -> &FxHashMap<Revision, RevNode<'a>> {
-        self.representatives
-            .get(&leader)
-            .unwrap_or(&self.empty_repr)
+    fn internal_representatives(&self, leader: &Leader<'a>) -> &FxHashMap<Revision, RevNode<'a>> {
+        self.representatives.get(leader).unwrap_or(&self.empty_repr)
     }
 
     /// The set of revisions for which we have a representative for this leader
-    pub fn revision_set(&self, leader: Leader<'a>) -> RevisionNESet {
+    pub fn revision_set(&self, leader: &Leader<'a>) -> RevisionNESet {
         let mut set = RevisionNESet::singleton(leader.0.rev);
         self.internal_representatives(leader)
             .keys()
@@ -203,7 +201,7 @@ impl<'a> ClassMapping<'a> {
     }
 
     /// The set of representatives for this leader
-    pub fn representatives(&self, leader: Leader<'a>) -> Vec<RevNode<'a>> {
+    pub fn representatives(&self, leader: &Leader<'a>) -> Vec<RevNode<'a>> {
         let mut vec = self
             .internal_representatives(leader)
             .values()
@@ -219,7 +217,7 @@ impl<'a> ClassMapping<'a> {
     /// represented themselves as leaders of their own clusters.
     pub fn children_at_revision(
         &self,
-        leader: Leader<'a>,
+        leader: &Leader<'a>,
         revision: Revision,
     ) -> Option<Vec<Leader<'a>>> {
         let repr = if leader.0.rev == revision {
@@ -239,7 +237,7 @@ impl<'a> ClassMapping<'a> {
     /// The AST node corresponding to this leader at a given revision
     pub fn node_at_rev(
         &self,
-        leader: Leader<'a>,
+        leader: &Leader<'a>,
         picked_revision: Revision,
     ) -> Option<&'a AstNode<'a>> {
         if leader.0.rev == picked_revision {
@@ -254,7 +252,7 @@ impl<'a> ClassMapping<'a> {
     /// Checks whether the supplied revision (left or right) is only reformatting
     /// the source (the unindented sources are different as strings but the trees are
     /// isomorphic)
-    pub fn is_reformatting(&self, leader: Leader<'a>, revision: Revision) -> bool {
+    pub fn is_reformatting(&self, leader: &Leader<'a>, revision: Revision) -> bool {
         if let Some(base) = self.node_at_rev(leader, Revision::Base)
             && let Some(rev) = self.node_at_rev(leader, revision)
         {
@@ -268,7 +266,7 @@ impl<'a> ClassMapping<'a> {
     /// In some cases it is possible that this field name differs from revision to revision.
     /// We currently ignore this case and just return the first field name of any representative
     /// of this leader.
-    pub fn field_name(&self, leader: Leader<'a>) -> Option<&'static str> {
+    pub fn field_name(&self, leader: &Leader<'a>) -> Option<&'static str> {
         leader.as_representative().node.field_name.or_else(|| {
             self.internal_representatives(leader)
                 .iter()
@@ -554,20 +552,20 @@ mod tests {
         assert_eq!(class_mapping.map_to_leader(foo_base), expected_foo_leader);
         assert_eq!(class_mapping.map_to_leader(foo_left), expected_foo_leader);
         assert_eq!(class_mapping.map_to_leader(foo_right), expected_foo_leader);
-        assert!(class_mapping.revision_set(expected_foo_leader).is_full());
+        assert!(class_mapping.revision_set(&expected_foo_leader).is_full());
 
         // matchings of Bar look like: Base <-> Left <-> Right
         let expected_bar_leader = Leader(bar_base);
         assert_eq!(class_mapping.map_to_leader(bar_base), expected_bar_leader);
         assert_eq!(class_mapping.map_to_leader(bar_left), expected_bar_leader);
         assert_eq!(class_mapping.map_to_leader(bar_right), expected_bar_leader);
-        assert!(class_mapping.revision_set(expected_bar_leader).is_full());
+        assert!(class_mapping.revision_set(&expected_bar_leader).is_full());
 
         // matchings of Hey look like: Left <-> Base <-> Right
         let expected_hey_leader = Leader(hey_base);
         assert_eq!(class_mapping.map_to_leader(hey_base), expected_hey_leader);
         assert_eq!(class_mapping.map_to_leader(hey_left), expected_hey_leader);
         assert_eq!(class_mapping.map_to_leader(hey_right), expected_hey_leader);
-        assert!(class_mapping.revision_set(expected_hey_leader).is_full());
+        assert!(class_mapping.revision_set(&expected_hey_leader).is_full());
     }
 }
