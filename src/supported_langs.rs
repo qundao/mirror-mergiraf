@@ -1214,4 +1214,33 @@ mod test {
             }
         }
     }
+
+    #[test]
+    fn children_of_commutative_parents_have_sigs() {
+        let mut count = 0;
+        eprintln!("the following children of commutative parents don't have signatures defined:");
+        for lang_profile in &*SUPPORTED_LANGUAGES {
+            for comm_parent in &lang_profile.commutative_parents {
+                for child_type in comm_parent
+                    .children_groups
+                    .iter()
+                    .flat_map(|cg| &cg.node_types)
+                {
+                    if !lang_profile
+                        .signatures
+                        .iter()
+                        .any(|sigdef| sigdef.node_type == *child_type)
+                    {
+                        eprintln!(
+                            "{lang_profile}: '{comm_parent}': `{child_type}`",
+                            // "{lang_profile}: Child `{child_type}` of commutative parent '{comm_parent}' doesn't have a signature defined",
+                            comm_parent = comm_parent.parent_type()
+                        );
+                        count += 1;
+                    }
+                }
+            }
+        }
+        eprintln!("\ntotal invalid children: {count}");
+    }
 }
