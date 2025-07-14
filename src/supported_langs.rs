@@ -130,6 +130,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // program
                 signature("import_declaration", vec![vec![]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
+                signature("scoped_identifier", vec![vec![Field("name")]]),
                 // class_body
                 signature(
                     "field_declaration",
@@ -154,7 +155,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // modifiers
                 signature("visibility", vec![vec![]]),
                 signature("modifier", vec![vec![]]),
-                signature("marker_annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
+                signature("annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
+                signature("marker_annotation", vec![vec![]]),
                 // catch_type, type_list, throws
                 signature("identifier", vec![vec![]]),
                 // annotation_argument_list
