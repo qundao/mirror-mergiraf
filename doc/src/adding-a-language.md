@@ -69,7 +69,7 @@ namespace HelloWorld {
 }
 ```
 
-You can inspect how this file is parsed with, either with the [Syntax Tree Playground](https://tree-sitter.github.io/tree-sitter/playground) if the language is supported there, or directly via Mergiraf:
+You can inspect how this file is parsed with, either with the [Syntax Tree Playground](https://tree-sitter.github.io/tree-sitter/7-playground) if the language is supported there, or directly via Mergiraf:
 ```console
 $ cargo run -p mgf_dev parse test_file.cs
 ```
