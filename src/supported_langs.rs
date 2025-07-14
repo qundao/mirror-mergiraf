@@ -1194,6 +1194,6 @@ mod test {
                 }
             }
         }
-        eprintln!("\ntotal invalid children: {count}");
+        assert_eq!(count, 0, "\ntotal invalid children: {count}");
     }
 }
