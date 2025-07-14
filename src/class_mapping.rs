@@ -1,4 +1,4 @@
-use std::{fmt::Display, hash::Hash, ops::Deref};
+use std::{fmt::Display, hash::Hash, iter, ops::Deref};
 
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
@@ -339,15 +339,7 @@ impl RevisionSet {
     /// Returns any revision contained in the set,
     /// by order of preference Left -> Right -> Base
     pub fn any(self) -> Option<Revision> {
-        if self.left {
-            Some(Revision::Left)
-        } else if self.right {
-            Some(Revision::Right)
-        } else if self.base {
-            Some(Revision::Base)
-        } else {
-            None
-        }
+        self.iter().next()
     }
 
     pub fn is_empty(self) -> bool {
@@ -369,17 +361,10 @@ impl RevisionSet {
 
     /// Iterates on the revisions contained in this set (returned in decreasing priority)
     pub fn iter(self) -> impl Iterator<Item = Revision> {
-        let mut vector = Vec::new();
-        if self.left {
-            vector.push(Revision::Left);
-        }
-        if self.right {
-            vector.push(Revision::Right);
-        }
-        if self.base {
-            vector.push(Revision::Base);
-        }
-        vector.into_iter()
+        iter::empty()
+            .chain(self.left.then_some(Revision::Left))
+            .chain(self.right.then_some(Revision::Right))
+            .chain(self.base.then_some(Revision::Base))
     }
 }
 
