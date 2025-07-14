@@ -143,6 +143,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // program
                 signature("import_declaration", vec![vec![]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
+                signature("scoped_identifier", vec![vec![Field("name")]]),
                 // class_body
                 signature(
                     "field_declaration",
@@ -165,12 +166,22 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     ],
                 ),
                 // modifiers
+                signature("annotation", vec![vec![]]),
+                signature("abstract", vec![vec![]]),
                 signature("final", vec![vec![]]),
+                signature("default", vec![vec![]]),
+                signature("marker_annotation", vec![vec![]]),
+                signature("native", vec![vec![]]),
+                signature("non-sealed", vec![vec![]]),
                 signature("private", vec![vec![]]),
                 signature("protected", vec![vec![]]),
                 signature("public", vec![vec![]]),
                 signature("sealed", vec![vec![]]),
                 signature("static", vec![vec![]]),
+                signature("strictfp", vec![vec![]]),
+                signature("synchronized", vec![vec![]]),
+                signature("transient", vec![vec![]]),
+                signature("volatile", vec![vec![]]),
                 // catch_type, type_list, throws
                 signature("identifier", vec![vec![]]),
                 // annotation_argument_list
