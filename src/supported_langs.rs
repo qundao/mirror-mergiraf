@@ -334,6 +334,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // trait_bound
                 signature("lifetime", vec![vec![]]),
                 // use list
+                signature("self", vec![vec![]]),
                 signature("identifier", vec![vec![]]),
                 signature("scoped_identifier", vec![vec![]]),
                 // enum_variant_list
