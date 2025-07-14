@@ -165,12 +165,12 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     ],
                 ),
                 // modifiers
-                signature("public", vec![vec![]]),
-                signature("protected", vec![vec![]]),
-                signature("private", vec![vec![]]),
-                signature("static", vec![vec![]]),
                 signature("final", vec![vec![]]),
+                signature("private", vec![vec![]]),
+                signature("protected", vec![vec![]]),
+                signature("public", vec![vec![]]),
                 signature("sealed", vec![vec![]]),
+                signature("static", vec![vec![]]),
                 // catch_type, type_list, throws
                 signature("identifier", vec![vec![]]),
                 // annotation_argument_list
