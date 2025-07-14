@@ -1174,6 +1174,7 @@ mod test {
         eprintln!("the following children of commutative parents don't have signatures defined:");
         for lang_profile in &*SUPPORTED_LANGUAGES {
             for comm_parent in &lang_profile.commutative_parents {
+                // TODO: use NODE_TYPES to get _all_ the children of a given node type
                 for child_type in comm_parent
                     .children_groups
                     .iter()
