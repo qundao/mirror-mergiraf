@@ -143,6 +143,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // program
                 signature("import_declaration", vec![vec![]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
+                signature("record_declaration", vec![vec![Field("name")]]),
                 signature("scoped_identifier", vec![vec![Field("name")]]),
                 // class_body
                 signature(
