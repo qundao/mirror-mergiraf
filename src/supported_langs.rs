@@ -276,7 +276,6 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         "function_signature_item",
                         "impl_item",
                         "trait_item",
-                        "associated_type",
                         "extern_crate_declaration",
                         "static_item",
                     ],
