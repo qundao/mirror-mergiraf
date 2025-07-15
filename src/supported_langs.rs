@@ -252,6 +252,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         "type_item",
                         "function_item",
                         "function_signature_item",
+                        "impl_item",
                         "trait_item",
                         "associated_type",
                         "extern_crate_declaration",
@@ -274,6 +275,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                             "type_item",
                             "function_item",
                             "function_signature_item",
+                            "impl_item",
                             "trait_item",
                             "extern_crate_declaration",
                             "static_item",
@@ -310,6 +312,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("type_item", vec![vec![Field("name")]]),
                 signature("function_item", vec![vec![Field("name")]]),
                 signature("function_signature_item", vec![vec![Field("name")]]),
+                // one can have multiple `impl Foo { ... }` items in the source code, and the
+                // only real way to find out if they are identical is to go through the entire body
+                // -- so we do just that by using the entire body as the signature
+                signature("impl_item", vec![vec![]]),
                 signature("trait_item", vec![vec![Field("name")]]),
                 signature("static_item", vec![vec![Field("name")]]),
                 // function_modifiers
