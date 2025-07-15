@@ -274,6 +274,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         "type_item",
                         "function_item",
                         "function_signature_item",
+                        "impl_item",
                         "trait_item",
                         "associated_type",
                         "extern_crate_declaration",
@@ -296,6 +297,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                             "type_item",
                             "function_item",
                             "function_signature_item",
+                            "impl_item",
                             "trait_item",
                             "extern_crate_declaration",
                             "static_item",
@@ -332,6 +334,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("type_item", vec![vec![Field("name")]]),
                 signature("function_item", vec![vec![Field("name")]]),
                 signature("function_signature_item", vec![vec![Field("name")]]),
+                signature("impl_item", todo!()),
                 signature("trait_item", vec![vec![Field("name")]]),
                 signature("static_item", vec![vec![Field("name")]]),
                 // function_modifiers
