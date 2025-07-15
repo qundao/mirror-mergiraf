@@ -341,6 +341,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("unsafe", vec![vec![]]),
                 // source_file
                 signature("use_declaration", vec![vec![Field("argument")]]),
+                signature("extern_crate_declaration", vec![vec![Field("name")]]),
                 // trait_bound
                 signature("lifetime", vec![vec![]]),
                 // use list
