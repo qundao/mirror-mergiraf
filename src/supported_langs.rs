@@ -344,6 +344,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // source_file
                 signature("use_declaration", vec![vec![Field("argument")]]),
                 signature("extern_crate_declaration", vec![vec![Field("name")]]),
+                // one can have multiple `extern "X" { ... }` items in the source code, and the
+                // only real way to find out if they are identical is to go through the entire body
+                // -- so we do just that by using the entire body as the signature
+                signature("foreign_mod_item", vec![vec![]]),
                 // trait_bound
                 signature("lifetime", vec![vec![]]),
                 // use list
