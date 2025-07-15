@@ -356,6 +356,11 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("field_initializer", vec![vec![Field("field")]]),
                 signature("shorthand_field_initializer", vec![vec![]]),
                 signature("base_field_initializer", vec![]), // maximum one per field_initializer_list
+                // where_clause
+                signature(
+                    "where_predicate",
+                    vec![vec![Field("left")], vec![Field("bounds")]],
+                ),
             ],
             injections: Some(tree_sitter_rust_orchard::INJECTIONS_QUERY),
         },
