@@ -389,55 +389,37 @@ mod tests {
 
     #[test]
     fn find_by_name() {
-        assert_eq!(LangProfile::find_by_name("JSON").unwrap().name, "JSON");
-        assert_eq!(LangProfile::find_by_name("Json").unwrap().name, "JSON");
-        assert_eq!(LangProfile::find_by_name("python").unwrap().name, "Python");
-        assert_eq!(LangProfile::find_by_name("py").unwrap().name, "Python");
-        assert_eq!(
-            LangProfile::find_by_name("Java properties").unwrap().name,
-            "Java properties"
-        );
+        fn find(filename: &str) -> Option<&'static LangProfile> {
+            LangProfile::find_by_name(filename)
+        }
+        assert_eq!(find("JSON").unwrap().name, "JSON");
+        assert_eq!(find("Json").unwrap().name, "JSON");
+        assert_eq!(find("python").unwrap().name, "Python");
+        assert_eq!(find("py").unwrap().name, "Python");
+        assert_eq!(find("Java properties").unwrap().name, "Java properties");
         assert!(
-            LangProfile::find_by_name("unknown language").is_none(),
+            find("unknown language").is_none(),
             "Language shouldn't be found"
         );
     }
 
     #[test]
     fn find_by_filename_or_name() {
-        assert_eq!(
-            LangProfile::find_by_filename_or_name("file.json", None)
-                .unwrap()
-                .name,
-            "JSON"
-        );
-        assert_eq!(
-            LangProfile::find_by_filename_or_name("file.java", Some("JSON"))
-                .unwrap()
-                .name,
-            "JSON"
-        );
-        assert!(LangProfile::find_by_filename_or_name("java", None).is_err());
-        assert_eq!(
-            LangProfile::find_by_filename_or_name("go.mod", None)
-                .unwrap()
-                .name,
-            "go.mod"
-        );
-        assert_eq!(
-            LangProfile::find_by_filename_or_name("file", Some("go.mod"))
-                .unwrap()
-                .name,
-            "go.mod"
-        );
-        assert!(LangProfile::find_by_filename_or_name("test.go.mod", None).is_err());
+        fn find(filename: &str, name: Option<&str>) -> Result<&'static LangProfile, String> {
+            LangProfile::find_by_filename_or_name(filename, name)
+        }
+        assert_eq!(find("file.json", None).unwrap().name, "JSON");
+        assert_eq!(find("file.java", Some("JSON")).unwrap().name, "JSON");
+        assert!(find("java", None).is_err());
+        assert_eq!(find("go.mod", None).unwrap().name, "go.mod");
+        assert_eq!(find("file", Some("go.mod")).unwrap().name, "go.mod");
+        assert!(find("test.go.mod", None).is_err());
         assert!(
-            LangProfile::find_by_filename_or_name("file.json", Some("non-existent language"),)
-                .is_err(),
+            find("file.json", Some("non-existent language")).is_err(),
             "If a language name is provided, the file name should be ignored"
         );
         assert!(
-            LangProfile::find_by_filename_or_name("file.unknown_extension", None).is_err(),
+            find("file.unknown_extension", None).is_err(),
             "Looking up language by unknown extension should fail"
         );
     }
