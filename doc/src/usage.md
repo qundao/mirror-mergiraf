@@ -28,26 +28,21 @@ Besides Git, Mergiraf can also be used with [**Jujutsu**](https://jj-vcs.github.
 Registering Mergiraf in Git will enable you to benefit from its conflict solving when merging and various other operations, such as rebasing, cherry-picking or even reverting.
 For best results, use Git v2.44.0 or newer.
 
-First, add the following section in your `~/.gitconfig` file:
+First, add the following section in your `~/.config/git/config` file:
 
 ```ini
 [merge "mergiraf"]
     name = mergiraf
     driver = mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L
-
-# if you haven't got a global gitattributes file yet
-[core]
-	attributesfile = ~/.gitattributes
 ```
 
 Or run:
 ```console
 $ git config --global merge.mergiraf.name mergiraf
 $ git config --global merge.mergiraf.driver 'mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L'
-$ git config --global core.attributesfile ~/.gitattributes
 ```
 
-Then, add the following line to your global `~/.gitattributes` file:
+Then, add the following line to your global gitattributes file (`~/.config/git/attributes` by default):
 ```
 * merge=mergiraf
 ```
