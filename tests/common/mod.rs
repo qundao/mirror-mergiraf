@@ -13,7 +13,10 @@ pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
     let mut command = Command::new("git");
     command.current_dir(repo_dir);
     command.args(args);
-    command.env_remove("HOME"); // disable ~/.gitconfig to isolate the test better
+    // Run using a minimal environment to isolate the test better.
+    command
+        .env_clear()
+        .envs(std::env::vars().filter(|(var, _)| var == "PATH"));
     let output = command.output().expect("Failed to execute git command");
     if !output.status.success() {
         panic!(
