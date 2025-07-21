@@ -292,15 +292,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             stdout,
             keep_backup,
         } => {
-            // Check if user is using Jujutsu instead of Git, which can lead to issues.
-            if let Ok(canonical_path) = fname_conflicts.canonicalize()
-                && let Some(conflict_dir) = canonical_path.parent()
-                && Command::new("jj")
-                    .arg("root")
-                    .current_dir(conflict_dir)
-                    .output()
-                    .is_ok_and(|o| o.status.success())
-            {
+            if conflict_location_looks_like_jj_repo(&fname_conflicts) {
                 return Err(
                     "\
                     You seem to be using Jujutsu instead of Git.\n\
@@ -424,6 +416,38 @@ fn fallback_to_git_merge_file(
                 .map(|exit_status| exit_status.code().unwrap_or(0))
         })
         .map_err(|err| err.to_string())
+}
+
+/// Check if user is using Jujutsu instead of Git, which can lead to issues when running
+/// `mergiraf solve`
+fn conflict_location_looks_like_jj_repo(fname_conflicts: &Path) -> bool {
+    if let Ok(conflict_path) = fname_conflicts.canonicalize()
+        && let Some(conflict_dir) = conflict_path.parent()
+        && let Ok(output) = Command::new("jj")
+            .arg("root")
+            .current_dir(conflict_dir)
+            .output()
+        && output.status.success()
+        // output of `jj root` contains a trailing newline
+        && let stdout = output.stdout.trim_ascii_end()
+        && let Ok(repo_path) = str::from_utf8(stdout)
+        // There's a JSON stream editor also called `jj`, which, when called with `jj root`,
+        // actually returns an empty stdout (even though when running interactively, it seems to
+        // just hang). And out latter check for `fs::exists` actually doesn't recognize that,
+        // because "empty path" + "/.jj" gives a relative path ".jj", which just happens to be
+        // valid (if the repos are colocated). So we sanity-check that the output is not empty.
+        //
+        // One could imagine a program that returns _something_ on `jj root`, even an
+        // "unknown subcommand: root", but the hope is that the path created by joining "/.jj" onto
+        // that will end up being invalid, which `fs::exists` will catch
+        && !repo_path.is_empty()
+        && let jj_root = Path::new(repo_path).join(".jj")
+        && let Ok(true) = fs::exists(jj_root)
+    {
+        true
+    } else {
+        false
+    }
 }
 
 #[cfg(test)]
