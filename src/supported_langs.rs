@@ -921,7 +921,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             alternate_names: &[],
             extensions: vec!["sv", "svh"],
             file_names: vec![],
-            language: tree_sitter_verilog::LANGUAGE.into(),
+            language: tree_sitter_systemverilog::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![],
             signatures: vec![],
