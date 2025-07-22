@@ -77,7 +77,7 @@ tree-sitter-systemverilog = "0.2.0"
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]
-cc = ">=1.2.12" # required for cross-compiling to MacOS X
+cc = { version = ">=1.2.12", default-features = false, optional = true } # required for cross-compiling to MacOS X
 
 [dev-dependencies]
 caplog = "0.3.0"
