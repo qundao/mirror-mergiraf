@@ -778,8 +778,11 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     &["import_statement", "import_from_statement"],
                     &["class_definition"],
                 ]),
-                CommutativeParent::without_delimiters("block", "\n\n")
-                    .restricted_to_groups(&[&["function_definition"]]),
+                CommutativeParent::without_delimiters("block", "\n\n").restricted_to_groups(&[&[
+                    "function_definition",
+                    "decorated_definition",
+                    "class_definition",
+                ]]),
                 CommutativeParent::without_delimiters("import_from_statement", ", ")
                     .restricted_to_groups(&[&["dotted_name"]]),
                 CommutativeParent::new("argument_list", "(", ", ", ")")
@@ -799,6 +802,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("import_from_statement", vec![vec![]]),
                 signature("class_definition", vec![vec![Field("name")]]),
                 signature("function_definition", vec![vec![Field("name")]]),
+                signature(
+                    "decorated_definition",
+                    vec![vec![Field("definition"), Field("name")]],
+                ),
                 signature("dotted_name", vec![vec![]]),
                 signature("keyword_argument", vec![vec![Field("name")]]),
                 signature("string", vec![vec![]]), // for elements of __all__ lists
