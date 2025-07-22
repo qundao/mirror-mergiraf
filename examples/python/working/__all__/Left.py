@@ -1,5 +1,5 @@
 __all__ = [
-    'foo'
+    'foo',
     'bar'
 ]
 other = [
