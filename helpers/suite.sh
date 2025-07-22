@@ -57,7 +57,7 @@ for testid in `find $suite -type d`; do
     else
         failed=1
         failed_count=$((failed_count+1))
-        if cargo run -p mgf_dev -- compare --commutative /tmp/our_merge$ext /tmp/expected_merge$ext > /dev/null 2>&1; then
+        if cargo compare --commutative /tmp/our_merge$ext /tmp/expected_merge$ext > /dev/null 2>&1; then
             echo -e "${PURPLE}FORM${NC}: (${conflict_summary}) ${testid}"
             continue
         fi

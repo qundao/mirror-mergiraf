@@ -37,7 +37,7 @@ successful=$?
 
 if [[ $successful -ne 0 ]]; then
 
-    if cargo run -p mgf_dev -- compare --commutative /tmp/expected$$$ext /tmp/out$$$ext > /dev/null 2>&1; then
+    if cargo compare --commutative /tmp/expected$$$ext /tmp/out$$$ext > /dev/null 2>&1; then
        echo "------"
        echo "Note: up to formatting differences, the test passes"
     fi

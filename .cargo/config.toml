@@ -1,0 +1,5 @@
+[alias]
+merge = ["run", "--", "merge"]
+solve = ["run", "--", "solve"]
+parse = ["run", "-p", "mgf_dev", "--", "parse"]
+compare = ["run", "-p", "mgf_dev", "--", "compare"]
