@@ -1005,16 +1005,40 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("imports", "\n"),
                 CommutativeParent::new("import_list", "(", ", ", ")"),
+                CommutativeParent::new("exports", "(", ", ", ")")
+                    .restricted_to_groups(&[&["import_name"]]),
+                CommutativeParent::new("children", "(", ", ", ")"), // children of types and typeclasses in imports and exports.
                 CommutativeParent::new("record", "{", ",\n", "}")
                     .restricted_to_groups(&[&["field_update"]]),
                 CommutativeParent::from_query("(deriving (tuple) @commutative)", "(", ", ", ")"),
+                CommutativeParent::without_delimiters("declarations", "\n").restricted_to_groups(
+                    // notably leaving out: functions and TemplateHaskell splices
+                    &[&[
+                        "bind",
+                        "signature",
+                        "data_type",
+                        "type_synonym",
+                        "deriving_instance",
+                        "kind_signature",
+                        "newtype",
+                    ]],
+                ),
+                CommutativeParent::without_delimiters("local_binds", "\n")
+                    .restricted_to_groups(&[&["bind", "signature"]]),
             ],
             signatures: vec![
-                signature("field_update", vec![vec![Field("field")]]),
-                signature("field", vec![vec![Field("name")]]),
-                signature("import_name", vec![vec![]]),
+                signature("field_update", vec![vec![Field("field")]]), // in recordupdates
+                signature("field", vec![vec![Field("name")]]),         // in records
+                signature("import_name", vec![vec![]]), // in import and export statements
                 signature("signature", vec![vec![Field("name")]]),
-                signature("name", vec![vec![]]),
+                signature("name", vec![vec![]]), // in deriving lists
+                signature("kind_signature", vec![vec![Field("name")]]),
+                signature("type_synonym", vec![vec![Field("name")]]),
+                signature("variable", vec![vec![]]), // in import/export children
+                signature("bind", vec![vec![Field("name")]]),
+                signature("deriving_instance", vec![vec![]]),
+                signature("data_type", vec![vec![Field("name")]]),
+                signature("newtype", vec![vec![Field("name")]]),
             ],
             injections: None,
         },
