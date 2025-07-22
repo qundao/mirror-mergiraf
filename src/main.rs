@@ -1,6 +1,6 @@
 use std::{
     borrow::Cow,
-    env, fs,
+    env, fs, io,
     path::{Path, PathBuf},
     process::{Command, exit},
     time::Duration,
@@ -223,7 +223,8 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 let mergiraf_disabled = env::var(DISABLING_ENV_VAR).as_deref() == Ok("0");
 
                 if mergiraf_disabled {
-                    return fallback_to_git_merge_file(base, left, right, git, &settings);
+                    return fallback_to_git_merge_file(base, left, right, git, &settings)
+                        .map_err(|e| format!("error when calling git-merge-file: {e}"));
                 }
             }
 
@@ -384,38 +385,34 @@ fn fallback_to_git_merge_file(
     right: &Path,
     git: bool,
     settings: &DisplaySettings,
-) -> Result<i32, String> {
+) -> io::Result<i32> {
     let mut command = Command::new("git");
     command.arg("merge-file").arg("--diff-algorithm=histogram");
     if !git {
         command.arg("-p");
     }
-    if let Some(base_rev_name) = settings.base_revision_name.as_deref()
-        && let Some(left_rev_name) = settings.left_revision_name.as_deref()
-        && let Some(right_rev_name) = settings.right_revision_name.as_deref()
-    {
-        command
-            .arg("-L")
-            .arg(left_rev_name)
-            .arg("-L")
-            .arg(base_rev_name)
-            .arg("-L")
-            .arg(right_rev_name);
-    };
+    if let Some(left_rev_name) = settings.left_revision_name.as_deref() {
+        command.args(["-L", left_rev_name]);
 
-    command
+        if let Some(base_rev_name) = settings.base_revision_name.as_deref() {
+            command.args(["-L", base_rev_name]);
+
+            if let Some(right_rev_name) = settings.right_revision_name.as_deref() {
+                command.args(["-L", right_rev_name]);
+            }
+        }
+    }
+
+    let exit_code = command
         .arg("--marker-size")
         .arg(settings.conflict_marker_size_or_default().to_string())
-        .arg(left)
-        .arg(base)
-        .arg(right)
-        .spawn()
-        .and_then(|mut process| {
-            process
-                .wait()
-                .map(|exit_status| exit_status.code().unwrap_or(0))
-        })
-        .map_err(|err| err.to_string())
+        .args([left, base, right])
+        .spawn()?
+        .wait()?
+        .code()
+        .unwrap_or(0);
+
+    Ok(exit_code)
 }
 
 /// Check if user is using Jujutsu instead of Git, which can lead to issues when running
