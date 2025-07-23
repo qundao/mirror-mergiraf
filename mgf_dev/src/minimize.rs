@@ -434,8 +434,7 @@ fn run_testing_command(
         .status
         .code()
         .expect("Expected an exit code from the testing program");
-    let passes_test = exit_code == expected_exit_code;
-    if passes_test {
+    if exit_code == expected_exit_code {
         Ok(())
     } else {
         Err(AttemptFailure::TestFailed(exit_code))
