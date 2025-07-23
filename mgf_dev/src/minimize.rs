@@ -29,7 +29,7 @@ pub fn minimize(
     test_case: &Path,
     script: &str,
     expected_exit_code: i32,
-    output: Option<&PathBuf>,
+    output: Option<&Path>,
     seed: Option<u64>,
     max_steps: i32,
     max_failures: i32,
