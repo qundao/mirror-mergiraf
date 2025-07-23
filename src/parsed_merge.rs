@@ -257,11 +257,12 @@ impl<'a> ParsedMerge<'a> {
     ) -> Option<Range<usize>> {
         let length = range.end - range.start;
         let start = range.start;
-        let matched_start = match revision {
-            Revision::Base => Self::binary_search(&self.base, start, length),
-            Revision::Left => Self::binary_search(&self.left, start, length),
-            Revision::Right => Self::binary_search(&self.right, start, length),
-        }?;
+        let offset_maps = match revision {
+            Revision::Base => &self.base,
+            Revision::Left => &self.left,
+            Revision::Right => &self.right,
+        };
+        let matched_start = Self::binary_search(offset_maps, start, length)?;
         Some(matched_start..matched_start + length)
     }
 
