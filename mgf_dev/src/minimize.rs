@@ -18,6 +18,8 @@ use mergiraf::{
     tree_matcher::TreeMatcher,
     util::{detect_suffix, read_file_to_string},
 };
+
+use log::{info, warn};
 use rand::{Rng, SeedableRng, rngs::StdRng, seq::IndexedRandom};
 use tempfile::tempdir;
 use typed_arena::Arena;
@@ -49,7 +51,7 @@ pub fn minimize(
 
     // Main loop: incrementally reduce the test case at each iteration
     while progress_made && step < max_steps {
-        println!("\n----------- step {step} ---------\n");
+        info!("\n----------- step {step} ---------\n");
 
         let mut failures = 0;
         progress_made = false;
@@ -67,12 +69,12 @@ pub fn minimize(
                 &mut rng,
             ) {
                 Ok(()) => {
-                    println!("New minimized case at {}", new_test_case.display());
+                    info!("New minimized case at {}", new_test_case.display());
                     current_best = new_test_case;
                     true
                 }
                 Err(failure) => {
-                    println!("Failed attempt: {failure}");
+                    warn!("Failed attempt: {failure}");
                     failures += 1;
                     false
                 }
@@ -87,8 +89,8 @@ pub fn minimize(
         .unwrap_or(&default_output_path)
         .to_str()
         .expect("Invalid output path");
-    println!("Finished after {step} minimizing steps.");
-    println!("Saving the output to {final_output}");
+    info!("Finished after {step} minimizing steps.");
+    info!("Saving the output to {final_output}");
     // Clear the output directory first
     Command::new("rm")
         .args(["-r", final_output])
@@ -259,7 +261,7 @@ fn attempt_minimization_step(
     )?;
 
     for node in &nodes_to_delete {
-        println!("deleting {node}");
+        info!("deleting {node}");
     }
 
     // Write the attempt to disk
@@ -282,7 +284,7 @@ fn attempt_minimization_step(
 
     // run the provided script and check that it has the expected exit code
     run_testing_command(script, expected_exit_code, output_dir)?;
-    println!("successful testing script");
+    info!("successful testing script");
 
     Ok(())
 }
