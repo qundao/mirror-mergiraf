@@ -29,6 +29,6 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
-        run: cargo clippy --workspace --all-targets --locked -- -Dwarnings
+        run: cargo clippy --workspace --all-features --all-targets --locked -- -Dwarnings
       - name: Run tests
         run: cargo test --workspace --all-features --locked

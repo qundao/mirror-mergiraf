@@ -9,10 +9,10 @@ use clap::{Parser, Subcommand};
 use mergiraf::{
     ast::AstNode,
     lang_profile::LangProfile,
+    minimize::minimize,
     // XXX: move the uses to lib to avoid making these public?
     newline::normalize_to_lf,
 };
-use mgf_dev::minimize::minimize;
 use typed_arena::Arena;
 
 /// Dev helper for contributing to Mergiraf

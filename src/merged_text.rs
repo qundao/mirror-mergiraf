@@ -15,7 +15,7 @@ use crate::{
 /// layout of the resulting text is not known yet as it depends on
 /// the output settings.
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
-pub struct MergedText<'a> {
+pub(crate) struct MergedText<'a> {
     sections: Vec<MergeSection<'a>>,
 }
 
