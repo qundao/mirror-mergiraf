@@ -399,15 +399,15 @@ fn check_deleted_output_is_consistent<'a>(
     arena: &'a Arena<AstNode<'a>>,
     ref_arena: &'a Arena<&AstNode<'a>>,
 ) -> Result<(), AttemptFailure> {
-    if !merged_tree.isomorphic_to_source(
+    if merged_tree.isomorphic_to_source(
         AstNode::parse(new_contents, lang_profile, arena, ref_arena)
             .map_err(AttemptFailure::SyntaxError)?,
         revision,
         class_mapping,
     ) {
-        Err(AttemptFailure::InconsistentTree)
-    } else {
         Ok(())
+    } else {
+        Err(AttemptFailure::InconsistentTree)
     }
 }
 
