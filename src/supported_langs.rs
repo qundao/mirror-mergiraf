@@ -1042,6 +1042,23 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             ],
             injections: None,
         },
+        LangProfile {
+            name: "GNU Make",
+            alternate_names: &[],
+            extensions: vec!["mk"],
+            file_names: vec!["Makefile", "GNUmakefile"],
+            language: tree_sitter_make::LANGUAGE.into(),
+            atomic_nodes: vec!["recipe_line", "shell_command", "raw_text"],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("list", " "),
+                CommutativeParent::without_delimiters("pattern_list", " "),
+            ],
+            signatures: vec![
+                signature("variable_assignment", vec![vec![Field("name")]]),
+                signature("rule", vec![vec![Field("target")]]),
+            ],
+            injections: None,
+        },
     ]
 });
 

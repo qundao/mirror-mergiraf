@@ -21,6 +21,7 @@ Mergiraf currently supports the following programming languages:
 * SystemVerilog (*.sv, *.svh)
 * OCaml (*.ml, *.mli)
 * Haskell (*.hs)
+* GNU Make (*.mk, Makefile, GNUmakefile)
 
 and the following declarative file formats:
 * JSON (*.json)
