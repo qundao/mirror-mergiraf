@@ -199,24 +199,13 @@ fn attempt_minimization_step(
         &left_right_matching,
     );
 
-    let nodes_to_delete = {
-        let mut nodes_to_delete = HashSet::new();
-        let revision_idx = rng.random_range(0..3);
-        let (rev, tree) = [
-            (Revision::Base, &tree_base),
-            (Revision::Left, &tree_left),
-            (Revision::Right, &tree_right),
-        ][revision_idx];
-        pick_nodes_to_delete(
-            rev,
-            tree,
-            only_unchanged,
-            &class_mapping,
-            &mut nodes_to_delete,
-            rng,
-        )?;
-        Ok(nodes_to_delete)
-    }?;
+    let revision_idx = rng.random_range(0..3);
+    let (rev, tree) = [
+        (Revision::Base, &tree_base),
+        (Revision::Left, &tree_left),
+        (Revision::Right, &tree_right),
+    ][revision_idx];
+    let nodes_to_delete = pick_nodes_to_delete(rev, tree, only_unchanged, &class_mapping, rng)?;
 
     // Delete the nodes and check that the corresponding trees still parse.
     // More than parsing, we want them to be faithful to the intended AST.
@@ -306,6 +295,24 @@ fn pick_nodes_to_delete<'a>(
     tree: &'a AstNode<'a>,
     only_unchanged: bool,
     class_mapping: &ClassMapping<'a>,
+    rng: &mut StdRng,
+) -> Result<HashSet<Leader<'a>>, AttemptFailure> {
+    let mut results = HashSet::new();
+    pick_nodes_to_delete_internal(
+        revision,
+        tree,
+        only_unchanged,
+        class_mapping,
+        &mut results,
+        rng,
+    )?;
+    Ok(results)
+}
+fn pick_nodes_to_delete_internal<'a>(
+    revision: Revision,
+    tree: &'a AstNode<'a>,
+    only_unchanged: bool,
+    class_mapping: &ClassMapping<'a>,
     results: &mut HashSet<Leader<'a>>,
     rng: &mut StdRng,
 ) -> Result<(), AttemptFailure> {
@@ -326,7 +333,7 @@ fn pick_nodes_to_delete<'a>(
     let mut will_recurse = || rng.random_bool(probability_to_recurse);
 
     if can_recurse && (!can_delete || will_recurse()) {
-        pick_nodes_to_delete(revision, child, only_unchanged, class_mapping, results, rng)
+        pick_nodes_to_delete_internal(revision, child, only_unchanged, class_mapping, results, rng)
     } else if can_delete {
         // Let's delete this node
         results.insert(leader);
