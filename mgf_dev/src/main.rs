@@ -154,7 +154,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
                 test_case,
                 script,
                 *expected_exit_code,
-                output.as_ref(),
+                output.as_deref(),
                 *seed,
                 *max_steps,
                 *max_failures,
