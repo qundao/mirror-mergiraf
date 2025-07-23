@@ -342,12 +342,13 @@ fn pick_nodes_to_delete<'a>(
 
 /// Check if a node is unchanged in all three revisions
 fn is_unchanged<'a>(leader: &Leader<'a>, class_mapping: &ClassMapping<'a>) -> bool {
-    if let (Some(base), Some(left), Some(right)) = (
-        class_mapping.node_at_rev(leader, Revision::Base),
-        class_mapping.node_at_rev(leader, Revision::Left),
-        class_mapping.node_at_rev(leader, Revision::Right),
-    ) {
-        base.isomorphic_to(left) && base.isomorphic_to(right)
+    if let Some(base) = class_mapping.node_at_rev(leader, Revision::Base)
+        && let Some(left) = class_mapping.node_at_rev(leader, Revision::Left)
+        && let Some(right) = class_mapping.node_at_rev(leader, Revision::Right)
+        && base.isomorphic_to(left)
+        && base.isomorphic_to(right)
+    {
+        true
     } else {
         false
     }
