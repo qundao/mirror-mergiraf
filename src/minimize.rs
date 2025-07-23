@@ -7,7 +7,7 @@ use std::{
     process::Command,
 };
 
-use mergiraf::{
+use crate::{
     ast::AstNode,
     class_mapping::{ClassMapping, Leader, RevNode, RevisionNESet},
     lang_profile::LangProfile,

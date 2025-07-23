@@ -10,11 +10,10 @@ log.workspace = true
 mergiraf = {path = "..", features = ["dev"]}
 stderrlog.workspace = true
 typed-arena.workspace = true
-tempfile.workspace = true
 rand.workspace = true
 
 [dev-dependencies]
-tempfile.workspace = true
+tempfile = "3"
 
 [lints]
 workspace = true
