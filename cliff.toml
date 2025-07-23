@@ -18,7 +18,19 @@ body = """
             {{ commit.message | upper_first }}\
             {% if commit.remote.username %} by @{{ commit.remote.username }}{%- endif %}\
     {% endfor %}
-{% endfor %}\n
+{% endfor %}
+
+{%- if gitea -%}
+{% if gitea.contributors | filter(attribute="is_first_time", value=true) | length != 0 %}
+  ### 🎉 New contributors
+{% endif %}\
+{% for contributor in gitea.contributors | filter(attribute="is_first_time", value=true) %}
+  - @{{ contributor.username }} made their first contribution \
+    {%- if contributor.pr_number %} in #{{ contributor.pr_number }} \
+    {% endif %}
+{%- endfor -%}
+{% endif %}
+\n
 """
 # A Tera template to be rendered as the changelog's footer.
 # See https://keats.github.io/tera/docs/#introduction
