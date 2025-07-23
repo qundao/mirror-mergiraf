@@ -80,7 +80,7 @@ pub fn minimize(
                 }
             }
         }
-        step += 1
+        step += 1;
     }
 
     // We stopped minimizing, let's save the latest test case to the output directory
@@ -126,10 +126,10 @@ enum AttemptFailure {
 impl Display for AttemptFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AttemptFailure::LostInTree(node) => write!(f, "LostInTree: {node}"),
-            AttemptFailure::SyntaxError(error) => write!(f, "SyntaxError: {error}"),
-            AttemptFailure::InconsistentTree => write!(f, "InconsistentTree"),
-            AttemptFailure::TestFailed(status_code) => write!(f, "TestFailed: {status_code}"),
+            Self::LostInTree(node) => write!(f, "LostInTree: {node}"),
+            Self::SyntaxError(error) => write!(f, "SyntaxError: {error}"),
+            Self::InconsistentTree => write!(f, "InconsistentTree"),
+            Self::TestFailed(status_code) => write!(f, "TestFailed: {status_code}"),
         }
     }
 }
