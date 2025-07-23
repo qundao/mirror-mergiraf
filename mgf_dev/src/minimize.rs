@@ -16,7 +16,7 @@ use mergiraf::{
     pcs::Revision,
     settings::DisplaySettings,
     tree_matcher::TreeMatcher,
-    util::detect_suffix,
+    util::{detect_suffix, read_file_to_string},
 };
 use rand::{Rng, SeedableRng, rngs::StdRng, seq::IndexedRandom};
 use tempfile::tempdir;
@@ -440,9 +440,4 @@ fn run_testing_command(
     } else {
         Err(AttemptFailure::TestFailed(exit_code))
     }
-}
-
-/// TODO copied from src/main.rs
-fn read_file_to_string(path: &Path) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|err| format!("Could not read {}: {err}", path.display()))
 }
