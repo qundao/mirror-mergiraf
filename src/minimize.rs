@@ -224,8 +224,6 @@ fn attempt_minimization_step(
         &deleted_base,
         lang_profile,
         &class_mapping,
-        &arena,
-        &ref_arena,
     )?;
     let deleted_left =
         remove_nodes_in_tree(Revision::Left, tree_left, &class_mapping, &nodes_to_delete);
@@ -238,8 +236,6 @@ fn attempt_minimization_step(
         &deleted_left,
         lang_profile,
         &class_mapping,
-        &arena,
-        &ref_arena,
     )?;
     let deleted_right = remove_nodes_in_tree(
         Revision::Right,
@@ -256,8 +252,6 @@ fn attempt_minimization_step(
         &deleted_right,
         lang_profile,
         &class_mapping,
-        &arena,
-        &ref_arena,
     )?;
 
     for node in &nodes_to_delete {
@@ -406,11 +400,11 @@ fn check_deleted_output_is_consistent<'a>(
     merged_tree: &'a MergedTree<'a>,
     lang_profile: &'a LangProfile,
     class_mapping: &ClassMapping<'a>,
-    arena: &'a Arena<AstNode<'a>>,
-    ref_arena: &'a Arena<&AstNode<'a>>,
 ) -> Result<(), AttemptFailure> {
+    let arena = Arena::new();
+    let ref_arena = Arena::new();
     if merged_tree.isomorphic_to_source(
-        AstNode::parse(new_contents, lang_profile, arena, ref_arena)
+        AstNode::parse(new_contents, lang_profile, &arena, &ref_arena)
             .map_err(AttemptFailure::SyntaxError)?,
         revision,
         class_mapping,
