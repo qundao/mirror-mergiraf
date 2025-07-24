@@ -303,8 +303,13 @@ impl<'a> AstNode<'a> {
         };
         let local_source = &global_source[range.start..range.end];
         if node.is_error() {
+            let full_range = node.range();
             return Err(format!(
-                "parse error at {range:?}, starting with: {}",
+                "parse error at {}:{}..{}:{}, starting with: {}",
+                full_range.start_point.row,
+                full_range.start_point.column,
+                full_range.end_point.row,
+                full_range.end_point.column,
                 &local_source[..min(32, local_source.len())]
             ));
         }
@@ -1029,6 +1034,19 @@ mod tests {
     use crate::test_utils::ctx;
 
     use super::*;
+
+    #[test]
+    fn parse_error() {
+        let ctx = ctx();
+        let lang_profile = LangProfile::detect_from_filename("test.json")
+            .expect("could not load language profile");
+        let parse = AstNode::parse("[\n {,\n]", lang_profile, &ctx.arena, &ctx.ref_arena);
+
+        assert_eq!(
+            parse,
+            Err("parse error at 1:1..1:3, starting with: {,".to_string())
+        );
+    }
 
     #[test]
     fn heights() {
