@@ -190,7 +190,7 @@ mod tests {
     fn from_tree() {
         let ctx = ctx();
 
-        let tree = ctx.parse_json("[1, [2, 3]]");
+        let tree = ctx.parse("a.json", "[1, [2, 3]]");
 
         let classmapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
@@ -237,7 +237,7 @@ mod tests {
     fn single_tree_has_no_conflicts() {
         let ctx = ctx();
 
-        let tree = ctx.parse_json("[1, [2, 3]]");
+        let tree = ctx.parse("a.json", "[1, [2, 3]]");
 
         let classmapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
@@ -257,7 +257,7 @@ mod tests {
     fn write_to_file() {
         let ctx = ctx();
 
-        let tree = ctx.parse_json("[1, 2]");
+        let tree = ctx.parse("a.json", "[1, 2]");
 
         let classmapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();

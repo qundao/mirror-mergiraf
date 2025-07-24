@@ -450,9 +450,9 @@ mod tests {
     fn left_right_matching_does_not_override_base_matchings() {
         let ctx = ctx();
 
-        let base_tree = ctx.parse_rust("struct Foo;\nstruct Bar;\n");
-        let left_tree = ctx.parse_rust("struct Foo;\n");
-        let right_tree = ctx.parse_rust("struct Bar;\n");
+        let base_tree = ctx.parse("a.rs", "struct Foo;\nstruct Bar;\n");
+        let left_tree = ctx.parse("a.rs", "struct Foo;\n");
+        let right_tree = ctx.parse("a.rs", "struct Bar;\n");
 
         let foo_base = RevNode::new(Revision::Base, base_tree[0]);
         assert_eq!(foo_base.node.source, "struct Foo;");
@@ -491,9 +491,18 @@ mod tests {
     fn classes_are_properly_merged() {
         let ctx = ctx();
 
-        let base_tree = ctx.parse_rust("struct FooBase;\nstruct BarBase;\nstruct HeyBase;\n");
-        let left_tree = ctx.parse_rust("struct FooLeft;\nstruct BarLeft;\nstruct HeyLeft;\n");
-        let right_tree = ctx.parse_rust("struct FooRight;\nstruct BarRight;\nstruct HeyRight;\n");
+        let base_tree = ctx.parse(
+            "a.rs",
+            "struct FooBase;\nstruct BarBase;\nstruct HeyBase;\n",
+        );
+        let left_tree = ctx.parse(
+            "a.rs",
+            "struct FooLeft;\nstruct BarLeft;\nstruct HeyLeft;\n",
+        );
+        let right_tree = ctx.parse(
+            "a.rs",
+            "struct FooRight;\nstruct BarRight;\nstruct HeyRight;\n",
+        );
 
         let foo_base = RevNode::new(Revision::Base, base_tree[0]);
         let foo_left = RevNode::new(Revision::Left, left_tree[0]);

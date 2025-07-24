@@ -504,8 +504,8 @@ mod tests {
     fn small_sample() {
         let ctx = ctx();
 
-        let t1 = ctx.parse_rust("fn my_func() -> i32 { 1 + (3 + (5 - 1)) }");
-        let t2 = ctx.parse_rust("fn other_func() { (3 + (5 - 1)) * 2 }");
+        let t1 = ctx.parse("a.rs", "fn my_func() -> i32 { 1 + (3 + (5 - 1)) }");
+        let t2 = ctx.parse("a.rs", "fn other_func() { (3 + (5 - 1)) * 2 }");
 
         let matcher = TreeMatcher {
             min_height: 2,
@@ -526,10 +526,11 @@ mod tests {
     fn example_from_the_paper() {
         let ctx = ctx();
 
-        let t1 = ctx.parse_java(
+        let t1 = ctx.parse(
+            "a.java",
             "public class Test { public String foo(int i) { if (i == 0) return \"Foo!\"; } }",
         );
-        let t2 = ctx.parse_java("public class Test { private String foo(int i) { if (i == 0) return \"Bar\"; else if (i == -1) return \"Foo!\"; } }");
+        let t2 = ctx.parse("a.java", "public class Test { private String foo(int i) { if (i == 0) return \"Bar\"; else if (i == -1) return \"Foo!\"; } }");
 
         let matcher = TreeMatcher {
             min_height: 2,
@@ -550,10 +551,11 @@ mod tests {
     fn without_rted() {
         let ctx = ctx();
 
-        let t1 = ctx.parse_java(
+        let t1 = ctx.parse(
+            "a.java",
             "public class Test { public String foo(int i) { if (i == 0) return \"Foo!\"; } }",
         );
-        let t2 = ctx.parse_java("public class Test { private String foo(int i) { if (i == 0) return \"Bar\"; else if (i == -1) return \"Foo!\"; } }");
+        let t2 = ctx.parse("a.java", "public class Test { private String foo(int i) { if (i == 0) return \"Bar\"; else if (i == -1) return \"Foo!\"; } }");
 
         let matcher = TreeMatcher {
             min_height: 2,
@@ -574,8 +576,8 @@ mod tests {
     fn matching_very_shallow_structures() {
         let ctx = ctx();
 
-        let left = ctx.parse_json("[1, 2]");
-        let right = ctx.parse_json("[0, 1, 2]");
+        let left = ctx.parse("a.json", "[1, 2]");
+        let right = ctx.parse("a.json", "[0, 1, 2]");
 
         let matcher = TreeMatcher {
             min_height: 0,
@@ -596,8 +598,8 @@ mod tests {
     fn matching_rust_types() {
         let ctx = ctx();
 
-        let left = ctx.parse_rust("use std::collections::{HashMap};");
-        let right = ctx.parse_rust("use std::collections::{HashMap, HashSet};");
+        let left = ctx.parse("a.rs", "use std::collections::{HashMap};");
+        let right = ctx.parse("a.rs", "use std::collections::{HashMap, HashSet};");
 
         let matcher = TreeMatcher {
             min_height: 2,

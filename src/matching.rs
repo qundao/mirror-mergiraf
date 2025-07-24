@@ -222,8 +222,8 @@ mod tests {
     fn retrieve_match() {
         let ctx = ctx();
 
-        let tree = ctx.parse_rust("fn t() { 3 }");
-        let tree2 = ctx.parse_rust("fn t() { 1 }");
+        let tree = ctx.parse("a.rs", "fn t() { 3 }");
+        let tree2 = ctx.parse("a.rs", "fn t() { 1 }");
 
         let mut matching = Matching::new();
         assert_eq!(matching.len(), 0);
@@ -237,8 +237,8 @@ mod tests {
     fn remove_previously_matched() {
         let ctx = ctx();
 
-        let tree1 = ctx.parse_json("[1, 2, 3]");
-        let tree2 = ctx.parse_json("[4, 5, 6]");
+        let tree1 = ctx.parse("a.json", "[1, 2, 3]");
+        let tree2 = ctx.parse("a.json", "[4, 5, 6]");
 
         let mut matching = Matching::new();
 
@@ -267,7 +267,7 @@ mod tests {
     fn dice() {
         let ctx = ctx();
 
-        let root = ctx.parse_rust("fn t() { 3 }");
+        let root = ctx.parse("a.rs", "fn t() { 3 }");
         let mut matching = Matching::new();
 
         assert_eq!(matching.dice(root, root), 0.0_f32);

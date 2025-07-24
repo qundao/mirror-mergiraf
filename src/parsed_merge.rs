@@ -1222,8 +1222,8 @@ struct MyType {
             let left_rev = parsed.reconstruct_revision(Revision::Left);
             let right_rev = parsed.reconstruct_revision(Revision::Right);
 
-            let parsed_left = ctx.parse_rust(&left_rev);
-            let parsed_right = ctx.parse_rust(&right_rev);
+            let parsed_left = ctx.parse("a.rs", &left_rev);
+            let parsed_right = ctx.parse("a.rs", &right_rev);
 
             let matching = parsed.generate_matching(
                 Revision::Left,
@@ -1266,8 +1266,8 @@ struct MyType {
             let base_rev = parsed.reconstruct_revision(Revision::Base);
             let left_rev = parsed.reconstruct_revision(Revision::Left);
 
-            let parsed_base = ctx.parse_nix(&base_rev);
-            let parsed_left = ctx.parse_nix(&left_rev);
+            let parsed_base = ctx.parse("a.nix", &base_rev);
+            let parsed_left = ctx.parse("a.nix", &left_rev);
 
             let binding_set_base = parsed_base[0][2][1];
             assert_eq!(binding_set_base.grammar_name, "binding_set");

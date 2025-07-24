@@ -17,51 +17,11 @@ pub fn ctx<'a>() -> TestContext<'a> {
 }
 
 impl<'a> TestContext<'a> {
-    fn parse_internal(&'a self, extension: &str, source: &'a str) -> &'a AstNode<'a> {
+    pub fn parse(&'a self, filename: &str, source: &'a str) -> &'a AstNode<'a> {
         let lang_profile =
-            LangProfile::detect_from_filename(extension).expect("could not load language profile");
+            LangProfile::detect_from_filename(filename).expect("could not load language profile");
         AstNode::parse(source, lang_profile, &self.arena, &self.ref_arena)
             .expect("syntax error in source")
-    }
-
-    pub fn parse_rust(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.rs", source)
-    }
-
-    pub fn parse_json(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.json", source)
-    }
-
-    pub fn parse_html(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.html", source)
-    }
-
-    pub fn parse_markdown(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.md", source)
-    }
-
-    pub fn parse_java(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.java", source)
-    }
-
-    pub fn parse_python(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.py", source)
-    }
-
-    pub fn parse_go(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.go", source)
-    }
-
-    pub fn parse_yaml(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.yaml", source)
-    }
-
-    pub fn parse_toml(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.toml", source)
-    }
-
-    pub fn parse_nix(&'a self, source: &'a str) -> &'a AstNode<'a> {
-        self.parse_internal("a.nix", source)
     }
 }
 

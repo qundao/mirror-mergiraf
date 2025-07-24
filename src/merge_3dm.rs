@@ -329,9 +329,9 @@ mod tests {
     fn single_tree_has_no_conflicts() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("[1, {\"a\":2}]");
-        let left = ctx.parse_json("[0, 1, {\"a\":2}]");
-        let right = ctx.parse_json("[1, {\"a\":2}, 3]");
+        let base = ctx.parse("a.json", "[1, {\"a\":2}]");
+        let left = ctx.parse("a.json", "[0, 1, {\"a\":2}]");
+        let right = ctx.parse("a.json", "[1, {\"a\":2}, 3]");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -357,9 +357,9 @@ mod tests {
     fn merge_conflict() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("[1, 2]");
-        let left = ctx.parse_json("[1, 3, 2]");
-        let right = ctx.parse_json("[1, 4, 2]");
+        let base = ctx.parse("a.json", "[1, 2]");
+        let left = ctx.parse("a.json", "[1, 3, 2]");
+        let right = ctx.parse("a.json", "[1, 4, 2]");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -395,9 +395,9 @@ mod tests {
     fn delete_delete() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("[1, 2]");
-        let left = ctx.parse_json("[1]");
-        let right = ctx.parse_json("[2]");
+        let base = ctx.parse("a.json", "[1, 2]");
+        let left = ctx.parse("a.json", "[1]");
+        let right = ctx.parse("a.json", "[2]");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -433,9 +433,9 @@ mod tests {
     fn delete_insert() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("[1, 2]");
-        let left = ctx.parse_json("[1]");
-        let right = ctx.parse_json("[1, 2, 3]");
+        let base = ctx.parse("a.json", "[1, 2]");
+        let left = ctx.parse("a.json", "[1]");
+        let right = ctx.parse("a.json", "[1, 2, 3]");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -471,9 +471,9 @@ mod tests {
     fn delete_modify() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("[1, {\"a\": 3}, 2]");
-        let left = ctx.parse_json("[1, {\"a\": 4}, 2]");
-        let right = ctx.parse_json("[1, 2]");
+        let base = ctx.parse("a.json", "[1, {\"a\": 3}, 2]");
+        let left = ctx.parse("a.json", "[1, {\"a\": 4}, 2]");
+        let right = ctx.parse("a.json", "[1, 2]");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -509,9 +509,9 @@ mod tests {
     fn commutative_conflict_end_separator() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("{\"x\": 0}");
-        let left = ctx.parse_json("{\"a\": 1, \"x\": 0}");
-        let right = ctx.parse_json("{\"b\": 2, \"x\": 0}");
+        let base = ctx.parse("a.json", "{\"x\": 0}");
+        let left = ctx.parse("a.json", "{\"a\": 1, \"x\": 0}");
+        let right = ctx.parse("a.json", "{\"b\": 2, \"x\": 0}");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -536,9 +536,9 @@ mod tests {
     fn commutative_conflict_no_end_separator() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("{}");
-        let left = ctx.parse_json("{\"a\": 1}");
-        let right = ctx.parse_json("{\"b\": 2}");
+        let base = ctx.parse("a.json", "{}");
+        let left = ctx.parse("a.json", "{\"a\": 1}");
+        let right = ctx.parse("a.json", "{\"b\": 2}");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -563,9 +563,9 @@ mod tests {
     fn commutative_conflict_double_delete() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("{\"a\": 1, \"b\": 2}");
-        let left = ctx.parse_json("{\"a\": 1}");
-        let right = ctx.parse_json("{\"b\": 2}");
+        let base = ctx.parse("a.json", "{\"a\": 1, \"b\": 2}");
+        let left = ctx.parse("a.json", "{\"a\": 1}");
+        let right = ctx.parse("a.json", "{\"b\": 2}");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -590,9 +590,9 @@ mod tests {
     fn commutative_conflict_delete_modified() {
         let ctx = ctx();
 
-        let base = ctx.parse_json("{\"a\": {\"x\": 1}, \"b\": 2}");
-        let left = ctx.parse_json("{\"a\": {\"x\": 2}}");
-        let right = ctx.parse_json("{\"b\": 2}");
+        let base = ctx.parse("a.json", "{\"a\": {\"x\": 1}, \"b\": 2}");
+        let left = ctx.parse("a.json", "{\"a\": {\"x\": 2}}");
+        let right = ctx.parse("a.json", "{\"b\": 2}");
 
         let (primary_matcher, auxiliary_matcher) = json_matchers();
 
@@ -636,9 +636,9 @@ mod tests {
         // both `left` and `right` add the `'s` to `&self`, so this would-be-conflict should be
         // resolved during the construction of the tree. NB: The `<'s>` is added just so that
         // `left` and `right` are not completely identical (which would've made the resolution trivial)
-        let base = ctx.parse_rust("fn foo(&self) {}");
-        let left = ctx.parse_rust("fn foo(&'s self) {}");
-        let right = ctx.parse_rust("fn foo<'s>(&'s self) {}");
+        let base = ctx.parse("a.rs", "fn foo(&self) {}");
+        let left = ctx.parse("a.rs", "fn foo(&'s self) {}");
+        let right = ctx.parse("a.rs", "fn foo<'s>(&'s self) {}");
 
         let (primary_matcher, auxiliary_matcher) = rust_matchers();
 
@@ -706,9 +706,9 @@ fn baz() {
     eprintln!();
 }";
 
-        let base = ctx.parse_rust(base);
-        let left = ctx.parse_rust(left);
-        let right = ctx.parse_rust(right);
+        let base = ctx.parse("a.rs", base);
+        let left = ctx.parse("a.rs", left);
+        let right = ctx.parse("a.rs", right);
 
         let primary_matcher = TreeMatcher {
             min_height: 1,

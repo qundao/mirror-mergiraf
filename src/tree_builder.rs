@@ -1036,7 +1036,7 @@ mod tests {
     fn recover_exact_tree() {
         let ctx = ctx();
 
-        let tree = ctx.parse_json("[1, [2, 3]]");
+        let tree = ctx.parse("a.json", "[1, [2, 3]]");
 
         let class_mapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();
@@ -1068,7 +1068,7 @@ mod tests {
     fn contains() {
         let ctx = ctx();
 
-        let tree = ctx.parse_json("[1, [2, 3]]");
+        let tree = ctx.parse("a.json", "[1, [2, 3]]");
 
         let class_mapping = ClassMapping::new();
         let mut changeset = ChangeSet::new();

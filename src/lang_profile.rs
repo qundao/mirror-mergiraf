@@ -380,8 +380,8 @@ mod tests {
     fn has_signature_conflicts() {
         let ctx = ctx();
 
-        let with_conflicts = ctx.parse_json("[{\"a\":1, \"b\":2, \"a\":3}]");
-        let without_conflicts = ctx.parse_json("{\"a\": [4], \"b\": [4]}");
+        let with_conflicts = ctx.parse("a.json", "[{\"a\":1, \"b\":2, \"a\":3}]");
+        let without_conflicts = ctx.parse("a.json", "{\"a\": [4], \"b\": [4]}");
 
         assert!(with_conflicts.has_signature_conflicts());
         assert!(!without_conflicts.has_signature_conflicts());

@@ -408,8 +408,8 @@ mod tests {
     fn equal_signatures() {
         let ctx = ctx();
 
-        let document = ctx.parse_json("{\"a\":\"b\"}");
-        let other_document = ctx.parse_json("{\"a\":\"c\"}");
+        let document = ctx.parse("a.json", "{\"a\":\"b\"}");
+        let other_document = ctx.parse("a.json", "{\"a\":\"c\"}");
         let object = document[0];
         let pair = object[1];
         let other_pair = other_document[0][1];
@@ -435,8 +435,8 @@ mod tests {
     fn node_equality_and_hashing() {
         let ctx = ctx();
 
-        let object = ctx.parse_json("{\"a\":\"b\"}")[0];
-        let object_2 = ctx.parse_json("[{\"a\": \"b\"}]")[0][1];
+        let object = ctx.parse("a.json", "{\"a\":\"b\"}")[0];
+        let object_2 = ctx.parse("a.json", "[{\"a\": \"b\"}]")[0][1];
 
         let class_mapping = ClassMapping::new();
         let node_2 = class_mapping.map_to_leader(RevNode {
@@ -493,8 +493,8 @@ mod tests {
     fn node_equality_and_hashing_care_about_languages() {
         let ctx = ctx();
 
-        let tree_python = ctx.parse_python("foo()");
-        let tree_java = ctx.parse_java("foo();");
+        let tree_python = ctx.parse("a.py", "foo()");
+        let tree_java = ctx.parse("a.java", "foo();");
         let args_python = tree_python[0][0][1];
         let args_java = tree_java[0][0][1];
 

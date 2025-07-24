@@ -1052,25 +1052,25 @@ mod tests {
     fn heights() {
         let ctx = ctx();
 
-        assert_eq!(ctx.parse_json("null").height(), 1);
-        assert_eq!(ctx.parse_json("[1]").height(), 2);
-        assert_eq!(ctx.parse_json("{\"foo\": 3}").height(), 4);
+        assert_eq!(ctx.parse("a.json", "null").height(), 1);
+        assert_eq!(ctx.parse("a.json", "[1]").height(), 2);
+        assert_eq!(ctx.parse("a.json", "{\"foo\": 3}").height(), 4);
     }
 
     #[test]
     fn sizes() {
         let ctx = ctx();
 
-        assert_eq!(ctx.parse_json("null").size(), 2);
-        assert_eq!(ctx.parse_json("[1]").size(), 5);
-        assert_eq!(ctx.parse_json("{\"foo\": 3}").size(), 11);
+        assert_eq!(ctx.parse("a.json", "null").size(), 2);
+        assert_eq!(ctx.parse("a.json", "[1]").size(), 5);
+        assert_eq!(ctx.parse("a.json", "{\"foo\": 3}").size(), 11);
     }
 
     #[test]
     fn children_by_field_names() {
         let ctx = ctx();
 
-        let root = ctx.parse_json("{\"foo\": 3}");
+        let root = ctx.parse("a.json", "{\"foo\": 3}");
         let object = root[0];
         let pair = object[1];
         assert_eq!(root.children_by_field_name("non_existent"), None);
@@ -1084,7 +1084,7 @@ mod tests {
     fn children_by_field_names_with_modifiers() {
         let ctx = ctx();
 
-        let root = ctx.parse_java("public class MyCls {}");
+        let root = ctx.parse("a.java", "public class MyCls {}");
         let class_declaration = root[0];
         assert_eq!(
             class_declaration.children_by_field_name("name"),
@@ -1096,7 +1096,7 @@ mod tests {
     fn atomic_nodes() {
         let ctx = ctx();
 
-        let root = ctx.parse_java("import java.io.InputStream;");
+        let root = ctx.parse("a.java", "import java.io.InputStream;");
         let import_statement = root[0];
         assert_eq!(import_statement.children.len(), 0);
     }
@@ -1104,7 +1104,7 @@ mod tests {
     #[test]
     fn trailing_newlines_are_stripped_from_nodes() {
         let ctx = ctx();
-        let tree = ctx.parse_rust("  /// test\n  fn foo() {\n    ()\n  }\n");
+        let tree = ctx.parse("a.rs", "  /// test\n  fn foo() {\n    ()\n  }\n");
         let comment = tree[0][0][0];
         assert_eq!(comment.grammar_name, "line_outer_doc_comment");
         // tree-sitter-rust includes a newline at the end of the source for this node,
@@ -1116,16 +1116,16 @@ mod tests {
     fn hashing_does_not_depend_on_whitespace_but_on_content() {
         let ctx = ctx();
 
-        let hash_1 = &ctx.parse_rust("fn x() -> i32 { 7 - 1 }").hash;
-        let hash_2 = &ctx.parse_rust("fn x() -> i32 {\n 7-1 }").hash;
-        let hash_3 = &ctx.parse_rust("fn x() -> i32 {\n 9-2 }").hash;
+        let hash_1 = &ctx.parse("a.rs", "fn x() -> i32 { 7 - 1 }").hash;
+        let hash_2 = &ctx.parse("a.rs", "fn x() -> i32 {\n 7-1 }").hash;
+        let hash_3 = &ctx.parse("a.rs", "fn x() -> i32 {\n 9-2 }").hash;
 
         assert_eq!(hash_1, hash_2); // whitespace and indentation differences are insignificant
         assert_ne!(hash_2, hash_3);
 
-        let hash_4 = &ctx.parse_rust("fn x() { \"some string\" }").hash;
-        let hash_5 = &ctx.parse_rust("fn x() { \" some string\" }").hash;
-        let hash_6 = &ctx.parse_rust("fn x() {   \"some string\" }").hash;
+        let hash_4 = &ctx.parse("a.rs", "fn x() { \"some string\" }").hash;
+        let hash_5 = &ctx.parse("a.rs", "fn x() { \" some string\" }").hash;
+        let hash_6 = &ctx.parse("a.rs", "fn x() {   \"some string\" }").hash;
         assert_ne!(hash_4, hash_5); // whitespace inside of a string is significant
         assert_eq!(hash_4, hash_6);
     }
@@ -1134,8 +1134,8 @@ mod tests {
     fn isomorphism_is_not_just_hashing() {
         let ctx = ctx();
 
-        let node_1 = ctx.parse_rust("fn x() -> i32 { 7 - 1 }");
-        let node_2 = ctx.parse_rust("fn x() -> i32 { 8 - 1 }");
+        let node_1 = ctx.parse("a.rs", "fn x() -> i32 { 7 - 1 }");
+        let node_2 = ctx.parse("a.rs", "fn x() -> i32 { 8 - 1 }");
         let fake_hash_collision = AstNode {
             hash: node_1.hash,
             parent: UnsafeCell::new(None),
@@ -1154,8 +1154,8 @@ mod tests {
     #[test]
     fn isomorphism_of_empty_roots() {
         let ctx = ctx();
-        let tree_1 = ctx.parse_rust("    ");
-        let tree_2 = ctx.parse_rust("  ");
+        let tree_1 = ctx.parse("a.rs", "    ");
+        let tree_2 = ctx.parse("a.rs", "  ");
         assert!(tree_1.isomorphic_to(tree_2));
         assert!(tree_2.isomorphic_to(tree_1));
     }
@@ -1164,8 +1164,8 @@ mod tests {
     fn isomorphism_for_different_languages() {
         let ctx = ctx();
 
-        let tree_python = ctx.parse_python("foo()");
-        let tree_java = ctx.parse_java("foo();");
+        let tree_python = ctx.parse("a.py", "foo()");
+        let tree_java = ctx.parse("a.java", "foo();");
         let arguments_python = tree_python[0][0][1];
         let arguments_java = tree_java[0][0][1];
 
@@ -1184,7 +1184,7 @@ mod tests {
     #[test]
     fn parents_are_accessible() {
         let ctx = ctx();
-        let tree = ctx.parse_json("{\"foo\": 3}");
+        let tree = ctx.parse("a.json", "{\"foo\": 3}");
         let root = tree;
         let first_child = root.child(0).expect("AST node is missing a child");
         let second_child = first_child
@@ -1199,7 +1199,7 @@ mod tests {
     #[test]
     fn dfs_traversal() {
         let ctx = ctx();
-        let tree = ctx.parse_json("{\"foo\": 3}");
+        let tree = ctx.parse("a.json", "{\"foo\": 3}");
 
         let node_types = tree.dfs().map(|n| n.grammar_name).collect_vec();
 
@@ -1224,7 +1224,7 @@ mod tests {
     #[test]
     fn dfs_exact_size_iterator() {
         let ctx = ctx();
-        let tree = ctx.parse_json("{\"foo\": 3}");
+        let tree = ctx.parse("a.json", "{\"foo\": 3}");
 
         // using the cached version
         let mut nodes = tree.dfs();
@@ -1246,7 +1246,7 @@ mod tests {
     #[test]
     fn postfix_traversal() {
         let ctx = ctx();
-        let tree = ctx.parse_json("{\"foo\": 3}");
+        let tree = ctx.parse("a.json", "{\"foo\": 3}");
 
         let node_types = tree.postfix().map(|n| n.grammar_name).collect_vec();
 
@@ -1271,7 +1271,7 @@ mod tests {
     #[test]
     fn truncate() {
         let ctx = ctx();
-        let tree = ctx.parse_json("{\"foo\": 3, \"bar\": 4}");
+        let tree = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
 
         let arena = Arena::new();
         let truncated = tree.truncate(|node| node.grammar_name == "pair", &arena);
@@ -1295,7 +1295,7 @@ mod tests {
     #[test]
     fn leading_source() {
         let ctx = ctx();
-        let tree = ctx.parse_rust("\n let x = 1;\n");
+        let tree = ctx.parse("a.rs", "\n let x = 1;\n");
         assert_eq!(tree.byte_range.start, 0);
         assert_eq!(tree.leading_source(), Some("\n "));
     }
@@ -1303,7 +1303,7 @@ mod tests {
     #[test]
     fn preceding_whitespace() {
         let ctx = ctx();
-        let tree = ctx.parse_json("[1, 2,\n 3]");
+        let tree = ctx.parse("a.json", "[1, 2,\n 3]");
 
         let root = tree[0];
         let [bracket, one, comma, two, _, three] = root[0..=5] else {
@@ -1321,7 +1321,7 @@ mod tests {
     #[test]
     fn preceding_whitespace_go() {
         let ctx = ctx();
-        let tree = ctx.parse_go("import (\n    \"fmt\"\n    \"core\"\n)\n");
+        let tree = ctx.parse("a.go", "import (\n    \"fmt\"\n    \"core\"\n)\n");
         let root = tree[0];
         let import_list = root[1];
         let core = import_list[2];
@@ -1333,7 +1333,7 @@ mod tests {
     #[test]
     fn trailing_whitespace_toml() {
         let ctx = ctx();
-        let tree = ctx.parse_toml("[foo]\na = 1\n\n[bar]\nb = 2");
+        let tree = ctx.parse("a.toml", "[foo]\na = 1\n\n[bar]\nb = 2");
         let first_table = tree[0];
         let second_table = tree[1];
         assert_eq!(first_table.source, "[foo]\na = 1");
@@ -1345,7 +1345,7 @@ mod tests {
     #[test]
     fn preceding_indentation_shift() {
         let ctx = ctx();
-        let tree = ctx.parse_java("\nclass MyCls {\n    int attr;\n}");
+        let tree = ctx.parse("a.java", "\nclass MyCls {\n    int attr;\n}");
         let class_decl = tree[0];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1356,7 +1356,10 @@ mod tests {
     #[test]
     fn preceding_indentation_shift_tabs() {
         let ctx = ctx();
-        let tree = ctx.parse_java("class Outer {\n\tclass MyCls {\n\t\tint attr;\n\t}\n}\n");
+        let tree = ctx.parse(
+            "a.java",
+            "class Outer {\n\tclass MyCls {\n\t\tint attr;\n\t}\n}\n",
+        );
         let class_decl = tree[0][2][1];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1367,7 +1370,10 @@ mod tests {
     #[test]
     fn preceding_indentation_shift_mixed_spaces_and_tabs() {
         let ctx = ctx();
-        let tree = ctx.parse_java("class Outer {\n\tclass MyCls {\n        int attr;\n\t}\n}\n");
+        let tree = ctx.parse(
+            "a.java",
+            "class Outer {\n\tclass MyCls {\n        int attr;\n\t}\n}\n",
+        );
         let class_decl = tree[0][2][1];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1378,7 +1384,10 @@ mod tests {
     #[test]
     fn preceding_indentation_shift_mixed_tabs_and_spaces() {
         let ctx = ctx();
-        let tree = ctx.parse_java("class Outer {\n    class MyCls {\n\t\tint attr;\n    }\n}\n");
+        let tree = ctx.parse(
+            "a.java",
+            "class Outer {\n    class MyCls {\n\t\tint attr;\n    }\n}\n",
+        );
         let class_decl = tree[0][2][1];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1389,7 +1398,7 @@ mod tests {
     #[test]
     fn reindent_yaml() {
         let ctx = ctx();
-        let tree = ctx.parse_yaml("hello:\n  foo: 2\nbar: 4\n");
+        let tree = ctx.parse("a.yaml", "hello:\n  foo: 2\nbar: 4\n");
         let block_node = tree[0][0];
         assert_eq!(block_node.grammar_name, "block_node");
         let value = block_node[0][0][2];
@@ -1402,7 +1411,7 @@ mod tests {
     #[test]
     fn source_with_whitespace() {
         let ctx = ctx();
-        let tree = ctx.parse_json(" [ 1 , 2,\n 3]");
+        let tree = ctx.parse("a.json", " [ 1 , 2,\n 3]");
 
         let root = tree[0];
         let [bracket, one, comma, two, comma_2] = root[0..=4] else {
@@ -1420,7 +1429,8 @@ mod tests {
     fn removing_indentation() {
         let ctx = ctx();
 
-        let tree = ctx.parse_json(
+        let tree = ctx.parse(
+            "a.json",
             r#"
 {
     "a": [
@@ -1458,10 +1468,14 @@ mod tests {
     fn multiline_comments_are_isomorphic() {
         let ctx = ctx();
 
-        let comment_1 =
-            ctx.parse_java("/**\n * This is a comment\n * spanning on many lines\n*/")[0];
-        let comment_2 =
-            ctx.parse_java("  /**\n   * This is a comment\n   * spanning on many lines\n  */")[0];
+        let comment_1 = ctx.parse(
+            "a.java",
+            "/**\n * This is a comment\n * spanning on many lines\n*/",
+        )[0];
+        let comment_2 = ctx.parse(
+            "a.java",
+            "  /**\n   * This is a comment\n   * spanning on many lines\n  */",
+        )[0];
 
         assert!(comment_1.isomorphic_to(comment_2));
         assert_eq!(comment_1.children.len(), 4);
@@ -1497,7 +1511,7 @@ mod tests {
     #[test]
     fn print_as_ascii_art() {
         let ctx = ctx();
-        let tree = ctx.parse_json("{\"foo\": 3, \"bar\": 4}");
+        let tree = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
 
         let ascii_tree = tree.ascii_tree();
 
@@ -1529,12 +1543,12 @@ mod tests {
     #[test]
     fn commutative_isomorphism() {
         let ctx = ctx();
-        let obj_1 = ctx.parse_json("{\"foo\": 3, \"bar\": 4}");
-        let obj_2 = ctx.parse_json("{\"bar\": 4, \"foo\": 3}");
-        let obj_3 = ctx.parse_json("{\"bar\": 3, \"foo\": 4}");
-        let obj_4 = ctx.parse_json("{\n  \"foo\": 3,\n  \"bar\": 4\n}");
-        let array_1 = ctx.parse_json("[ 1, 2 ]");
-        let array_2 = ctx.parse_json("[ 2, 1 ]");
+        let obj_1 = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
+        let obj_2 = ctx.parse("a.json", "{\"bar\": 4, \"foo\": 3}");
+        let obj_3 = ctx.parse("a.json", "{\"bar\": 3, \"foo\": 4}");
+        let obj_4 = ctx.parse("a.json", "{\n  \"foo\": 3,\n  \"bar\": 4\n}");
+        let array_1 = ctx.parse("a.json", "[ 1, 2 ]");
+        let array_2 = ctx.parse("a.json", "[ 2, 1 ]");
 
         assert!(obj_1.commutatively_isomorphic_to(obj_2));
         assert!(!obj_1.commutatively_isomorphic_to(obj_3));
@@ -1543,8 +1557,8 @@ mod tests {
         assert!(!obj_1.commutatively_isomorphic_to(array_1));
         assert!(!array_1.commutatively_isomorphic_to(array_2));
 
-        let method1 = ctx.parse_java("public final void main();");
-        let method2 = ctx.parse_java("public final static void main();");
+        let method1 = ctx.parse("a.java", "public final void main();");
+        let method2 = ctx.parse("a.java", "public final static void main();");
 
         // `public`, `final` and `static` are all commutative children of (function) `modifiers`,
         // but the second tree doesn't have `static`. A naive `zip` would only check the first two
@@ -1560,7 +1574,7 @@ mod tests {
         let src = r#"let foo = "line 1
 line 2
 line 3";"#;
-        let tree = ctx.parse_rust(src);
+        let tree = ctx.parse("a.rs", src);
 
         let root = tree;
         assert_eq!(root.id, 13);
@@ -1602,7 +1616,7 @@ line 3";"#;
         let src = r#"let foo = "line 1
 line 2
 line 3";"#;
-        let tree = ctx.parse_rust(src);
+        let tree = ctx.parse("a.rs", src);
 
         let ids = tree.dfs().map(|n| n.id).collect_vec();
 
@@ -1616,7 +1630,10 @@ line 3";"#;
     #[test]
     fn parse_html_with_js() {
         let ctx = ctx();
-        let html = ctx.parse_html("<html><head><script>console.log('hi');</script></head></html>");
+        let html = ctx.parse(
+            "a.html",
+            "<html><head><script>console.log('hi');</script></head></html>",
+        );
 
         assert_eq!(html.grammar_name, "document");
         assert_eq!(html.lang_profile.name, "HTML");
@@ -1633,7 +1650,10 @@ line 3";"#;
     #[test]
     fn parse_injection_with_syntax_error() {
         let ctx = ctx();
-        let html = ctx.parse_html("<html><head><script>invalid(][)</script></head></html>");
+        let html = ctx.parse(
+            "a.html",
+            "<html><head><script>invalid(][)</script></head></html>",
+        );
 
         assert_eq!(html.grammar_name, "document");
         assert_eq!(html.lang_profile.name, "HTML");
@@ -1659,7 +1679,7 @@ A list:
 - Hello
 
 "#;
-        let markdown = ctx.parse_markdown(source);
+        let markdown = ctx.parse("a.md", source);
 
         let paragraph = markdown[0][1][0][1];
         assert_eq!(paragraph.grammar_name, "paragraph");
@@ -1672,7 +1692,7 @@ A list:
     #[test]
     fn commutative_parent_via_query() {
         let ctx = ctx();
-        let python = ctx.parse_python("__all__ = [ 'foo', 'bar' ]\nother = [ 1, 2 ]\n");
+        let python = ctx.parse("a.py", "__all__ = [ 'foo', 'bar' ]\nother = [ 1, 2 ]\n");
 
         let first_list = python[0][0][2];
         let second_list = python[1][0][2];

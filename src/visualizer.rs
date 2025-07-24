@@ -179,8 +179,8 @@ mod tests {
         let target_path = repo_dir.path().join("graph.dot");
 
         let ctx = ctx();
-        let parsed_left = ctx.parse_json("{\"foo\": 3}");
-        let parsed_right = ctx.parse_json("{\"foo\": 4}");
+        let parsed_left = ctx.parse("a.json", "{\"foo\": 3}");
+        let parsed_right = ctx.parse("a.json", "{\"foo\": 4}");
         let matching = DetailedMatching::default();
 
         matching_to_graph(&target_path, parsed_left, parsed_right, &matching).unwrap();
