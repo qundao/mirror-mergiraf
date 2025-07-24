@@ -212,48 +212,22 @@ fn attempt_minimization_step(
 
     // Delete the nodes and check that the corresponding trees still parse.
     // More than parsing, we want them to be faithful to the intended AST.
-    // TODO there is a lot of duplicated code here, but somehow I couldn't convince the
-    //      borrow-checker to allow me refactoring it.
     let deleted_base =
         remove_nodes_in_tree(Revision::Base, tree_base, &class_mapping, &nodes_to_delete);
-    let new_contents_base = deleted_base
-        .to_merged_text(&class_mapping)
-        .render(&DisplaySettings::default());
-    check_deleted_output_is_consistent(
-        &new_contents_base,
-        Revision::Base,
-        &deleted_base,
-        lang_profile,
-        &class_mapping,
-    )?;
+    let new_contents_base =
+        new_contents(Revision::Base, &deleted_base, &class_mapping, lang_profile)?;
+
     let deleted_left =
         remove_nodes_in_tree(Revision::Left, tree_left, &class_mapping, &nodes_to_delete);
-    let new_contents_left = deleted_left
-        .to_merged_text(&class_mapping)
-        .render(&DisplaySettings::default());
-    check_deleted_output_is_consistent(
-        &new_contents_left,
-        Revision::Left,
-        &deleted_left,
-        lang_profile,
-        &class_mapping,
-    )?;
-    let deleted_right = remove_nodes_in_tree(
-        Revision::Right,
-        tree_right,
-        &class_mapping,
-        &nodes_to_delete,
-    );
-    let new_contents_right = deleted_right
-        .to_merged_text(&class_mapping)
-        .render(&DisplaySettings::default());
-    check_deleted_output_is_consistent(
-        &new_contents_right,
-        Revision::Right,
-        &deleted_right,
-        lang_profile,
-        &class_mapping,
-    )?;
+    let new_contents_left =
+        new_contents(Revision::Left, &deleted_left, &class_mapping, lang_profile)?;
+
+    #[rustfmt::skip]
+    let deleted_right =
+        remove_nodes_in_tree(Revision::Right, tree_right, &class_mapping, &nodes_to_delete);
+    #[rustfmt::skip]
+    let new_contents_right =
+        new_contents(Revision::Right, &deleted_right, &class_mapping, lang_profile)?;
 
     for node in &nodes_to_delete {
         info!("deleting {node}");
@@ -393,24 +367,27 @@ fn remove_nodes_in_tree<'a>(
     }
 }
 
-/// Check that the rendered source code from the modified AST is still
-/// syntactically valid and that the corresponding tree is isomorphic to the one we generated.
-fn check_deleted_output_is_consistent<'a>(
-    new_contents: &'a str,
-    revision: Revision,
+/// - render the source code from the modified AST
+/// - check that it is still syntactically valid and that the corresponding tree is isomorphic to
+///   the one we generated
+/// - if it is, return the render, otherwise return an error
+fn new_contents<'a>(
+    rev: Revision,
     merged_tree: &'a MergedTree<'a>,
-    lang_profile: &'a LangProfile,
-    class_mapping: &ClassMapping<'a>,
-) -> Result<(), AttemptFailure> {
+    class_mapping: &'a ClassMapping<'a>,
+    lang_profile: &LangProfile,
+) -> Result<String, AttemptFailure> {
+    let new_contents = merged_tree
+        .to_merged_text(class_mapping)
+        .render(&DisplaySettings::default());
+
     let arena = Arena::new();
     let ref_arena = Arena::new();
-    if merged_tree.isomorphic_to_source(
-        AstNode::parse(new_contents, lang_profile, &arena, &ref_arena)
-            .map_err(AttemptFailure::SyntaxError)?,
-        revision,
-        class_mapping,
-    ) {
-        Ok(())
+    let new_contents_reparsed = AstNode::parse(&new_contents, lang_profile, &arena, &ref_arena)
+        .map_err(AttemptFailure::SyntaxError)?;
+
+    if merged_tree.isomorphic_to_source(new_contents_reparsed, rev, class_mapping) {
+        Ok(new_contents)
     } else {
         Err(AttemptFailure::InconsistentTree)
     }
