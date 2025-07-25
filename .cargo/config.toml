@@ -4,3 +4,4 @@ solve = ["run", "--", "solve"]
 parse = ["run", "-p", "mgf_dev", "--", "parse"]
 # the algorithm for this is somewhat slow, so run it in release mode
 compare = ["run", "-p", "mgf_dev", "--release", "--", "compare"]
+minimize = ["run", "-p", "mgf_dev", "--", "minimize"]
