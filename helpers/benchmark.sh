@@ -20,7 +20,7 @@ mkdir -p $tmp_dir
 
 # Check that a given file can be parsed using our own parser
 check_parsing() {
-    cargo run --release -p mgf_dev -- parse $1 $extra_args > /dev/null 2>&1
+    cargo run --release -p mgf_dev -- parse "$1" "$extra_args" > /dev/null 2>&1
     return $?
 }
 
@@ -29,45 +29,45 @@ echo -e "status\ttiming\tlanguage\tcase"
 
 # For each test case…
 
-find -L $suite -type d | while read -r testid ; do
+find -L "$suite" -type d | while read -r testid ; do
     # Detect its language
-    ext=`ls $testid | grep Base | sed -e 's/Base//'`
+    ext=`ls "$testid" | grep Base | sed -e 's/Base//'`
     if [ ! -e "$testid/Expected$ext" ]; then
         continue
     fi
 
     language="*$ext"
     extra_args=""
-    if [ -e $testid/language ]; then
-        language=`cat $testid/language`
+    if [ -e "$testid/language" ]; then
+        language=`cat "$testid/language"`
         extra_args="$extra_args --language $language"
     fi
 
     # Run the executable to benchmark
-    /usr/bin/time -o $tmp_dir/timings -f "%e" ${executable} merge $testid/Base$ext $testid/Left$ext $testid/Right$ext -s BASE -x LEFT -y RIGHT $extra_args > $tmp_dir/our_merge_raw$ext 2> /dev/null
+    /usr/bin/time -o $tmp_dir/timings -f "%e" "$executable" merge "$testid/Base$ext" "$testid/Left$ext" "$testid/Right$ext" -s BASE -x LEFT -y RIGHT "$extra_args" > "$tmp_dir/our_merge_raw$ext" 2> /dev/null
     retcode=$?
 
     # Normalize line endings both for the expected value and our output
-    cat $tmp_dir/our_merge_raw$ext | sed -e '$a\' > $tmp_dir/our_merge$ext
-    cat "$testid/Expected$ext" | sed -e '$a\' > $tmp_dir/expected_merge$ext
+    cat "$tmp_dir/our_merge_raw$ext" | sed -e '$a\' > "$tmp_dir/our_merge$ext"
+    cat "$testid/Expected$ext" | sed -e '$a\' > "$tmp_dir/expected_merge$ext"
 
     timing=`tail -1 $tmp_dir/timings`
-    
+
     # Categorize the test outcome
     if [ $retcode -ge 128 ]; then
         outcome="Panic"
-    elif diff -B $tmp_dir/our_merge$ext $tmp_dir/expected_merge$ext > /dev/null 2>&1; then
+    elif diff -B "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
         outcome="Exact"
     else
-        conflict_count=`cat $tmp_dir/our_merge_raw$ext | grep "<<<<<<<" | wc -l`
-        if [ $conflict_count -ge 1 ]; then
+        conflict_count=`cat "$tmp_dir/our_merge_raw$ext" | grep "<<<<<<<" | wc -l`
+        if [ "$conflict_count" -ge 1 ]; then
             # Check that we were able to parse the files correctly
-            if check_parsing $testid/Base$ext && check_parsing $testid/Left$ext && check_parsing $testid/Right$ext; then
+            if check_parsing "$testid/Base$ext" && check_parsing "$testid/Left$ext" && check_parsing "$testid/Right$ext"; then
                 outcome="Conflict"
             else
                 outcome="Parse"
             fi
-        elif cargo run --release -p mgf_dev -- compare --commutative $tmp_dir/our_merge$ext $tmp_dir/expected_merge$ext > /dev/null 2>&1; then
+        elif cargo run --release -p mgf_dev -- compare --commutative "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
             outcome="Format"
         else
             outcome="Differ"
