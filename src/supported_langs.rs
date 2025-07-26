@@ -251,6 +251,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // class_declaration
                 signature("delegation_specifier", vec![vec![]]),
                 // modifiers
+                signature("annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
                 signature("public", vec![vec![]]),
                 signature("protected", vec![vec![]]),
                 signature("private", vec![vec![]]),
