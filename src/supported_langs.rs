@@ -229,6 +229,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             ],
             signatures: vec![
                 signature("import", vec![vec![]]),
+                // class_body
                 signature(
                     "function_declaration",
                     vec![
@@ -240,7 +241,16 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         ],
                     ],
                 ),
+                signature(
+                    "property_declaration",
+                    vec![vec![
+                        ChildType("variable_declaration"),
+                        ChildType("identifier"),
+                    ]],
+                ),
+                // class_declaration
                 signature("delegation_specifier", vec![vec![]]),
+                // modifiers
                 signature("public", vec![vec![]]),
                 signature("protected", vec![vec![]]),
                 signature("private", vec![vec![]]),
