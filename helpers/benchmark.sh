@@ -31,7 +31,7 @@ echo -e "status\ttiming\tlanguage\tcase"
 
 find -L "$suite" -type d | while read -r testid ; do
     # Detect its language
-    ext=`ls "$testid" | grep Base | sed -e 's/Base//'`
+    ext=$(ls "$testid" | grep Base | sed -e 's/Base//')
     if [ ! -e "$testid/Expected$ext" ]; then
         continue
     fi
@@ -39,7 +39,7 @@ find -L "$suite" -type d | while read -r testid ; do
     language="*$ext"
     extra_args=""
     if [ -e "$testid/language" ]; then
-        language=`cat "$testid/language"`
+        language=$(cat "$testid/language")
         extra_args="$extra_args --language $language"
     fi
 
@@ -51,7 +51,7 @@ find -L "$suite" -type d | while read -r testid ; do
     cat "$tmp_dir/our_merge_raw$ext" | sed -e '$a\' > "$tmp_dir/our_merge$ext"
     cat "$testid/Expected$ext" | sed -e '$a\' > "$tmp_dir/expected_merge$ext"
 
-    timing=`tail -1 $tmp_dir/timings`
+    timing=$(tail -1 $tmp_dir/timings)
 
     # Categorize the test outcome
     if [ $retcode -ge 128 ]; then
@@ -59,7 +59,7 @@ find -L "$suite" -type d | while read -r testid ; do
     elif diff -B "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
         outcome="Exact"
     else
-        conflict_count=`cat "$tmp_dir/our_merge_raw$ext" | grep "<<<<<<<" | wc -l`
+        conflict_count=$(cat "$tmp_dir/our_merge_raw$ext" | grep "<<<<<<<" | wc -l)
         if [ "$conflict_count" -ge 1 ]; then
             # Check that we were able to parse the files correctly
             if check_parsing "$testid/Base$ext" && check_parsing "$testid/Left$ext" && check_parsing "$testid/Right$ext"; then
