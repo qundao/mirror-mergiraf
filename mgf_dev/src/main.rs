@@ -33,6 +33,9 @@ enum Command {
     Parse {
         /// Path to the file to parse. Its type will be guessed from its extension.
         path: PathBuf,
+        /// Limit the depth of the tree
+        #[arg(short, long)]
+        max_depth: Option<usize>,
     },
     /// Compare two files, returning exit code 0 if their trees are isomorphic, and 1 otherwise
     Compare {
@@ -75,7 +78,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
     };
 
     let exit_code = match &args.command {
-        Command::Parse { path } => {
+        Command::Parse { path, max_depth } => {
             let lang_profile = lang_profile(path)?;
 
             let contents = contents(path)?;
@@ -83,7 +86,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             let tree = AstNode::parse(&contents, lang_profile, &arena, &ref_arena)
                 .map_err(|err| format!("File has parse errors: {err}"))?;
 
-            print!("{}", tree.ascii_tree());
+            print!("{}", tree.ascii_tree(*max_depth));
             0
         }
         Command::Compare {

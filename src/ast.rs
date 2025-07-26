@@ -853,17 +853,30 @@ impl<'a> AstNode<'a> {
         }
     }
 
-    /// Represents the node and its sub-structure in ASCII art
-    pub fn ascii_tree(&'a self) -> String {
-        self.internal_ascii_tree(&Color::DarkGray.prefix().to_string(), true, None)
+    /// Represents the node and its sub-structure in ASCII art, optionally printing only the nodes
+    /// up to a given depth
+    pub fn ascii_tree(&'a self, max_depth: Option<usize>) -> String {
+        self.internal_ascii_tree(
+            0,
+            max_depth,
+            &Color::DarkGray.prefix().to_string(),
+            true,
+            None,
+        )
     }
 
     fn internal_ascii_tree(
         &'a self,
+        depth: usize,
+        max_depth: Option<usize>,
         prefix: &str,
         last_child: bool,
         parent: Option<&CommutativeParent>,
     ) -> String {
+        if max_depth == Some(depth) {
+            return String::new();
+        }
+
         let num_children = self.children.len();
         let next_parent = self.commutative_parent_definition();
 
@@ -914,7 +927,13 @@ impl<'a> AstNode<'a> {
                 .filter(|(_, child)| child.grammar_name != "@virtual_line@")
                 .map(|(index, child)| {
                     let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
-                    child.internal_ascii_tree(&new_prefix, index == num_children - 1, next_parent)
+                    child.internal_ascii_tree(
+                        depth + 1,
+                        max_depth,
+                        &new_prefix,
+                        index == num_children - 1,
+                        next_parent,
+                    )
                 }),
         )
         .collect()
@@ -1544,8 +1563,6 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
 
-        let ascii_tree = tree.ascii_tree();
-
         let expected = "\
 \u{1b}[90m└\u{1b}[0mdocument
 \u{1b}[90m  └\u{1b}[0mobject\u{1b}[95m Commutative\u{1b}[0m
@@ -1568,7 +1585,34 @@ mod tests {
 \u{1b}[90m    └\u{1b}[0m\u{1b}[31m}\u{1b}[0m
 ";
 
-        assert_eq!(ascii_tree, expected);
+        assert_eq!(tree.ascii_tree(None), expected);
+        assert_eq!(tree.ascii_tree(Some(5)), expected);
+
+        let expected = "\
+\u{1b}[90m└\u{1b}[0mdocument
+\u{1b}[90m  └\u{1b}[0mobject\u{1b}[95m Commutative\u{1b}[0m
+\u{1b}[90m    ├\u{1b}[0m\u{1b}[31m{\u{1b}[0m
+\u{1b}[90m    ├\u{1b}[0mpair \u{1b}[96mSignature [[\"foo\"]]\u{1b}[0m
+\u{1b}[90m    │ ├key: \u{1b}[0mstring
+\u{1b}[90m    │ ├\u{1b}[0m\u{1b}[31m:\u{1b}[0m
+\u{1b}[90m    │ └value: \u{1b}[0mnumber \u{1b}[31m3\u{1b}[0m
+\u{1b}[90m    ├\u{1b}[0m\u{1b}[31m,\u{1b}[0m
+\u{1b}[90m    ├\u{1b}[0mpair \u{1b}[96mSignature [[\"bar\"]]\u{1b}[0m
+\u{1b}[90m    │ ├key: \u{1b}[0mstring
+\u{1b}[90m    │ ├\u{1b}[0m\u{1b}[31m:\u{1b}[0m
+\u{1b}[90m    │ └value: \u{1b}[0mnumber \u{1b}[31m4\u{1b}[0m
+\u{1b}[90m    └\u{1b}[0m\u{1b}[31m}\u{1b}[0m
+";
+
+        assert_eq!(tree.ascii_tree(Some(4)), expected);
+
+        let expected = "\
+\u{1b}[90m└\u{1b}[0mdocument
+";
+
+        assert_eq!(tree.ascii_tree(Some(1)), expected);
+
+        assert_eq!(tree.ascii_tree(Some(0)), "");
     }
 
     #[test]
