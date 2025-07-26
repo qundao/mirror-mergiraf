@@ -6,7 +6,7 @@ use regex::Regex;
 
 use crate::{
     ast::AstNode,
-    class_mapping::{ClassMapping, Leader, RevNode, RevisionNESet},
+    class_mapping::{ClassMapping, Leader, RevNode},
     lang_profile::CommutativeParent,
     merged_tree::MergedTree,
     pcs::Revision,
@@ -270,11 +270,8 @@ fn merge_same_sigs<'a>(
         let v = add_separators(left_revnodes, separator, add_separator)
             .into_iter()
             .map(|rev_node| {
-                MergedTree::new_exact(
-                    class_mapping.map_to_leader(rev_node),
-                    RevisionNESet::singleton(Revision::Left).with(Revision::Right),
-                    class_mapping,
-                )
+                let leader = class_mapping.map_to_leader(rev_node);
+                MergedTree::new_exact(leader, class_mapping.revision_set(&leader), class_mapping)
             })
             .collect();
         (v, false)
