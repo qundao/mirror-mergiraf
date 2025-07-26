@@ -48,8 +48,8 @@ find -L "$suite" -type d | while read -r testid ; do
     retcode=$?
 
     # Normalize line endings both for the expected value and our output
-    cat "$tmp_dir/our_merge_raw$ext" | sed -e '$a\' > "$tmp_dir/our_merge$ext"
-    cat "$testid/Expected$ext" | sed -e '$a\' > "$tmp_dir/expected_merge$ext"
+    sed -e '$a\' "$tmp_dir/our_merge_raw$ext" > "$tmp_dir/our_merge$ext"
+    sed -e '$a\' "$testid/Expected$ext" > "$tmp_dir/expected_merge$ext"
 
     timing=$(tail -1 $tmp_dir/timings)
 
@@ -59,7 +59,7 @@ find -L "$suite" -type d | while read -r testid ; do
     elif diff -B "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
         outcome="Exact"
     else
-        conflict_count=$(cat "$tmp_dir/our_merge_raw$ext" | grep -c "<<<<<<<")
+        conflict_count=$(grep -c "<<<<<<<" "$tmp_dir/our_merge_raw$ext")
         if [ "$conflict_count" -ge 1 ]; then
             # Check that we were able to parse the files correctly
             if check_parsing "$testid/Base$ext" && check_parsing "$testid/Left$ext" && check_parsing "$testid/Right$ext"; then
