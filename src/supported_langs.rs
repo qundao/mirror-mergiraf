@@ -129,13 +129,34 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: vec![
                 // program
                 signature("import_declaration", vec![vec![]]),
+                signature("module_declaration", vec![vec![Field("name")]]),
+                signature("package_declaration", vec![vec![ChildType("identifier")]]),
+                signature("annotation_type_declaration", vec![vec![Field("name")]]),
+                signature("enum_declaration", vec![vec![Field("name")]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
+                signature("interface_declaration", vec![vec![Field("name")]]),
                 signature("record_declaration", vec![vec![Field("name")]]),
                 signature("scoped_identifier", vec![vec![Field("name")]]),
                 // class_body
                 signature(
                     "field_declaration",
                     vec![vec![Field("declarator"), Field("name")]],
+                ),
+                signature(
+                    "constructor_declaration",
+                    vec![
+                        vec![Field("name")],
+                        vec![
+                            Field("parameters"),
+                            ChildType("formal_parameter"),
+                            Field("type"),
+                        ],
+                        vec![
+                            Field("parameters"),
+                            ChildType("spread_parameter"),
+                            ChildType("identifier"),
+                        ],
+                    ],
                 ),
                 signature(
                     "method_declaration",
@@ -153,6 +174,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         ],
                     ],
                 ),
+                signature("compact_constructor_declaration", vec![vec![Field("name")]]),
                 // modifiers
                 signature("visibility", vec![vec![]]),
                 signature("modifier", vec![vec![]]),
