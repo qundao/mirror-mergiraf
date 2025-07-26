@@ -16,7 +16,8 @@ When supplied with two such paths, it generates
 # The order in which test case categories should be presented
 # Roughly from "best to worst", so that the confusion matrix
 # can be intuitively interpreted as satisfying if it is lower-triangular
-status_order = ['Exact', 'Format', 'Conflict', 'Differ', 'Parse', 'Panic']
+status_order = ["Exact", "Format", "Conflict", "Differ", "Parse", "Panic"]
+
 
 def to_dict(generator):
     """
@@ -27,11 +28,13 @@ def to_dict(generator):
     for row in generator:
         yield dict(zip(header, row))
 
+
 class TimingStats:
     """
     Utility to compute an average out of many data points.
     We could also compute the standard deviation by computing the sum of squares.
     """
+
     def __init__(self):
         self.count = 0
         self.sum = 0
@@ -43,19 +46,21 @@ class TimingStats:
     def average(self):
         return float(self.sum) / self.count
 
+
 class StatsLine:
     """
     Statistics about how many test cases land in each status category,
     and how long they took.
     """
+
     def __init__(self):
         self.timing = TimingStats()
         self.states = defaultdict(int)
 
     def add(self, case):
-        timing = float(case['timing'])
+        timing = float(case["timing"])
         self.timing.add(timing)
-        status = case['status']
+        status = case["status"]
         self.states[status] += 1
 
     def to_markdown(self):
@@ -70,12 +75,14 @@ class StatsLine:
 
         timing = self.timing.average()
         parts.append(f"{timing:.3f}")
-        return '| ' + (' | '.join(parts)) + ' |'
+        return "| " + (" | ".join(parts)) + " |"
+
 
 class StatsDiff:
     """
     Difference between two `StatsLine` from two different benchmark runs
     """
+
     def __init__(self, first: StatsLine, second: StatsLine):
         self.first = first
         self.second = second
@@ -101,7 +108,8 @@ class StatsDiff:
                 parts.append(f"{timing_diff:+.3f}%)")
         else:
             parts.append(f"{timing:.3f}")
-        return '| ' + (' | '.join(parts)) + ' |'
+        return "| " + (" | ".join(parts)) + " |"
+
 
 class BenchmarkLog:
     def __init__(self, path: str, restrict_to=None):
@@ -115,20 +123,23 @@ class BenchmarkLog:
         self.global_stats = StatsLine()
         self.per_language = defaultdict(StatsLine)
         self.case_to_status = {}
-        with open(path, 'r') as f:
-            csv_reader = csv.reader(f, delimiter='\t')
+        with open(path, "r") as f:
+            csv_reader = csv.reader(f, delimiter="\t")
             for case in to_dict(csv_reader):
-                if restrict_to is None or case['case'] in restrict_to.case_to_status:
+                if restrict_to is None or case["case"] in restrict_to.case_to_status:
                     self.global_stats.add(case)
-                    self.per_language[case['language']].add(case)
-                    self.case_to_status[case['case']] = case['status']
+                    self.per_language[case["language"]].add(case)
+                    self.case_to_status[case["case"]] = case["status"]
+
 
 def print_header():
     """
     Prints the header of a Markdown table representing test case categories
     """
-    print('| Language | Cases | '+ ' | '.join(status_order)  + ' | Time (s) |')
-    print('| -------- | ----- | '+ ' | '.join(['-' * len(status) for status in status_order ]) + ' | -------- |')
+    # fmt: off
+    print("| Language | Cases | " + " | ".join(status_order) + " | Time (s) |")
+    print("| -------- | ----- | " + " | ".join(["-" * len(status) for status in status_order]) + " | -------- |")
+    # fmt: on
 
 def summarize_benchmark_log(path: str):
     """
@@ -162,42 +173,49 @@ def compare_benchmark_logs(path_before: str, path_after: str):
         global_diff = StatsDiff(before_log.global_stats, after_log.global_stats)
         print(f"| **Total** {global_diff.to_markdown()}")
 
-    print('')
+    print("")
 
     confusion_matrix = defaultdict(set)
     for case, status in after_log.case_to_status.items():
         previous_status = before_log.case_to_status.get(case)
         if not previous_status:
-            print(f"warning: case not found in previous benchmark: {case}", file=sys.stderr)
+            print(
+                f"warning: case not found in previous benchmark: {case}",
+                file=sys.stderr,
+            )
         else:
             confusion_matrix[(previous_status, status)].add(case)
 
-    print('| ↓ Before \\ After → | '+ ' | '.join(status_order)  + ' |')
-    print('| ------------------ | '+ ' | '.join(['-' * len(status) for status in status_order ]) + ' |')
+    # fmt: off
+    print("| ↓ Before \\ After → | " + " | ".join(status_order) + " |")
+    print("| ------------------ | "  + " | ".join(["-" * len(status) for status in status_order]) + " |")
+    # fmt: on
+
     for status in status_order:
         row = []
         for new_status in status_order:
-            cell = ''
+            cell = ""
             if confusion_matrix[(status, new_status)]:
                 cell = f"{len(confusion_matrix[(status, new_status)]):,}"
             if cell and status != new_status:
                 cell = f"**{cell}**"
             row.append(cell)
-        print('| '+status+ ' | ' + ' | '.join(row) + ' |')
+        print("| " + status + " | " + " | ".join(row) + " |")
 
-    print('')
-    print('## Suspicious status changes')
-    print('')
+    print("")
+    print("## Suspicious status changes")
+    print("")
     for index, status in enumerate(status_order):
-        for new_status in status_order[(index+1):]:
+        for new_status in status_order[(index + 1) :]:
             cases = confusion_matrix[(status, new_status)]
             if cases:
                 print(f"### {status} → {new_status}")
                 for case in cases:
                     print(case)
-                print('')
+                print("")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     if len(sys.argv) == 3:
         compare_benchmark_logs(sys.argv[1], sys.argv[2])
     else:
