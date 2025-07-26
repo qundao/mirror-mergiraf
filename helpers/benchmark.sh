@@ -59,7 +59,7 @@ find -L "$suite" -type d | while read -r testid ; do
     elif diff -B "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
         outcome="Exact"
     else
-        conflict_count=$(cat "$tmp_dir/our_merge_raw$ext" | grep "<<<<<<<" | wc -l)
+        conflict_count=$(cat "$tmp_dir/our_merge_raw$ext" | grep -c "<<<<<<<")
         if [ "$conflict_count" -ge 1 ]; then
             # Check that we were able to parse the files correctly
             if check_parsing "$testid/Base$ext" && check_parsing "$testid/Left$ext" && check_parsing "$testid/Right$ext"; then
