@@ -220,6 +220,9 @@ impl<'a> AstNode<'a> {
         let mut children = Vec::new();
         let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
         let mut last_child_end = node.byte_range().start;
+        // for nodes that we flatten, track the number of children this will add so that
+        // we are able to allocate the new children vector efficiently.
+        let mut children_added_by_flattening = 0;
 
         // check if the current node is an injection
         let injection_lang = node_id_to_injection_lang.get(&node.id());
@@ -251,6 +254,9 @@ impl<'a> AstNode<'a> {
                 children.push(child);
                 if let Some(field_name) = cursor.field_name() {
                     field_to_children.entry(field_name).or_default().push(child);
+                }
+                if cursor.node().grammar_id() == node.grammar_id() {
+                    children_added_by_flattening += child.children.len() - 1;
                 }
                 debug_assert!(
                     child.byte_range.start >= last_child_end,
@@ -347,6 +353,12 @@ impl<'a> AstNode<'a> {
 
         let grammar_name = node.grammar_name();
 
+        // check if this node needs flattening.
+        if children_added_by_flattening > 0 && lang_profile.flattened_nodes.contains(&grammar_name)
+        {
+            children = Self::flatten_children(children, children_added_by_flattening, grammar_name);
+        }
+
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
         grammar_name.hash(&mut hasher);
@@ -421,6 +433,25 @@ impl<'a> AstNode<'a> {
 
         let mut i = 0;
         process_node(self, result, &mut i);
+    }
+
+    /// Pull in all the grandchildren whose parent is of the given grammar name as children,
+    /// to flatten binary operators which are associative.
+    fn flatten_children(
+        children: Vec<&'a AstNode<'a>>,
+        children_added_by_flattening: usize,
+        grammar_name: &str,
+    ) -> Vec<&'a AstNode<'a>> {
+        let mut flattened_children =
+            Vec::with_capacity(children.len() + children_added_by_flattening);
+        for child in children {
+            if child.grammar_name == grammar_name {
+                flattened_children.extend(&child.children);
+            } else {
+                flattened_children.push(child);
+            }
+        }
+        flattened_children
     }
 
     /// The height of the subtree under that node
@@ -1703,5 +1734,41 @@ A list:
         assert!(first_list.commutative_parent_definition().is_some());
         // the other list isn't captured, so it's not associated to any commutative parent
         assert!(second_list.commutative_parent_definition().is_none());
+    }
+
+    #[test]
+    fn flatten_binary_operators() {
+        let ctx = ctx();
+        let ts = ctx.parse(
+            "a.ts",
+            r#"interface MyInterface {
+  level: 'debug' | 'info' | 'warn' | 'error';
+}
+"#,
+        );
+        let union_type = ts[0][2][1][1][1];
+        assert_eq!(union_type.grammar_name, "union_type");
+        assert_eq!(union_type.children.len(), 7);
+        assert_eq!(union_type.children[0].grammar_name, "literal_type");
+        assert_eq!(union_type.children[1].grammar_name, "|");
+        assert_eq!(union_type.children[2].grammar_name, "literal_type");
+        assert_eq!(union_type.children[3].grammar_name, "|");
+    }
+
+    #[test]
+    fn dont_flatten_different_operators_together() {
+        let ctx = ctx();
+        let ts = ctx.parse(
+            "a.ts",
+            r#"interface Foo {
+  field: 'first' | 'second' & 'third',
+}"#,
+        );
+        let union_type = ts[0][2][1][1][1];
+        assert_eq!(union_type.grammar_name, "union_type");
+        assert_eq!(union_type.children.len(), 3);
+        assert_eq!(union_type.children[0].grammar_name, "literal_type");
+        assert_eq!(union_type.children[1].grammar_name, "|");
+        assert_eq!(union_type.children[2].grammar_name, "intersection_type");
     }
 }

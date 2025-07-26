@@ -29,6 +29,8 @@ pub struct LangProfile {
     /// The injections query to locate nodes that need parsing in other languages.
     /// See https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection
     pub injections: Option<&'static str>,
+    /// List of node types that should be flattened
+    pub flattened_nodes: &'static [&'static str],
 }
 
 impl PartialEq for LangProfile {
