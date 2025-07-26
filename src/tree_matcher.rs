@@ -9,7 +9,12 @@ use std::{
 use tree_edit_distance::{Edit, diff};
 use typed_arena::Arena;
 
-use crate::{ast::AstNode, matching::Matching, multimap::MultiMap, signature::Signature};
+use crate::{
+    ast::AstNode,
+    matching::{ApproxExactMatching, Matching},
+    multimap::MultiMap,
+    signature::Signature,
+};
 
 mod priority_list;
 use priority_list::PriorityList;
@@ -46,7 +51,7 @@ impl TreeMatcher {
         &self,
         left: &'a AstNode<'a>,
         right: &'a AstNode<'a>,
-        initial_matching: Option<&Matching<'a>>,
+        initial_matching: Option<&ApproxExactMatching<'a>>,
     ) -> DetailedMatching<'a> {
         let start = Instant::now();
 
@@ -80,26 +85,24 @@ impl TreeMatcher {
         }
     }
 
-    // First pass of the GumTree classic algorithm, top down, creating the exact matchings between isomorphic subtrees
+    /// First pass of the GumTree classic algorithm, top down, creating the exact matchings between isomorphic subtrees.
+    /// It takes two initial matchings, an approximate and an exact one. The exact matching produced by this method
+    /// will include the initial exact one provided and is compatible with the approximate one supplied (meaning that it
+    /// doesn't match any nodes that are already approximately matched).
     fn top_down_pass<'a>(
         &self,
         left: &'a AstNode<'a>,
         right: &'a AstNode<'a>,
-        initial_matching: Option<&Matching<'a>>,
+        initial_matching: Option<&ApproxExactMatching<'a>>,
     ) -> (Matching<'a>, Matching<'a>) {
         let mut matching = Matching::new();
         let mut exact_matching = Matching::new();
         let mut auxiliary = Matching::new();
 
         if let Some(initial_matching) = initial_matching {
-            /*
-            exact_matching.add_matching(initial_matching);
-            for (right_match, left_match) in initial_matching.iter_right_to_left() {
-                for (left_descendant, right_descendant) in left_match.dfs().zip(right_match.dfs()) {
-                    matching.add(left_descendant, right_descendant);
-                }
-            } */
-            matching.add_matching(initial_matching);
+            matching.add_matching(&initial_matching.approx);
+            matching.add_matching(&initial_matching.exact);
+            exact_matching.add_matching(&initial_matching.exact);
         }
 
         let mut l1 = PriorityList::new();

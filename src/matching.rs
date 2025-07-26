@@ -13,6 +13,31 @@ pub struct Matching<'tree> {
     right_to_left: FxHashMap<&'tree AstNode<'tree>, &'tree AstNode<'tree>>,
 }
 
+/// A pair of matchings, one representing exact matches between isomorphic nodes,
+/// and the other one representing approximate matches between nodes where the
+/// subtrees might not be isomorphic.
+#[derive(Debug, Clone)]
+pub struct ApproxExactMatching<'a> {
+    pub exact: Matching<'a>,
+    pub approx: Matching<'a>,
+}
+
+impl<'a> ApproxExactMatching<'a> {
+    pub fn from_exact(exact: Matching<'a>) -> Self {
+        ApproxExactMatching {
+            exact,
+            approx: Matching::new(),
+        }
+    }
+
+    pub fn from_approx(approx: Matching<'a>) -> Self {
+        ApproxExactMatching {
+            approx,
+            exact: Matching::new(),
+        }
+    }
+}
+
 impl<'tree> Matching<'tree> {
     /// Creates an empty matching.
     pub fn new() -> Self {

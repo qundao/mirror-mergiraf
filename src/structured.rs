@@ -4,8 +4,9 @@ use log::debug;
 use typed_arena::Arena;
 
 use crate::{
-    MergeResult, Revision, ast::AstNode, lang_profile::LangProfile, merge_3dm::three_way_merge,
-    parsed_merge::ParsedMerge, settings::DisplaySettings, tree_matcher::TreeMatcher,
+    MergeResult, Revision, ast::AstNode, lang_profile::LangProfile, matching::ApproxExactMatching,
+    merge_3dm::three_way_merge, parsed_merge::ParsedMerge, settings::DisplaySettings,
+    tree_matcher::TreeMatcher,
 };
 
 pub const STRUCTURED_RESOLUTION_METHOD: &str = "structured_resolution";
@@ -67,12 +68,16 @@ pub fn structured_merge(
 
     let initial_matchings = parsed_merge.map(|parsed_merge| {
         (
-            parsed_merge
-                .generate_matching(Revision::Base, Revision::Left, tree_base, tree_left)
-                .add_submatches(),
-            parsed_merge
-                .generate_matching(Revision::Base, Revision::Right, tree_base, tree_right)
-                .add_submatches(),
+            ApproxExactMatching::from_exact(
+                parsed_merge
+                    .generate_matching(Revision::Base, Revision::Left, tree_base, tree_left)
+                    .add_submatches(),
+            ),
+            ApproxExactMatching::from_exact(
+                parsed_merge
+                    .generate_matching(Revision::Base, Revision::Right, tree_base, tree_right)
+                    .add_submatches(),
+            ),
         )
     });
 

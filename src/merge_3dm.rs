@@ -7,7 +7,7 @@ use crate::{
     changeset::ChangeSet,
     class_mapping::{ClassMapping, RevNode},
     line_based::line_based_merge_parsed,
-    matching::Matching,
+    matching::{ApproxExactMatching, Matching},
     merged_tree::MergedTree,
     pcs::Revision,
     settings::DisplaySettings,
@@ -34,7 +34,7 @@ pub fn three_way_merge<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
     right: &'a AstNode<'a>,
-    initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
+    initial_matchings: Option<&(ApproxExactMatching<'a>, ApproxExactMatching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
     settings: &DisplaySettings<'a>,
@@ -86,7 +86,7 @@ fn generate_matchings<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
     right: &'a AstNode<'a>,
-    initial_matchings: Option<&(Matching<'a>, Matching<'a>)>,
+    initial_matchings: Option<&(ApproxExactMatching<'a>, ApproxExactMatching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
     debug_dir: Option<&Path>,
@@ -127,7 +127,11 @@ fn generate_matchings<'a>(
         &base_left_matching.full,
         &base_right_matching.full,
     );
-    let left_right_matching = auxiliary_matcher.match_trees(left, right, Some(&composed_matching));
+    let left_right_matching = auxiliary_matcher.match_trees(
+        left,
+        right,
+        Some(&ApproxExactMatching::from_approx(composed_matching)),
+    );
     debug!("matching all three pairs took {:?}", start.elapsed());
 
     // save the matchings for debugging purposes
