@@ -39,7 +39,7 @@ class TimingStats:
         self.count = 0
         self.sum = 0
 
-    def add(self, timing):
+    def add(self, timing: int):
         self.count += 1
         self.sum += timing
 
@@ -121,7 +121,7 @@ class BenchmarkLog:
         log are taken into account.
         """
         self.global_stats = StatsLine()
-        self.per_language = defaultdict(StatsLine)
+        self.per_language: defaultdict[str, StatsLine] = defaultdict(StatsLine)
         self.case_to_status = {}
         with open(path, "r") as f:
             csv_reader = csv.reader(f, delimiter="\t")
