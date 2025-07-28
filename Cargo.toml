@@ -85,6 +85,9 @@ caplog = "0.3.0"
 rstest = {version = "0.25.0", default-features = false}
 tempfile.workspace = true
 
+[features]
+dev = []
+
 [profile.dev]
 # to conform to Git's protocol for merge drivers, which requires
 # a return code > 128 when an error occurs. This sets return code 134.

@@ -6,7 +6,7 @@ publish = false
 
 [dependencies]
 clap.workspace = true
-mergiraf.path = ".."
+mergiraf = {path = "..", features = ["dev"]}
 stderrlog.workspace = true
 typed-arena.workspace = true
 

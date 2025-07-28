@@ -1,10 +1,11 @@
+#[cfg(feature = "dev")]
+use std::iter::zip;
 use std::{
     borrow::Cow,
     cell::UnsafeCell,
     cmp::{max, min},
     fmt::Display,
     hash::{Hash, Hasher},
-    iter::zip,
     ops::Range,
 };
 #[cfg(test)]
@@ -576,6 +577,7 @@ impl<'a> AstNode<'a> {
     ///   optional separators at the end of a list).
     /// - we could accept duplicate elements (for instance,
     ///   duplicate Java imports on one side but not on the other)
+    #[cfg(feature = "dev")] // only used in `mgf_dev compare`
     pub fn commutatively_isomorphic_to(&'a self, other: &'a Self) -> bool {
         if self.grammar_name != other.grammar_name {
             return false;
@@ -1616,6 +1618,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "dev")]
     fn commutative_isomorphism() {
         let ctx = ctx();
         let obj_1 = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
