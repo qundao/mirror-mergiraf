@@ -191,7 +191,7 @@ pub(crate) enum ParentType<'a> {
 impl Display for ParentType<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ByGrammarName(name) => write!(f, "specified by grammar name: {name}"),
+            Self::ByGrammarName(name) => f.write_str(name),
             // flatten the query to one line, since our logger doesn't handle multiline messages
             // too well
             Self::ByQuery(query) => write!(f, "specified by query: {}", query.lines().format(" ")),
