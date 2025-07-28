@@ -103,7 +103,11 @@ fn run_test_from_dir(test_dir: &Path) {
 
 /// End-to-end tests for the "mergiraf merge" command
 #[rstest]
-fn integration(#[files("examples/*/working/*")] path: PathBuf) {
+fn integration(
+    #[dirs]
+    #[files("examples/*/working/*")]
+    path: PathBuf,
+) {
     run_test_from_dir(&path);
 }
 

@@ -40,7 +40,11 @@ enum FailingTestResult {
 /// `working`. Note that this is no hard-and-fast rule -- we could have theoretically split those tests
 /// in compact and non-compact versions -- but that would mean duplicating `{Base,Left,Right}.{ext}`, which is not ideal
 #[rstest]
-fn integration_failing(#[files("examples/*/failing/*")] test_dir: PathBuf) {
+fn integration_failing(
+    #[dirs]
+    #[files("examples/*/failing/*")]
+    test_dir: PathBuf,
+) {
     let suffix = detect_test_suffix(&test_dir);
     #[expect(unstable_name_collisions)]
     let fname_base = test_dir.join(format!("Base{suffix}")).leak();
