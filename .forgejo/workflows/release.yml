@@ -23,7 +23,7 @@ jobs:
       - name: Set up git-cliff
         run: |
           if [ ! -e ~/.cargo/bin/git-cliff ]; then
-            cargo install git-cliff --features gitea --version 2.9.1
+            cargo install git-cliff --features gitea --version 2.9.1 --locked
           fi
       - name: Run tests
         run: cargo test --workspace --locked
