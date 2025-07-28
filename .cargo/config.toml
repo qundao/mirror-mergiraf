@@ -2,4 +2,5 @@
 merge = ["run", "--", "merge"]
 solve = ["run", "--", "solve"]
 parse = ["run", "-p", "mgf_dev", "--", "parse"]
-compare = ["run", "-p", "mgf_dev", "--", "compare"]
+# the algorithm for this is somewhat slow, so run it in release mode
+compare = ["run", "-p", "mgf_dev", "--release", "--", "compare"]
