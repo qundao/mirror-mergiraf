@@ -48,8 +48,8 @@ impl<K, V> MultiMap<K, V> {
 
 impl<K, V> MultiMap<K, V>
 where
-    K: Eq + PartialEq + Hash,
-    V: Eq + PartialEq + Hash,
+    K: Eq + Hash,
+    V: Eq + Hash,
 {
     /// Gets the set of values associated to the key (which might be empty)
     pub fn get<Q>(&self, key: &Q) -> &FxHashSet<V>
@@ -70,7 +70,7 @@ where
     pub fn contains_key<Q>(&self, k: &Q) -> bool
     where
         K: std::borrow::Borrow<Q>,
-        Q: Hash + Eq,
+        Q: Eq + Hash,
     {
         !self.get(k).is_empty()
     }
@@ -87,8 +87,8 @@ impl<K, V> Default for MultiMap<K, V> {
 
 impl<K, V> FromIterator<(K, V)> for MultiMap<K, V>
 where
-    K: Eq + PartialEq + Hash,
-    V: Eq + PartialEq + Hash,
+    K: Eq + Hash,
+    V: Eq + Hash,
 {
     fn from_iter<I>(iter: I) -> Self
     where
