@@ -1408,10 +1408,8 @@ mod tests {
     #[test]
     fn preceding_indentation_shift_tabs() {
         let ctx = ctx();
-        let tree = ctx.parse(
-            "a.java",
-            "class Outer {\n\tclass MyCls {\n\t\tint attr;\n\t}\n}\n",
-        );
+        let source = "class Outer {\n\tclass MyCls {\n\t\tint attr;\n\t}\n}\n";
+        let tree = ctx.parse("a.java", source);
         let class_decl = tree[0][2][1];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1422,10 +1420,8 @@ mod tests {
     #[test]
     fn preceding_indentation_shift_mixed_spaces_and_tabs() {
         let ctx = ctx();
-        let tree = ctx.parse(
-            "a.java",
-            "class Outer {\n\tclass MyCls {\n        int attr;\n\t}\n}\n",
-        );
+        let source = "class Outer {\n\tclass MyCls {\n        int attr;\n\t}\n}\n";
+        let tree = ctx.parse("a.java", source);
         let class_decl = tree[0][2][1];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1436,10 +1432,8 @@ mod tests {
     #[test]
     fn preceding_indentation_shift_mixed_tabs_and_spaces() {
         let ctx = ctx();
-        let tree = ctx.parse(
-            "a.java",
-            "class Outer {\n    class MyCls {\n\t\tint attr;\n    }\n}\n",
-        );
+        let source = "class Outer {\n    class MyCls {\n\t\tint attr;\n    }\n}\n";
+        let tree = ctx.parse("a.java", source);
         let class_decl = tree[0][2][1];
         let class_body = class_decl[2];
         let attr = class_body[1];
@@ -1481,9 +1475,7 @@ mod tests {
     fn removing_indentation() {
         let ctx = ctx();
 
-        let tree = ctx.parse(
-            "a.json",
-            r#"
+        let source = r#"
 {
     "a": [
         1,
@@ -1493,70 +1485,87 @@ mod tests {
         "c": "foo"
     }
 }
-"#,
-        );
+"#;
+        let tree = ctx.parse("a.json", source);
 
         let root = &tree[0];
         let entry_a = &root[1];
         let array = &entry_a[2];
 
-        assert_eq!(entry_a.source, "\"a\": [\n        1,\n        2,\n    ]");
+        assert_eq!(
+            entry_a.source,
+            "\
+\"a\": [
+        1,
+        2,
+    ]"
+        );
         assert_eq!(entry_a.indentation_shift(), Some("    "));
         assert_eq!(entry_a.ancestor_indentation(), None);
-        assert_eq!(entry_a.unindented_source(), "\"a\": [\n    1,\n    2,\n]");
+        assert_eq!(
+            entry_a.unindented_source(),
+            "\
+\"a\": [
+    1,
+    2,
+]"
+        );
         assert_eq!(
             entry_a.reindented_source("  "),
-            "\"a\": [\n      1,\n      2,\n  ]"
+            "\
+\"a\": [
+      1,
+      2,
+  ]"
         );
 
-        assert_eq!(array.source, "[\n        1,\n        2,\n    ]");
+        assert_eq!(
+            array.source,
+            "\
+[
+        1,
+        2,
+    ]"
+        );
         assert_eq!(array.indentation_shift(), None);
         assert_eq!(array.ancestor_indentation(), Some("    "));
-        assert_eq!(array.unindented_source(), "[\n    1,\n    2,\n]");
-        assert_eq!(array.reindented_source("  "), "[\n      1,\n      2,\n  ]");
+        assert_eq!(
+            array.unindented_source(),
+            "\
+[
+    1,
+    2,
+]"
+        );
+        assert_eq!(
+            array.reindented_source("  "),
+            "\
+[
+      1,
+      2,
+  ]"
+        );
     }
 
     #[test]
     fn multiline_comments_are_isomorphic() {
         let ctx = ctx();
 
-        let comment_1 = ctx.parse(
-            "a.java",
-            "/**\n * This is a comment\n * spanning on many lines\n*/",
-        )[0];
-        let comment_2 = ctx.parse(
-            "a.java",
-            "  /**\n   * This is a comment\n   * spanning on many lines\n  */",
-        )[0];
+        let source_1 = "/**\n * This is a comment\n * spanning on many lines\n*/";
+        let comment_1 = ctx.parse("a.java", source_1)[0];
+        let source_2 = "  /**\n   * This is a comment\n   * spanning on many lines\n  */";
+        let comment_2 = ctx.parse("a.java", source_2)[0];
 
         assert!(comment_1.isomorphic_to(comment_2));
         assert_eq!(comment_1.children.len(), 4);
-        assert_eq!(
-            comment_2
-                .children
-                .iter()
-                .map(|child| child.source)
-                .collect_vec(),
-            vec![
-                "/**",
-                "* This is a comment",
-                "* spanning on many lines",
-                "*/"
-            ]
-        );
-        assert_eq!(
-            comment_2
-                .children
-                .iter()
-                .map(|child| &child.byte_range)
-                .collect_vec(),
-            vec![
-                &Range { start: 2, end: 5 },
-                &Range { start: 9, end: 28 },
-                &Range { start: 32, end: 56 },
-                &Range { start: 59, end: 61 },
-            ]
-        );
+        assert_eq!(comment_2[0].source, "/**");
+        assert_eq!(comment_2[1].source, "* This is a comment");
+        assert_eq!(comment_2[2].source, "* spanning on many lines");
+        assert_eq!(comment_2[3].source, "*/");
+        assert_eq!(comment_2[0].byte_range, 2..5);
+        assert_eq!(comment_2[1].byte_range, 9..28);
+        assert_eq!(comment_2[2].byte_range, 32..56);
+        assert_eq!(comment_2[3].byte_range, 59..61);
         assert_eq!(comment_2[1].preceding_whitespace(), Some("\n   "));
     }
 
@@ -1708,10 +1717,8 @@ line 3";"#;
     #[test]
     fn parse_html_with_js() {
         let ctx = ctx();
-        let html = ctx.parse(
-            "a.html",
-            "<html><head><script>console.log('hi');</script></head></html>",
-        );
+        let source = "<html><head><script>console.log('hi');</script></head></html>";
+        let html = ctx.parse("a.html", source);
 
         assert_eq!(html.grammar_name, "document");
         assert_eq!(html.lang_profile.name, "HTML");
@@ -1728,10 +1735,8 @@ line 3";"#;
     #[test]
     fn parse_injection_with_syntax_error() {
         let ctx = ctx();
-        let html = ctx.parse(
-            "a.html",
-            "<html><head><script>invalid(][)</script></head></html>",
-        );
+        let source = "<html><head><script>invalid(][)</script></head></html>";
+        let html = ctx.parse("a.html", source);
 
         assert_eq!(html.grammar_name, "document");
         assert_eq!(html.lang_profile.name, "HTML");
@@ -1752,11 +1757,11 @@ line 3";"#;
         // the child ends up falling outside of the new computed range,
         // which violates the assumption that the ranges of all children
         // fall into the range of their parent.
-        let source = r#"
+        let source = "\
 A list:
 - Hello
 
-"#;
+";
         let markdown = ctx.parse("a.md", source);
 
         let paragraph = markdown[0][1][0][1];
@@ -1770,7 +1775,11 @@ A list:
     #[test]
     fn commutative_parent_via_query() {
         let ctx = ctx();
-        let python = ctx.parse("a.py", "__all__ = [ 'foo', 'bar' ]\nother = [ 1, 2 ]\n");
+        let source = "\
+__all__ = [ 'foo', 'bar' ]
+other = [ 1, 2 ]
+";
+        let python = ctx.parse("a.py", source);
 
         let first_list = python[0][0][2];
         let second_list = python[1][0][2];
@@ -1786,13 +1795,11 @@ A list:
     #[test]
     fn flatten_binary_operators() {
         let ctx = ctx();
-        let ts = ctx.parse(
-            "a.ts",
-            r#"interface MyInterface {
+        let source = "\
+interface MyInterface {
   level: 'debug' | 'info' | 'warn' | 'error';
-}
-"#,
-        );
+}";
+        let ts = ctx.parse("a.ts", source);
         let union_type = ts[0][2][1][1][1];
         assert_eq!(union_type.grammar_name, "union_type");
         assert_eq!(union_type.children.len(), 7);
@@ -1805,12 +1812,11 @@ A list:
     #[test]
     fn dont_flatten_different_operators_together() {
         let ctx = ctx();
-        let ts = ctx.parse(
-            "a.ts",
-            r#"interface Foo {
+        let source = "\
+interface Foo {
   field: 'first' | 'second' & 'third',
-}"#,
-        );
+}";
+        let ts = ctx.parse("a.ts", source);
         let union_type = ts[0][2][1][1][1];
         assert_eq!(union_type.grammar_name, "union_type");
         assert_eq!(union_type.children.len(), 3);
