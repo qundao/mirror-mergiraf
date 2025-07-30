@@ -170,20 +170,18 @@ fn structured_merge_from_oid(
     lang_profile: &LangProfile,
     parsed: Option<&ParsedMerge<'_>>,
 ) -> Option<Result<MergeResult, String>> {
-    parsed
-        .and_then(|p| p.extract_conflict_oids())
-        .and_then(|oids| read_content_from_commits(working_dir, oids, fname_base))
-        .map(|contents| {
-            structured_merge(
-                &contents.0,
-                &contents.1,
-                &contents.2,
-                None,
-                settings,
-                lang_profile,
-                debug_dir,
-            )
-        })
+    let oids = parsed?.extract_conflict_oids()?;
+    let contents = read_content_from_commits(working_dir, oids, fname_base)?;
+    let merge = structured_merge(
+        &contents.0,
+        &contents.1,
+        &contents.2,
+        None,
+        settings,
+        lang_profile,
+        debug_dir,
+    );
+    Some(merge)
 }
 
 /// Takes a vector of merge results produced by [`resolve_merge_cascading`] and picks the best one

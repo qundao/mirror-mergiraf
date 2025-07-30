@@ -331,19 +331,16 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 continue; // node was deleted on both sides, we don't care about preserving any changes made to it
             };
             // recursively build the tree representation for the unvisited base node to see if it has any changes
-            self.build_subtree(unvisited_base_node, visiting_state)
-                .and_then(|base_tree| {
+            if let Ok(base_tree) = self.build_subtree(unvisited_base_node, visiting_state)
+                && let Some(cover) =
                     self.cover_modified_nodes(&base_tree, target_revision, modified_revision)
-                        .ok_or_else(|| "no cover found".to_owned())
-                })
-                .map(|cover| {
-                    visiting_state.deleted_and_modified.extend(cover.iter());
-                })
-                .unwrap_or_else(|_| {
-                    // as a fallback solution, if we could not compute a cover of the changes in the deleted tree,
-                    // we request that the root of the subtree is present in the merged output.
-                    visiting_state.deleted_and_modified.insert(unvisited);
-                });
+            {
+                visiting_state.deleted_and_modified.extend(cover.iter());
+            } else {
+                // as a fallback solution, if we could not compute a cover of the changes in the deleted tree,
+                // we request that the root of the subtree is present in the merged output.
+                visiting_state.deleted_and_modified.insert(unvisited);
+            }
         }
 
         match node {
