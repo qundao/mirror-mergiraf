@@ -3,7 +3,7 @@ import sys
 import csv
 import math
 from collections import defaultdict
-from typing import Any
+from typing import Any, Optional, Self
 
 """
 Utility that summarizes the outcomes of a benchmark run with the `helpers/benchmark.sh` script.
@@ -118,7 +118,7 @@ class StatsDiff:
 
 
 class BenchmarkLog:
-    def __init__(self, path: str, restrict_to=None):
+    def __init__(self, path: str, restrict_to: Optional[Self] = None):
         """
         Parses a benchmark log as a TSV file,
         returning global and per-language statistics.
