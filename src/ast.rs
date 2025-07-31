@@ -289,7 +289,7 @@ impl<'a> AstNode<'a> {
                 // This is rather bad. So to avoid that, we allow for one exception to the rule,
                 // meaning that we won't preserve whitespace when one side to merge is empty,
                 // which should be okay.
-                0..0
+                range_for_root.start..range_for_root.start
             } else {
                 range_for_root.clone()
             }
@@ -1770,6 +1770,43 @@ A list:
         assert_eq!(paragraph[0].grammar_name, "paragraph_repeat1");
         assert_eq!(paragraph[1].grammar_name, "block_continuation");
         assert_eq!(paragraph[1].preceding_whitespace(), Some("\n"));
+    }
+
+    /// issue: https://codeberg.org/mergiraf/mergiraf/issues/532
+    #[test]
+    fn empty_injection() {
+        let ctx = ctx();
+        let source = "<html><script></script></html>";
+
+        let root = ctx.parse("a.html", source);
+
+        let raw_text = root[0][1][1];
+        assert_eq!(raw_text.grammar_name, "raw_text");
+        assert_eq!(raw_text.byte_range, 14..14);
+
+        let program = raw_text[0];
+        assert_eq!(program.grammar_name, "program");
+        assert_eq!(program.byte_range, 14..14);
+
+        assert_eq!(raw_text.trailing_whitespace(), None);
+
+        let source_2 = "<html><script>   </script></html>";
+
+        let root_2 = ctx.parse("a.html", source_2);
+
+        let raw_text_2 = root_2[0][1][1];
+        assert_eq!(raw_text_2.grammar_name, "raw_text");
+        assert_eq!(raw_text_2.byte_range, 14..17);
+
+        let program_2 = raw_text_2[0];
+        assert_eq!(program_2.grammar_name, "program");
+        // the source of this node is shrunk to an empty string to ensure
+        // isomorphism regardless of the amount of whitespace
+        assert_eq!(program_2.byte_range, 14..14);
+
+        assert_eq!(raw_text_2.trailing_whitespace(), Some("   "));
+
+        assert!(root.isomorphic_to(root_2));
     }
 
     #[test]
