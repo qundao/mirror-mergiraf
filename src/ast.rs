@@ -579,7 +579,61 @@ impl<'a> AstNode<'a> {
     ///   duplicate Java imports on one side but not on the other)
     #[cfg(feature = "dev")] // only used in `mgf_dev compare`
     pub fn commutatively_isomorphic_to(&'a self, other: &'a Self) -> bool {
-        if self.grammar_name != other.grammar_name {
+        let mut hashes_self = vec![0; self.id + 1];
+        self.precompute_commutative_hashes(&mut hashes_self);
+        let mut hashes_other = vec![0; other.id + 1];
+        other.precompute_commutative_hashes(&mut hashes_other);
+
+        self._commutatively_isomorphic_to(other, &hashes_self, &hashes_other)
+    }
+
+    /// Precomputes hashes tailored to commutative isomorphism in the vector
+    /// supplied, and return the hash of this node.
+    ///
+    /// The storage of the hashes in the vector relies on the fact that
+    /// node ids are allocated consecutively: the hash for a node is stored
+    /// at the index given by its id. This will panic if the vector isn't big enough.
+    #[cfg(feature = "dev")]
+    fn precompute_commutative_hashes(&self, hash_store: &mut Vec<u64>) -> u64 {
+        let mut hasher = crate::fxhasher();
+        // like for non-commutative hashes, take the grammar name (node type) and language into account
+        self.grammar_name.hash(&mut hasher);
+        self.lang_profile.hash(&mut hasher);
+
+        if self.children.is_empty() {
+            // for leaves, the hash is just the source of the node
+            self.source.hash(&mut hasher);
+        } else {
+            // For internal nodes, it takes the hashes of the children
+            let mut hashed_children: Vec<u64> = self
+                .children
+                .iter()
+                .map(|child| child.precompute_commutative_hashes(hash_store))
+                .collect();
+
+            if self.commutative_parent_definition().is_some() {
+                // if the node is commutative, the order of the children is disregarded
+                hashed_children.sort_unstable();
+            }
+
+            hashed_children.hash(&mut hasher);
+        }
+        let hash = hasher.finish();
+        hash_store[self.id] = hash;
+        hash
+    }
+
+    #[cfg(feature = "dev")]
+    fn _commutatively_isomorphic_to(
+        &self,
+        other: &'a Self,
+        hashes_self: &[u64],
+        hashes_other: &[u64],
+    ) -> bool {
+        use crate::multimap::MultiMap;
+
+        if hashes_self[self.id] != hashes_other[other.id] || self.grammar_name != other.grammar_name
+        {
             return false;
         }
 
@@ -595,21 +649,28 @@ impl<'a> AstNode<'a> {
             !self.children.is_empty()
                 && self.children.len() == other.children.len()
                 && zip(&self.children, &other.children)
-                    .all(|(n1, n2)| n1.commutatively_isomorphic_to(n2))
+                    .all(|(n1, n2)| n1._commutatively_isomorphic_to(n2, hashes_self, hashes_other))
         };
 
         // commutative nodes whose children are one-to-one isomorphic, but not in the same order
         let commutative_parents_with_unordered_isomorphic_children = || {
-            if self.commutative_parent_definition().is_none() {
+            if self.commutative_parent_definition().is_none()
+                || self.children.len() != other.children.len()
+            {
                 return false;
             }
-            self.children.len() == other.children.len()
-                && self.children.iter().all(|child| {
-                    other
-                        .children
-                        .iter()
-                        .any(|other_child| child.commutatively_isomorphic_to(other_child))
-                })
+            let mut hashed_other_children: MultiMap<u64, &'a Self> = other
+                .children
+                .iter()
+                .map(|child| (hashes_other[child.id], *child))
+                .collect();
+            self.children.iter().all(|child| {
+                hashed_other_children
+                    .remove_one(hashes_self[child.id], |other_child| {
+                        child._commutatively_isomorphic_to(other_child, hashes_self, hashes_other)
+                    })
+                    .is_some()
+            })
         };
 
         isomorphic_leaves()
@@ -1651,6 +1712,24 @@ mod tests {
         // but the second tree doesn't have `static`. A naive `zip` would only check the first two
         // children, see that they're equal, and incorrectly decide that the parents are equal as well
         assert!(!method1.commutatively_isomorphic_to(method2));
+    }
+
+    #[test]
+    #[cfg(feature = "dev")]
+    fn commutative_isomorphism_with_hash_collisions() {
+        let ctx = ctx();
+        let obj_1 = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
+        let obj_2 = ctx.parse("a.json", "{\"foo\": 3, \"foo\": 3}");
+
+        // pretend that all elememts have the same hashes,
+        // for the sake of simulating many hash collisions.
+        let hashes_1 = vec![444; obj_1.id + 1];
+        let hashes_2 = vec![444; obj_2.id + 1];
+
+        // since the hashes are only used for optimization purposes,
+        // we should still be able to detect that the objects are not isomorphic
+        assert!(!obj_1._commutatively_isomorphic_to(obj_2, &hashes_1, &hashes_2));
+        assert!(!obj_2._commutatively_isomorphic_to(obj_1, &hashes_2, &hashes_1));
     }
 
     #[test]

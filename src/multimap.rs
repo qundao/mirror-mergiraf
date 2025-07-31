@@ -67,6 +67,28 @@ where
         set.insert(value)
     }
 
+    // Deletes one value that matches the predicate, among
+    // the elements mapped to a given key.
+    // Returns the deleted element, if any.
+    #[cfg(feature = "dev")]
+    pub fn remove_one<F>(&mut self, key: K, pred: F) -> Option<V>
+    where
+        F: FnMut(&V) -> bool,
+    {
+        use std::collections::hash_map::Entry;
+        match self.map.entry(key) {
+            Entry::Occupied(mut entry) => {
+                let set = entry.get_mut();
+                let removed = set.extract_if(pred).next();
+                if set.is_empty() {
+                    entry.remove();
+                }
+                removed
+            }
+            Entry::Vacant(_) => None,
+        }
+    }
+
     pub fn contains_key<Q>(&self, k: &Q) -> bool
     where
         K: std::borrow::Borrow<Q>,
@@ -126,5 +148,34 @@ mod tests {
             .collect::<HashSet<(i32, i32)>>();
         let expected_full_set = HashSet::from([(23, 45), (23, 67)]);
         assert_eq!(full_set, expected_full_set);
+    }
+
+    #[cfg(feature = "dev")]
+    #[test]
+    fn removals() {
+        let mut multimap = MultiMap::new();
+
+        assert!(multimap.insert(23, 45));
+        assert!(multimap.insert(23, 67));
+        assert_eq!(multimap.remove_one(23, |x| *x == 45), Some(45));
+        assert_eq!(multimap.get(&23), &FxHashSet::from_iter([67]));
+
+        // removing an absent value from a present key
+        assert_eq!(multimap.remove_one(23, |x| *x == 11), None);
+
+        assert_eq!(multimap.remove_one(11, |x| *x == 67), None);
+        // looking up an absent key didn't create an empty set in the multimap
+        assert_eq!(multimap.len(), 1);
+
+        // removing the last value from a key removes the corresponding entry from the map
+        assert_eq!(multimap.remove_one(23, |x| *x == 67), Some(67));
+        assert_eq!(multimap.len(), 0);
+
+        multimap.insert(1, 2);
+        multimap.insert(1, 3);
+
+        // if the predicate matches multiple elements, only one is removed
+        assert!(multimap.remove_one(1, |_| true).is_some());
+        assert_eq!(multimap.get(&1).len(), 1);
     }
 }
