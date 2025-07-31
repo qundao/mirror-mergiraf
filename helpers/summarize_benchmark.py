@@ -128,7 +128,7 @@ class BenchmarkLog:
         """
         self.global_stats = StatsLine()
         self.per_language: defaultdict[str, StatsLine] = defaultdict(StatsLine)
-        self.case_to_status = {}
+        self.case_to_status: dict[str, str] = {}
         with open(path, "r") as f:
             csv_reader = csv.reader(f, delimiter="\t")
             for case in to_dict(csv_reader):
