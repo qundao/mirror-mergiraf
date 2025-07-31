@@ -25,16 +25,6 @@ LANGUAGE = "language"
 CASE = "case"  # aka `test_id`
 
 
-def to_dict(generator):
-    """
-    Takes a stream from a TSV file, eats the first row as a header
-    and yields the rest of rows as dictionaries instead of lists
-    """
-    header = next(generator)
-    for row in generator:
-        yield dict(zip(header, row))
-
-
 class TimingStats:
     """
     Utility to compute an average out of many data points.
@@ -130,8 +120,8 @@ class BenchmarkLog:
         self.per_language: defaultdict[str, StatsLine] = defaultdict(StatsLine)
         self.case_to_status: dict[str, str] = {}
         with open(path, "r") as f:
-            csv_reader = csv.reader(f, delimiter="\t")
-            for case in to_dict(csv_reader):
+            csv_reader = csv.DictReader(f, delimiter="\t")
+            for case in csv_reader:
                 if restrict_to is None or case[CASE] in restrict_to.case_to_status:
                     self.global_stats.add(case)
                     self.per_language[case[LANGUAGE]].add(case)
