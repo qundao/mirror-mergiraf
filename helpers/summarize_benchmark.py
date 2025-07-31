@@ -3,6 +3,7 @@ import sys
 import csv
 import math
 from collections import defaultdict
+from typing import Any
 
 """
 Utility that summarizes the outcomes of a benchmark run with the `helpers/benchmark.sh` script.
@@ -57,7 +58,7 @@ class StatsLine:
         self.timing = TimingStats()
         self.states = defaultdict(int)
 
-    def add(self, case):
+    def add(self, case: dict[str, Any]):
         timing = float(case["timing"])
         self.timing.add(timing)
         status = case["status"]
