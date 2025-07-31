@@ -17,7 +17,7 @@ When supplied with two such paths, it generates
 # The order in which test case categories should be presented
 # Roughly from "best to worst", so that the confusion matrix
 # can be intuitively interpreted as satisfying if it is lower-triangular
-status_order = ["Exact", "Format", "Conflict", "Differ", "Parse", "Panic"]
+STATUS_ORDER = ["Exact", "Format", "Conflict", "Differ", "Parse", "Panic"]
 
 STATUS = "status"  # aka `outcome`
 TIMING = "timing"
@@ -62,7 +62,7 @@ class StatsLine:
     def to_markdown(self):
         cases = self.timing.count
         parts = [f"{cases:,}"]
-        for status in status_order:
+        for status in STATUS_ORDER:
             count = self.states[status]
             if count:
                 parts.append(f"{count:,} ({100 * count / cases:.0f}%)")
@@ -87,7 +87,7 @@ class StatsDiff:
         timing = self.second.timing.average()
         timing_diff = timing - self.first.timing.average()
         parts = [f"{self.second.timing.count:,}"]
-        for status in status_order:
+        for status in STATUS_ORDER:
             first = self.first.states[status]
             second = self.second.states[status]
             if second - first and self.first.timing.count:
@@ -133,8 +133,8 @@ def print_header():
     Prints the header of a Markdown table representing test case categories
     """
     # fmt: off
-    print("| Language | Cases | " + " | ".join(status_order) + " | Time (s) |")
-    print("| -------- | ----- | " + " | ".join(("-" * len(status) for status in status_order)) + " | -------- |")
+    print("| Language | Cases | " + " | ".join(STATUS_ORDER) + " | Time (s) |")
+    print("| -------- | ----- | " + " | ".join(("-" * len(status) for status in STATUS_ORDER)) + " | -------- |")
     # fmt: on
 
 
@@ -184,13 +184,13 @@ def compare_benchmark_logs(path_before: str, path_after: str):
             confusion_matrix[(previous_status, status)].add(case)
 
     # fmt: off
-    print("| ↓ Before \\ After → | " + " | ".join(status_order) + " |")
-    print("| ------------------ | "  + " | ".join(["-" * len(status) for status in status_order]) + " |")
+    print("| ↓ Before \\ After → | " + " | ".join(STATUS_ORDER) + " |")
+    print("| ------------------ | "  + " | ".join(["-" * len(status) for status in STATUS_ORDER]) + " |")
     # fmt: on
 
-    for status in status_order:
+    for status in STATUS_ORDER:
         row = []
-        for new_status in status_order:
+        for new_status in STATUS_ORDER:
             cell = ""
             if confusion_matrix[(status, new_status)]:
                 cell = f"{len(confusion_matrix[(status, new_status)]):,}"
@@ -202,8 +202,8 @@ def compare_benchmark_logs(path_before: str, path_after: str):
     print("")
     print("## Suspicious status changes")
     print("")
-    for index, status in enumerate(status_order):
-        for new_status in status_order[(index + 1) :]:
+    for index, status in enumerate(STATUS_ORDER):
+        for new_status in STATUS_ORDER[(index + 1) :]:
             cases = confusion_matrix[(status, new_status)]
             if cases:
                 print(f"### {status} → {new_status}")
