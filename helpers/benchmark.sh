@@ -61,7 +61,7 @@ find -L "$suite" -type d | while read -r testid ; do
             else
                 outcome="Conflict"
             fi
-        elif cargo run --release -p mgf_dev -- compare --commutative "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
+        elif cargo compare --commutative "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
             outcome="Format"
         else
             outcome="Differ"
