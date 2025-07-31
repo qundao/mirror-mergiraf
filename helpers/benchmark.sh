@@ -18,12 +18,6 @@ script_dir="$(dirname "${script_path}")"
 tmp_dir=/tmp/tmp$$
 mkdir -p $tmp_dir
 
-# Check that a given file can be parsed using our own parser
-check_parsing() {
-    cargo run --release -p mgf_dev -- parse "$1" "$extra_args" > /dev/null 2>&1
-    return $?
-}
-
 # Print TSV headers
 echo -e "status\ttiming\tlanguage\tcase"
 
@@ -44,7 +38,7 @@ find -L "$suite" -type d | while read -r testid ; do
     fi
 
     # Run the executable to benchmark
-    /usr/bin/env time -o $tmp_dir/timings -f "%e" "$executable" merge "$testid/Base$ext" "$testid/Left$ext" "$testid/Right$ext" -s BASE -x LEFT -y RIGHT $extra_args > "$tmp_dir/our_merge_raw$ext" 2> /dev/null
+    /usr/bin/env time -o $tmp_dir/timings -f "%e" "$executable" merge -v "$testid/Base$ext" "$testid/Left$ext" "$testid/Right$ext" -s BASE -x LEFT -y RIGHT $extra_args > "$tmp_dir/our_merge_raw$ext" 2> $tmp_dir/mergiraf_log
     retcode=$?
 
     # Normalize line endings both for the expected value and our output
@@ -62,10 +56,10 @@ find -L "$suite" -type d | while read -r testid ; do
         conflict_count=$(grep -c "<<<<<<<" "$tmp_dir/our_merge_raw$ext")
         if [ "$conflict_count" -ge 1 ]; then
             # Check that we were able to parse the files correctly
-            if check_parsing "$testid/Base$ext" && check_parsing "$testid/Left$ext" && check_parsing "$testid/Right$ext"; then
-                outcome="Conflict"
-            else
+            if grep "encountered an error: parse error at " $tmp_dir/mergiraf_log > /dev/null; then
                 outcome="Parse"
+            else
+                outcome="Conflict"
             fi
         elif cargo run --release -p mgf_dev -- compare --commutative "$tmp_dir/our_merge$ext" "$tmp_dir/expected_merge$ext" > /dev/null 2>&1; then
             outcome="Format"
