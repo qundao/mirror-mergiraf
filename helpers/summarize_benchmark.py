@@ -19,6 +19,11 @@ When supplied with two such paths, it generates
 # can be intuitively interpreted as satisfying if it is lower-triangular
 status_order = ["Exact", "Format", "Conflict", "Differ", "Parse", "Panic"]
 
+STATUS = "status"  # aka `outcome`
+TIMING = "timing"
+LANGUAGE = "language"
+CASE = "case"  # aka `test_id`
+
 
 def to_dict(generator):
     """
@@ -59,9 +64,9 @@ class StatsLine:
         self.states = defaultdict(int)
 
     def add(self, case: dict[str, Any]):
-        timing = float(case["timing"])
+        timing = float(case[TIMING])
         self.timing.add(timing)
-        status = case["status"]
+        status = case[STATUS]
         self.states[status] += 1
 
     def to_markdown(self):
@@ -127,10 +132,10 @@ class BenchmarkLog:
         with open(path, "r") as f:
             csv_reader = csv.reader(f, delimiter="\t")
             for case in to_dict(csv_reader):
-                if restrict_to is None or case["case"] in restrict_to.case_to_status:
+                if restrict_to is None or case[CASE] in restrict_to.case_to_status:
                     self.global_stats.add(case)
-                    self.per_language[case["language"]].add(case)
-                    self.case_to_status[case["case"]] = case["status"]
+                    self.per_language[case[LANGUAGE]].add(case)
+                    self.case_to_status[case[CASE]] = case[STATUS]
 
 
 def print_header():
@@ -141,6 +146,7 @@ def print_header():
     print("| Language | Cases | " + " | ".join(status_order) + " | Time (s) |")
     print("| -------- | ----- | " + " | ".join(("-" * len(status) for status in status_order)) + " | -------- |")
     # fmt: on
+
 
 def summarize_benchmark_log(path: str):
     """
