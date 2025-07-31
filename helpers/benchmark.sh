@@ -44,7 +44,7 @@ find -L "$suite" -type d | while read -r testid ; do
     fi
 
     # Run the executable to benchmark
-    /usr/bin/env time -o $tmp_dir/timings -f "%e" "$executable" merge "$testid/Base$ext" "$testid/Left$ext" "$testid/Right$ext" -s BASE -x LEFT -y RIGHT "$extra_args" > "$tmp_dir/our_merge_raw$ext" 2> /dev/null
+    /usr/bin/env time -o $tmp_dir/timings -f "%e" "$executable" merge "$testid/Base$ext" "$testid/Left$ext" "$testid/Right$ext" -s BASE -x LEFT -y RIGHT $extra_args > "$tmp_dir/our_merge_raw$ext" 2> /dev/null
     retcode=$?
 
     # Normalize line endings both for the expected value and our output
