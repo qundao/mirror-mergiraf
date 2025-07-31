@@ -105,9 +105,9 @@ class StatsDiff:
                 percent_change = 100 * timing_diff / self.first.timing.average()
                 parts.append(f"{timing_diff:+.3f} ({percent_change:+.1f}%)")
             else:
-                parts.append(f"{timing_diff:+.3f}%)")
+                parts.append(f"{timing_diff:+.3f})")
         else:
-            parts.append(f"{timing:.3f}")
+            parts.append(f"{timing:.3f} (+0)")
         return "| " + (" | ".join(parts)) + " |"
 
 
