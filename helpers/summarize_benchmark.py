@@ -139,7 +139,7 @@ def print_header():
     """
     # fmt: off
     print("| Language | Cases | " + " | ".join(status_order) + " | Time (s) |")
-    print("| -------- | ----- | " + " | ".join(["-" * len(status) for status in status_order]) + " | -------- |")
+    print("| -------- | ----- | " + " | ".join(("-" * len(status) for status in status_order)) + " | -------- |")
     # fmt: on
 
 def summarize_benchmark_log(path: str):
