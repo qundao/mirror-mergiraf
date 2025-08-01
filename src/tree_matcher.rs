@@ -546,8 +546,8 @@ mod tests {
 
         assert_eq!(matching.exact.len(), 21);
         assert_eq!(matching.container.len(), 6);
-        assert_eq!(matching.recovery.len(), 18);
-        assert_eq!(matching.full.len(), 39);
+        assert_eq!(matching.recovery.len(), 20);
+        assert_eq!(matching.full.len(), 41);
     }
 
     #[test]

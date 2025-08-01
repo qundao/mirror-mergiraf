@@ -1,3 +1,3 @@
 class Cls {
-    final protected static void method() {}
+    final static void method() {}
 }

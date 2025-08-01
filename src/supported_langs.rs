@@ -71,7 +71,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             alternate_names: &[],
             extensions: vec!["java"],
             file_names: vec![],
-            language: tree_sitter_java::LANGUAGE.into(),
+            language: tree_sitter_java_orchard::LANGUAGE.into(),
             atomic_nodes: vec!["import_declaration"],
             commutative_parents: vec![
                 // top-level node, for imports and class declarations
@@ -117,25 +117,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     ],
                 ),
                 CommutativeParent::without_delimiters("modifiers", " ").restricted_to(vec![
-                    ChildrenGroup::with_separator(
-                        &[
-                            "public",
-                            "protected",
-                            "private",
-                            "abstract",
-                            "static",
-                            "final",
-                            "strictfp",
-                            "default",
-                            "synchronized",
-                            "native",
-                            "transient",
-                            "volatile",
-                            "sealed",
-                            "non-sealed",
-                        ],
-                        " ",
-                    ),
+                    ChildrenGroup::with_separator(&["visibility", "modifier"], " "),
                     ChildrenGroup::with_separator(&["marker_annotation", "annotation"], "\n"),
                 ]),
                 CommutativeParent::without_delimiters("throws", ", ")
@@ -170,12 +152,9 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     ],
                 ),
                 // modifiers
-                signature("public", vec![vec![]]),
-                signature("protected", vec![vec![]]),
-                signature("private", vec![vec![]]),
-                signature("static", vec![vec![]]),
-                signature("final", vec![vec![]]),
-                signature("sealed", vec![vec![]]),
+                signature("visibility", vec![vec![]]),
+                signature("modifier", vec![vec![]]),
+                signature("marker_annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
                 // catch_type, type_list, throws
                 signature("identifier", vec![vec![]]),
                 // annotation_argument_list
