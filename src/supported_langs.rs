@@ -418,6 +418,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     "method_declaration",
                     vec![vec![Field("receiver")], vec![Field("name")]],
                 ),
+                signature("import_declaration", vec![vec![]]), // can't use a field, since it can be either `import_spec` or `import_spec_list`
                 signature("import_spec", vec![vec![Field("path")]]), // ideally we'd also take the 'name' into account, as it must probably be unique
                 signature("keyed_element", vec![vec![Field("key")]]),
             ],
