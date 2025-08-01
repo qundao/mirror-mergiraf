@@ -1078,6 +1078,53 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
             flattened_nodes: &[],
         },
+        LangProfile {
+            name: "Starlark",
+            alternate_names: &["bazel", "bzl"],
+            extensions: vec!["bzl", "bazel"],
+            file_names: vec!["BUILD", "WORKSPACE"],
+            language: tree_sitter_starlark::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                // The order of statements at module level doesn't matter.
+                CommutativeParent::without_delimiters("module", "\n")
+                    .restricted_to_groups(&[&["expression_statement"]]),
+                // The order of key-value pairs in a dictionary doesn't matter.
+                CommutativeParent::new("dictionary", "{", ", ", "}"),
+                // The order of keyword arguments in a function call doesn't matter.
+                // We restrict this to only keyword_argument nodes.
+                CommutativeParent::new("argument_list", "(", ", ", ")")
+                    .restricted_to_groups(&[&["keyword_argument"]]),
+                // Lists in deps, srcs, and data keyword arguments are commutative
+                CommutativeParent::from_query(
+                    r#"(keyword_argument
+                         name: (identifier) @arg_name (#any-of? @arg_name "deps" "srcs" "data")
+                         value: (list) @commutative)"#,
+                    "[",
+                    ",",
+                    "]",
+                ),
+                // Lists in exports_files and glob calls are commutative
+                CommutativeParent::from_query(
+                    r#"(call
+                         function: (identifier) @func_name (#any-of? @func_name "exports_files" "glob")
+                         arguments: (argument_list (list) @commutative))"#,
+                    "[",
+                    ",",
+                    "]",
+                ),
+            ],
+            signatures: vec![
+                // Dictionary entries are identified by their key.
+                signature("pair", vec![vec![Field("key")]]),
+                // Keyword arguments are identified by their name.
+                signature("keyword_argument", vec![vec![Field("name")]]),
+                // String literals in lists are identified by their content.
+                signature("string", vec![vec![]]),
+            ],
+            injections: None,
+            flattened_nodes: &[],
+        },
     ]
 });
 

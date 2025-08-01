@@ -10,6 +10,7 @@ Mergiraf currently supports the following programming languages:
 * C# (*.cs)
 * Dart (*.dart)
 * Scala (*.scala, *.sbt)
+* Starlark (*.bzl, *.bazel, BUILD, WORKSPACE)
 * Python (*.py)
 * PHP (*.php, *.phmtl)
 * Solidity (*.sol)
