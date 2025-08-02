@@ -216,42 +216,45 @@ impl<'a> MergedText<'a> {
         for section in &self.sections {
             match section {
                 MergeSection::Merged(contents) => {
-                    if gathering_conflict {
-                        if let Some(newline_idx) = contents.find('\n') {
-                            let (to_append, rest) = contents.split_at(newline_idx + 1);
-                            left_buffer.push_str(to_append);
-                            base_buffer.push_str(to_append);
-                            right_buffer.push_str(to_append);
-                            Self::render_conflict(
-                                &base_buffer,
-                                &left_buffer,
-                                &right_buffer,
-                                settings,
-                                &mut output,
-                            );
-                            output.push_str(rest);
-                            gathering_conflict = false;
-                        } else if contents.trim().is_empty() {
-                            // the content being added is just whitespace (but no newlines,
-                            // checked above), so something that separates an element from the next.
-                            // therefore, we only want to add it a side, if the latter actually
-                            // has an element in it (and not just indentation/nothing at all)
-                            if !base_buffer.trim().is_empty() {
-                                base_buffer.push_str(contents);
-                            }
-                            if !left_buffer.trim().is_empty() {
-                                left_buffer.push_str(contents);
-                            }
-                            if !right_buffer.trim().is_empty() {
-                                right_buffer.push_str(contents);
-                            }
-                        } else {
+                    if !gathering_conflict {
+                        output.push_str(contents);
+                        continue;
+                    }
+
+                    if let Some(newline_idx) = contents.find('\n') {
+                        // `contents` spans across multiple lines -- pull the first one into the
+                        // current conflict and finish it up, then push the rest onto `output` as normal
+                        let (to_append, rest) = contents.split_at(newline_idx + 1);
+                        left_buffer.push_str(to_append);
+                        base_buffer.push_str(to_append);
+                        right_buffer.push_str(to_append);
+                        Self::render_conflict(
+                            &base_buffer,
+                            &left_buffer,
+                            &right_buffer,
+                            settings,
+                            &mut output,
+                        );
+                        output.push_str(rest);
+                        gathering_conflict = false;
+                    } else if contents.trim().is_empty() {
+                        // the content being added is just whitespace (but no newlines,
+                        // checked above), so something that separates an element from the next.
+                        // therefore, we only want to add it to a side if the latter actually
+                        // has an element in it (and not just indentation/nothing at all)
+                        if !base_buffer.trim().is_empty() {
                             base_buffer.push_str(contents);
+                        }
+                        if !left_buffer.trim().is_empty() {
                             left_buffer.push_str(contents);
+                        }
+                        if !right_buffer.trim().is_empty() {
                             right_buffer.push_str(contents);
                         }
                     } else {
-                        output.push_str(contents);
+                        base_buffer.push_str(contents);
+                        left_buffer.push_str(contents);
+                        right_buffer.push_str(contents);
                     }
                 }
                 MergeSection::Conflict { base, left, right } => {
