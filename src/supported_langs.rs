@@ -705,7 +705,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             alternate_names: &[],
             extensions: vec!["dart"],
             file_names: vec![],
-            language: tree_sitter_dart::language(),
+            language: tree_sitter_dart_orchard::LANGUAGE.into(),
             atomic_nodes: vec!["import_or_export"],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("program", "\n"),
