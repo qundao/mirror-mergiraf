@@ -1,6 +1,6 @@
 use std::{path::Path, thread, time::Instant};
 
-use log::debug;
+use log::{debug, trace};
 
 use crate::{
     ast::AstNode,
@@ -260,12 +260,12 @@ fn fix_pcs_inconsistencies<'a>(
             let mut conflicting_triples = changeset.inconsistent_triples(pcs);
             let count = changeset.inconsistent_triples(pcs).count();
             if count > 0 {
-                debug!("number of conflicting triples: {count}");
+                trace!("number of conflicting triples: {count}");
             }
             if let Some(triple) =
                 conflicting_triples.find(|triple| triple.revision != Revision::Base)
             {
-                debug!("eliminating {pcs} by {triple}");
+                trace!("eliminating {pcs} by {triple}");
                 conflict_found = true;
             }
         }

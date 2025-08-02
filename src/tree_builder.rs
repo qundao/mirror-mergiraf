@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use either::Either;
 use itertools::Itertools;
-use log::debug;
+use log::{debug, trace};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -201,7 +201,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         seen_nodes.insert(predecessor);
 
         let pad = visiting_state.indentation();
-        debug!("{pad}{node} build_subtree_from_changeset");
+        trace!("{pad}{node} build_subtree_from_changeset");
 
         loop {
             match cursor.len() {
@@ -296,10 +296,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .collect();
         if !seen_nodes.is_superset(&non_base_nodes) {
             // We have a conflict where some node is deleted and we cannot gather where exactly.
-            debug!(
+            trace!(
                 "{pad}{node} Error while gathering successors, some non-base successors were not visited:"
             );
-            debug!(
+            trace!(
                 "{pad}{}",
                 non_base_nodes.difference(&seen_nodes).format(", ")
             );
@@ -312,7 +312,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .copied()
             .filter(|pcsnode| !seen_nodes.contains(pcsnode))
         {
-            debug!("{pad}{node} Checking unvisited base node {unvisited_base_node}");
+            trace!("{pad}{node} Checking unvisited base node {unvisited_base_node}");
             let PCSNode::Node {
                 node: unvisited,
                 revisions,
@@ -414,7 +414,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         visiting_state: &mut VisitingState<'a>,
     ) -> Result<(&'b SuccessorsCursor<'a>, MergedTree<'a>), String> {
         let pad = visiting_state.indentation();
-        debug!("{pad}{predecessor} build_conflict");
+        trace!("{pad}{predecessor} build_conflict");
         let (end_left, list_left) = self.extract_conflict_side(
             predecessor,
             Revision::Left,
@@ -484,7 +484,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         visiting_state: &mut VisitingState<'a>,
     ) -> Result<(&'b SuccessorsCursor<'a>, Vec<&'a AstNode<'a>>), String> {
         let pad = visiting_state.indentation();
-        debug!("{pad}{starting_node} extract_conflict_side");
+        trace!("{pad}{starting_node} extract_conflict_side");
         let mut result = Vec::new();
         let mut cursor = starting_node;
         loop {
@@ -531,7 +531,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         visiting_state: &mut VisitingState<'a>,
     ) -> Result<MergedTree<'a>, String> {
         let pad = visiting_state.indentation();
-        debug!("{pad}{node} commutative_or_line_based_local_fallback");
+        trace!("{pad}{node} commutative_or_line_based_local_fallback");
         let PCSNode::Node { node, .. } = node else {
             return Err(format!(
                 "impossible to do a line-based local fallback for a virtual PCS node {node}"
@@ -607,7 +607,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         visiting_state: &mut VisitingState<'a>,
     ) -> Result<Vec<MergedTree<'a>>, String> {
         let pad = visiting_state.indentation();
-        debug!("{pad}commutatively_merge_lists");
+        trace!("{pad}commutatively_merge_lists");
         let trimmed_sep = commutative_parent.trimmed_separator();
         let trimmed_left_delim = commutative_parent.left_delim.unwrap_or_default().trim();
         let trimmed_right_delim = commutative_parent.right_delim.unwrap_or_default().trim();
@@ -658,19 +658,19 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .iter()
             .filter(|x| !base_leaders.contains(x))
             .collect();
-        debug!("{pad}left_added: {}", left_added.iter().format(", "));
+        trace!("{pad}left_added: {}", left_added.iter().format(", "));
         let right_added: Vec<_> = right_leaders
             .iter()
             .filter(|x| !base_leaders.contains(x) && !left_added.contains(x))
             .collect();
-        debug!("{pad}right_added: {}", right_added.iter().format(", "));
+        trace!("{pad}right_added: {}", right_added.iter().format(", "));
 
         // then, compute the symmetric difference between the base and right lists
         let right_removed: HashSet<Leader<'_>> = base_leaders
             .into_iter()
             .filter(|x| !right_leaders.contains(x))
             .collect();
-        debug!("{pad}right_removed: {}", right_removed.iter().format(", "));
+        trace!("{pad}right_removed: {}", right_removed.iter().format(", "));
         // check which right removed elements have been modified on the left-hand side,
         // in which case they should be kept
         let mut removed_visiting_state = visiting_state.clone();

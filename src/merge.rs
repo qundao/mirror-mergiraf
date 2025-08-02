@@ -52,7 +52,7 @@ pub fn line_merge_and_structured_resolution(
         timeout,
     );
 
-    match select_best_merge(merges) {
+    let merge_result = match select_best_merge(merges) {
         LineBasedAndBestAre::TheSame(merge) => merge,
         LineBasedAndBestAre::NotTheSame { line_based, best } => {
             if best.conflict_count == 0 {
@@ -78,7 +78,9 @@ pub fn line_merge_and_structured_resolution(
             }
             best
         }
-    }
+    };
+    debug!("Selected best merge: {}", merge_result.method);
+    merge_result
 }
 
 /// Attempts various merging methods in turn, and stops early when
