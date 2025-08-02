@@ -1,5 +1,7 @@
+use std::borrow::Cow;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
@@ -48,17 +50,15 @@ fn integration_failing(
     let suffix = detect_test_suffix(&test_dir);
     #[expect(unstable_name_collisions)]
     let fname_base = test_dir.join(format!("Base{suffix}")).leak();
-    let contents_base = fs::read_to_string(&fname_base)
-        .expect("Unable to read left file")
-        .leak();
+    let contents_base = fs::read_to_string(&fname_base).expect("Unable to read base file");
+    let contents_base = Arc::new(Cow::Owned(contents_base));
     let fname_left = test_dir.join(format!("Left{suffix}"));
     let contents_left = fs::read_to_string(fname_left)
         .expect("Unable to read left file")
         .leak();
     let fname_right = test_dir.join(format!("Right{suffix}"));
-    let contents_right = fs::read_to_string(fname_right)
-        .expect("Unable to read right file")
-        .leak();
+    let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
+    let contents_right = Arc::new(Cow::Owned(contents_right));
 
     let fname_expected_currently = test_dir.join(format!("ExpectedCurrently{suffix}"));
     let contents_expected_currently = fs::read_to_string(&fname_expected_currently)
@@ -68,9 +68,9 @@ fn integration_failing(
         fs::read_to_string(fname_expected_ideally).expect("Unable to read expected-ideally file");
 
     let merge_result = line_merge_and_structured_resolution(
-        contents_base,
+        Arc::clone(&contents_base),
         contents_left,
-        contents_right,
+        Arc::clone(&contents_right),
         fname_base,
         DisplaySettings::default(),
         true,

@@ -1,5 +1,7 @@
+use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
@@ -27,9 +29,9 @@ fn compare_against_merge(
     };
 
     let merge_result = line_merge_and_structured_resolution(
-        contents_base,
+        Arc::new(Cow::Borrowed(contents_base)),
         contents_left,
-        contents_right,
+        Arc::new(Cow::Borrowed(contents_right)),
         fname_base,
         settings,
         true,

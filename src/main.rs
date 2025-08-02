@@ -3,6 +3,7 @@ use std::{
     env, fs, io,
     path::{Path, PathBuf},
     process::{Command, exit},
+    sync::Arc,
     time::Duration,
 };
 
@@ -193,27 +194,22 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             #[expect(unstable_name_collisions)]
             let debug_dir = debug_dir.map(|s| &*s.leak());
 
-            // same for `String::leak`
-            let base_name = base_name.map(|s| &*s.leak());
-            let left_name = left_name.map(|s| &*s.leak());
-            let right_name = right_name.map(|s| &*s.leak());
-
             let settings: DisplaySettings<'static> = DisplaySettings {
                 compact,
                 conflict_marker_size,
                 base_revision_name: match base_name {
-                    Some("%S") => None,
-                    Some(name) => Some(Cow::Borrowed(name)),
+                    Some(name) if name == "%S" => None,
+                    Some(name) => Some(Cow::Owned(name)),
                     None => Some(base.to_string_lossy()),
                 },
                 left_revision_name: match left_name {
-                    Some("%X") => None,
-                    Some(name) => Some(Cow::Borrowed(name)),
+                    Some(name) if name == "%X" => None,
+                    Some(name) => Some(Cow::Owned(name)),
                     None => Some(left.to_string_lossy()),
                 },
                 right_revision_name: match right_name {
-                    Some("%Y") => None,
-                    Some(name) => Some(Cow::Borrowed(name)),
+                    Some(name) if name == "%Y" => None,
+                    Some(name) => Some(Cow::Owned(name)),
                     None => Some(right.to_string_lossy()),
                 },
                 ..Default::default()
@@ -231,7 +227,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let fname_base = &*base;
             let original_contents_base = read_file_to_string(fname_base)?;
             let contents_base = normalize_to_lf(original_contents_base);
-            let contents_base = contents_base.into_owned().leak();
+            let contents_base = Arc::new(contents_base);
 
             let fname_left = &left;
             let original_contents_left = read_file_to_string(fname_left)?;
@@ -241,7 +237,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let fname_right = &right;
             let original_contents_right = read_file_to_string(fname_right)?;
             let contents_right = normalize_to_lf(original_contents_right);
-            let contents_right = contents_right.into_owned().leak();
+            let contents_right = Arc::new(contents_right);
 
             let attempts_cache = AttemptsCache::new(None, None).ok();
 

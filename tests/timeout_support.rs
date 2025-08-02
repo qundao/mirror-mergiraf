@@ -1,5 +1,7 @@
+use std::borrow::Cow;
 use std::fs::{self};
 use std::path::Path;
+use std::sync::Arc;
 use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
@@ -13,20 +15,18 @@ fn timeout_support() {
     let ext = "java";
     #[expect(unstable_name_collisions)]
     let fname_base = test_dir.join(format!("Base.{ext}")).leak();
-    let contents_base = fs::read_to_string(&fname_base)
-        .expect("Unable to read left file")
-        .leak();
+    let contents_base = fs::read_to_string(&fname_base).expect("Unable to read base file");
+    let contents_base = Arc::new(Cow::Owned(contents_base));
     let fname_left = test_dir.join(format!("Left.{ext}"));
     let contents_left = fs::read_to_string(fname_left)
         .expect("Unable to read left file")
         .leak();
     let fname_right = test_dir.join(format!("Right.{ext}"));
-    let contents_right = fs::read_to_string(fname_right)
-        .expect("Unable to read right file")
-        .leak();
+    let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
+    let contents_right = Arc::new(Cow::Owned(contents_right));
     let settings = DisplaySettings::default();
     let contents_expected =
-        line_based_merge(contents_base, contents_left, contents_right, &settings).contents;
+        line_based_merge(&contents_base, contents_left, &contents_right, &settings).contents;
 
     let merge_result = line_merge_and_structured_resolution(
         contents_base,

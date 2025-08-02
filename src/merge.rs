@@ -1,8 +1,10 @@
 //! Implementation of `mergiraf merge`
 
 use std::{
+    borrow::Cow,
     cmp::Ordering,
     path::Path,
+    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
@@ -24,9 +26,9 @@ use crate::{
 /// merge (independently of the textual merge) is attempted
 #[allow(clippy::too_many_arguments)]
 pub fn line_merge_and_structured_resolution(
-    contents_base: &'static str,
+    contents_base: Arc<Cow<'static, str>>,
     contents_left: &'static str,
-    contents_right: &'static str,
+    contents_right: Arc<Cow<'static, str>>,
     fname_base: &'static Path,
     settings: DisplaySettings<'static>,
     full_merge: bool,
@@ -36,13 +38,13 @@ pub fn line_merge_and_structured_resolution(
     language: Option<&str>,
 ) -> MergeResult {
     let Ok(lang_profile) = LangProfile::find_by_filename_or_name(fname_base, language) else {
-        return line_based_merge(contents_base, contents_left, contents_right, &settings);
+        return line_based_merge(&contents_base, contents_left, &contents_right, &settings);
     };
 
     let merges = cascading_merge(
-        contents_base,
+        Arc::clone(&contents_base),
         contents_left,
-        contents_right,
+        Arc::clone(&contents_right),
         lang_profile,
         settings,
         full_merge,
@@ -59,9 +61,9 @@ pub fn line_merge_and_structured_resolution(
                 if let Some(cache) = attempts_cache {
                     match cache.new_attempt(
                         fname_base,
-                        contents_base,
+                        &contents_base,
                         contents_left,
-                        contents_right,
+                        &contents_right,
                     ) {
                         Ok(attempt) => {
                             best.store_in_attempt(&attempt);
@@ -83,9 +85,9 @@ pub fn line_merge_and_structured_resolution(
 /// any of them finds a conflict-free merge without any additional issues.
 #[allow(clippy::too_many_arguments)]
 pub fn cascading_merge(
-    contents_base: &'static str,
+    contents_base: Arc<Cow<'static, str>>,
     contents_left: &'static str,
-    contents_right: &'static str,
+    contents_right: Arc<Cow<'static, str>>,
     lang_profile: &'static LangProfile,
     settings: DisplaySettings<'static>,
     full_merge: bool,
@@ -95,9 +97,9 @@ pub fn cascading_merge(
     // first attempt: try to merge as line-based
     let start = Instant::now();
     let (parsed_conflicts, line_based_merge) = line_based_merge_with_duplicate_signature_detection(
-        contents_base,
+        &contents_base,
         contents_left,
-        contents_right,
+        &contents_right,
         &settings,
         lang_profile,
     );
@@ -133,9 +135,9 @@ pub fn cascading_merge(
         if full_merge || line_based_merge.has_additional_issues {
             // third attempt: full-blown structured merge
             let structured_merge = structured_merge(
-                contents_base,
+                &contents_base,
                 contents_left,
-                contents_right,
+                &contents_right,
                 None,
                 &settings,
                 lang_profile,
