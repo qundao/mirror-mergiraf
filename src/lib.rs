@@ -32,11 +32,11 @@ pub(crate) mod merged_tree;
 pub(crate) mod multimap;
 pub mod newline;
 pub(crate) mod parsed_merge;
-mod path_buf_ext;
 pub(crate) mod pcs;
 pub mod settings;
 pub(crate) mod signature;
 mod solve;
+mod std_ext;
 pub(crate) mod structured;
 pub mod supported_langs;
 #[cfg(test)]
@@ -59,7 +59,7 @@ use settings::DisplaySettings;
 use structured::structured_merge;
 use supported_langs::SUPPORTED_LANGUAGES;
 
-pub use path_buf_ext::PathBufExt;
+pub use std_ext::{PathBufExt, StrExt};
 
 /// Current way to disable Mergiraf
 /// ## Usage

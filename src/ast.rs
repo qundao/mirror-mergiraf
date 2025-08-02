@@ -3,7 +3,7 @@ use std::iter::zip;
 use std::{
     borrow::Cow,
     cell::UnsafeCell,
-    cmp::{max, min},
+    cmp::max,
     fmt::Display,
     hash::{Hash, Hasher},
     ops::Range,
@@ -21,6 +21,7 @@ use tree_sitter::{
 use typed_arena::Arena;
 
 use crate::{
+    StrExt,
     lang_profile::{CommutativeParent, LangProfile, ParentType},
     signature::{Signature, SignatureDefinition},
 };
@@ -311,13 +312,19 @@ impl<'a> AstNode<'a> {
         let local_source = &global_source[range.start..range.end];
         if node.is_error() {
             let full_range = node.range();
+
+            // it can be that byte 32 doesn't lie on char boundary,
+            // so increase the index until it does
+            #[expect(unstable_name_collisions)]
+            let idx = local_source.ceil_char_boundary(32);
+
             return Err(format!(
                 "parse error at {}:{}..{}:{}, starting with: {}",
                 full_range.start_point.row,
                 full_range.start_point.column,
                 full_range.end_point.row,
                 full_range.end_point.column,
-                &local_source[..min(32, local_source.len())]
+                &local_source[..idx]
             ));
         }
 
@@ -1153,11 +1160,24 @@ mod tests {
         let ctx = ctx();
         let lang_profile = LangProfile::detect_from_filename("test.json")
             .expect("could not load language profile");
+
         let parse = AstNode::parse("[\n {,\n]", lang_profile, &ctx.arena, &ctx.ref_arena);
 
         assert_eq!(
             parse,
             Err("parse error at 1:1..1:3, starting with: {,".to_string())
+        );
+
+        let parse = AstNode::parse(
+            "属于个人的非赢利性开源项目",
+            lang_profile,
+            &ctx.arena,
+            &ctx.ref_arena,
+        );
+
+        assert_eq!(
+            parse,
+            Err("parse error at 0:0..0:39, starting with: 属于个人的非赢利性开源".to_string())
         );
     }
 
