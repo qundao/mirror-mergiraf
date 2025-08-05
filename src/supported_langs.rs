@@ -234,7 +234,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extensions: vec!["rs"],
             file_names: vec![],
             language: tree_sitter_rust_orchard::LANGUAGE.into(),
-            atomic_nodes: vec![],
+            atomic_nodes: vec!["block_comment", "line_comment"],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("source_file", "\n").restricted_to_groups(&[
                     &["use_declaration"], // to keep use declarations together (even if it's not actually required)
