@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
+use thiserror::Error;
 
 use either::Either;
 use itertools::Itertools;
@@ -66,6 +67,27 @@ impl VisitingState<'_> {
     }
 }
 
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum TreeBuildingError<'a> {
+    // Errors that are expected to happen in certain cases.
+    #[error("node `{node}` encountered twice, which generates an infinite tree")]
+    NodeEncounteredTwice { node: Leader<'a> },
+    #[error("children not allowed to commute per their types")]
+    UncommutableChildren { child_types: HashSet<&'static str> },
+
+    // Internal errors, which are a sign of a programming
+    // error and should never be allowed to happen, regardless of the input data.
+    // To avoid panicking in production, we still return an error for those.
+    #[error("more than two conflicting sides after node `{node}`")]
+    MoreThanTwoConflictingSides { node: PCSNode<'a> },
+    #[error("the virtual root needs to have a child, none found")]
+    NoVirtualRootChildFound,
+    #[error("impossible to do a line-based fallback merge for a virtual node")]
+    LineBasedFallbackOnVirtualNode,
+    #[error("build_conflict returned something else than a conflict")]
+    BuildConflictReturnedSomethingElse,
+}
+
 type SuccessorsCursor<'a> = FxHashSet<(Revision, PCSNode<'a>)>;
 
 impl<'a, 'b> TreeBuilder<'a, 'b> {
@@ -85,7 +107,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     }
 
     /// Build the merged tree
-    pub fn build_tree(&self) -> Result<MergedTree<'a>, String> {
+    pub fn build_tree(&self) -> Result<MergedTree<'a>, TreeBuildingError<'a>> {
         let mut visiting_state = VisitingState {
             // keep track of all nodes that have been deleted on one side and modified on the other
             deleted_and_modified: HashSet::new(),
@@ -142,11 +164,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         &'b self,
         node: PCSNode<'a>,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<MergedTree<'a>, String> {
+    ) -> Result<MergedTree<'a>, TreeBuildingError<'a>> {
         if let PCSNode::Node { node, .. } = node {
             let visited = &mut visiting_state.visited_nodes;
             if visited.contains(&node) {
-                return Err("node already visited".to_owned());
+                return Err(TreeBuildingError::NodeEncounteredTwice { node });
             }
             visited.insert(node);
         }
@@ -163,7 +185,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         &'b self,
         node: PCSNode<'a>,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<MergedTree<'a>, String> {
+    ) -> Result<MergedTree<'a>, TreeBuildingError<'a>> {
         // if the node has isomorphic subtrees in all revisions, that's very boring,
         // so we just return a tree that matches that
         if let PCSNode::Node {
@@ -253,7 +275,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     };
 
                     let MergedTree::Conflict { base, left, right } = conflict else {
-                        unreachable!("`build_conflict` should return a conflict")
+                        return Err(TreeBuildingError::BuildConflictReturnedSomethingElse);
                     };
 
                     if let PCSNode::Node { node: leader, .. } = node
@@ -278,7 +300,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     }
                     cursor = next_cursor;
                 }
-                _ => unreachable!("unexpected conflict size: more than two diverging sides!"),
+                _ => {
+                    return Err(TreeBuildingError::MoreThanTwoConflictingSides {
+                        node: predecessor,
+                    });
+                }
             }
         }
 
@@ -344,9 +370,10 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         }
 
         match node {
-            PCSNode::VirtualRoot => children.into_iter().next().ok_or_else(|| {
-                "the virtual root must have exactly one child, none found".to_string()
-            }),
+            PCSNode::VirtualRoot => children
+                .into_iter()
+                .next()
+                .ok_or(TreeBuildingError::NoVirtualRootChildFound),
             PCSNode::LeftMarker => {
                 panic!("impossible to build a subtree for a virtual left marker")
             }
@@ -529,13 +556,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         &self,
         node: PCSNode<'a>,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<MergedTree<'a>, String> {
+    ) -> Result<MergedTree<'a>, TreeBuildingError<'a>> {
         let pad = visiting_state.indentation();
         trace!("{pad}{node} commutative_or_line_based_local_fallback");
         let PCSNode::Node { node, .. } = node else {
-            return Err(format!(
-                "impossible to do a line-based local fallback for a virtual PCS node {node}"
-            ));
+            return Err(TreeBuildingError::LineBasedFallbackOnVirtualNode);
         };
         // If the root happens to be commutative, we can merge all children accordingly.
         if let Some(commutative_parent) = node.commutative_parent_definition()
@@ -605,7 +630,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         right: &[&'a AstNode<'a>],
         commutative_parent: &CommutativeParent,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<Vec<MergedTree<'a>>, String> {
+    ) -> Result<Vec<MergedTree<'a>>, TreeBuildingError<'a>> {
         let pad = visiting_state.indentation();
         trace!("{pad}commutatively_merge_lists");
         let trimmed_sep = commutative_parent.trimmed_separator();
@@ -649,7 +674,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             .map(Leader::grammar_name)
             .collect();
         let Some(raw_separator) = commutative_parent.child_separator(&child_types) else {
-            return Err("The children are not allowed to commute".to_string());
+            return Err(TreeBuildingError::UncommutableChildren { child_types });
         };
         // NOTE: trimmed_sep is still consistent with raw_separator per the assumption that the two
         // kinds of separators are equal up to leading and trailing whitespace
@@ -686,7 +711,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 )?;
                 Ok((revnode, subtree))
             })
-            .collect::<Result<_, String>>()?;
+            .collect::<Result<_, TreeBuildingError<'a>>>()?;
         let right_removed_and_not_modified: HashSet<_> = right_removed_content
             .into_iter()
             .filter(|(_, result_tree)| match result_tree {
@@ -814,7 +839,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         leader: &Leader<'a>,
         commutative_parent: &CommutativeParent,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<Vec<MergedTree<'a>>, String> {
+    ) -> Result<Vec<MergedTree<'a>>, TreeBuildingError<'a>> {
         let children_base = self
             .class_mapping
             .children_at_revision(leader, Revision::Base)
