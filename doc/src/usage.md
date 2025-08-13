@@ -60,6 +60,11 @@ $ mergiraf languages --gitattributes
 
 If you want to enable Mergiraf only in a certain repository, add the lines above in the `.gitattributes` file at the root of that repository instead, or in `.git/info/attributes` if you don't want it to be tracked in the repository.
 
+If `mergiraf` does not recognize your file's language by extension, you may set the `mergiraf.language` attribute on the file to specify it manually:
+```
+*.myjs  mergiraf.language=javascript
+```
+
 #### Trying it out
 
 An [example repository](https://codeberg.org/mergiraf/example-repo) is available for you to try out Mergiraf on simple examples:

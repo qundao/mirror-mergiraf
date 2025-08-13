@@ -92,7 +92,11 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
     let ref_arena = Arena::new();
 
     let lang_profile = |language_determining_path| {
-        LangProfile::find_by_filename_or_name(language_determining_path, args.language.as_deref())
+        LangProfile::find_by_filename_or_name(
+            language_determining_path,
+            args.language.as_deref(),
+            None,
+        )
     };
 
     let contents = |path: &Path| -> Result<Cow<str>, String> {

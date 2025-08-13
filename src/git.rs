@@ -94,3 +94,35 @@ pub(crate) fn read_content_from_commits(
         read_content_from_commit(repo_dir, oids.2, file_name)?,
     ))
 }
+
+pub(crate) fn read_attribute_for_file(
+    repo_dir: &Path,
+    file_name: &Path,
+    attr: &str,
+) -> Option<String> {
+    Command::new("git")
+        .args([
+            "check-attr",
+            "-z",
+            attr,
+            "--",
+            &format!("{}", file_name.display()),
+        ])
+        .current_dir(repo_dir)
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| {
+            output
+                .stdout
+                .split(|b| *b == b'\0')
+                .nth(2)
+                .map(|value| value.to_vec())
+        })
+        .and_then(|c| String::from_utf8(c).ok())
+}
+
+pub(crate) fn read_lang_attribute(repo_dir: &Path, file_name: &Path) -> Option<String> {
+    read_attribute_for_file(repo_dir, file_name, "mergiraf.language")
+        .filter(|value| value != "unspecified" && value != "set" && value != "unset")
+}
