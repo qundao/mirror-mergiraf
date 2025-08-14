@@ -129,11 +129,34 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: vec![
                 // program
                 signature("import_declaration", vec![vec![]]),
+                signature("module_declaration", vec![vec![Field("name")]]),
+                signature("package_declaration", vec![vec![ChildType("identifier")]]),
+                signature("annotation_type_declaration", vec![vec![Field("name")]]),
+                signature("enum_declaration", vec![vec![Field("name")]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
+                signature("interface_declaration", vec![vec![Field("name")]]),
+                signature("record_declaration", vec![vec![Field("name")]]),
+                signature("scoped_identifier", vec![vec![Field("name")]]),
                 // class_body
                 signature(
                     "field_declaration",
                     vec![vec![Field("declarator"), Field("name")]],
+                ),
+                signature(
+                    "constructor_declaration",
+                    vec![
+                        vec![Field("name")],
+                        vec![
+                            Field("parameters"),
+                            ChildType("formal_parameter"),
+                            Field("type"),
+                        ],
+                        vec![
+                            Field("parameters"),
+                            ChildType("spread_parameter"),
+                            ChildType("identifier"),
+                        ],
+                    ],
                 ),
                 signature(
                     "method_declaration",
@@ -151,10 +174,12 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         ],
                     ],
                 ),
+                signature("compact_constructor_declaration", vec![vec![Field("name")]]),
                 // modifiers
                 signature("visibility", vec![vec![]]),
                 signature("modifier", vec![vec![]]),
-                signature("marker_annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
+                signature("annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
+                signature("marker_annotation", vec![vec![]]),
                 // catch_type, type_list, throws
                 signature("identifier", vec![vec![]]),
                 // annotation_argument_list
@@ -204,6 +229,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             ],
             signatures: vec![
                 signature("import", vec![vec![]]),
+                // class_body
                 signature(
                     "function_declaration",
                     vec![
@@ -215,7 +241,17 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         ],
                     ],
                 ),
+                signature(
+                    "property_declaration",
+                    vec![vec![
+                        ChildType("variable_declaration"),
+                        ChildType("identifier"),
+                    ]],
+                ),
+                // class_declaration
                 signature("delegation_specifier", vec![vec![]]),
+                // modifiers
+                signature("annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
                 signature("public", vec![vec![]]),
                 signature("protected", vec![vec![]]),
                 signature("private", vec![vec![]]),
@@ -249,9 +285,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         "type_item",
                         "function_item",
                         "function_signature_item",
+                        "impl_item",
                         "trait_item",
-                        "associated_type",
-                        "let_declaration",
                         "extern_crate_declaration",
                         "static_item",
                     ],
@@ -272,8 +307,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                             "type_item",
                             "function_item",
                             "function_signature_item",
+                            "impl_item",
                             "trait_item",
-                            "let_declaration",
                             "extern_crate_declaration",
                             "static_item",
                         ],
@@ -309,6 +344,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("type_item", vec![vec![Field("name")]]),
                 signature("function_item", vec![vec![Field("name")]]),
                 signature("function_signature_item", vec![vec![Field("name")]]),
+                // one can have multiple `impl Foo { ... }` items in the source code, and the
+                // only real way to find out if they are identical is to go through the entire body
+                // -- so we do just that by using the entire body as the signature
+                signature("impl_item", vec![vec![]]),
                 signature("trait_item", vec![vec![Field("name")]]),
                 signature("static_item", vec![vec![Field("name")]]),
                 // function_modifiers
@@ -318,6 +357,11 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("unsafe", vec![vec![]]),
                 // source_file
                 signature("use_declaration", vec![vec![Field("argument")]]),
+                signature("extern_crate_declaration", vec![vec![Field("name")]]),
+                // one can have multiple `extern "X" { ... }` items in the source code, and the
+                // only real way to find out if they are identical is to go through the entire body
+                // -- so we do just that by using the entire body as the signature
+                signature("foreign_mod_item", vec![vec![]]),
                 // trait_bound
                 signature("lifetime", vec![vec![]]),
                 // use list
@@ -332,6 +376,11 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("field_initializer", vec![vec![Field("field")]]),
                 signature("shorthand_field_initializer", vec![vec![]]),
                 signature("base_field_initializer", vec![]), // maximum one per field_initializer_list
+                // where_clause
+                signature(
+                    "where_predicate",
+                    vec![vec![Field("left")], vec![Field("bounds")]],
+                ),
             ],
             injections: Some(tree_sitter_rust_orchard::INJECTIONS_QUERY),
             flattened_nodes: &[],
@@ -369,6 +418,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     "method_declaration",
                     vec![vec![Field("receiver")], vec![Field("name")]],
                 ),
+                signature("import_declaration", vec![vec![]]), // can't use a field, since it can be either `import_spec` or `import_spec_list`
                 signature("import_spec", vec![vec![Field("path")]]), // ideally we'd also take the 'name' into account, as it must probably be unique
                 signature("keyed_element", vec![vec![Field("key")]]),
             ],
