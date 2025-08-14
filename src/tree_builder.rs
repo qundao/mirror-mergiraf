@@ -7,6 +7,7 @@ use itertools::Itertools;
 use log::{debug, trace};
 use rustc_hash::FxHashSet;
 
+use crate::utils::InternalError;
 use crate::{
     ast::AstNode,
     changeset::ChangeSet,
@@ -275,7 +276,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                     };
 
                     let MergedTree::Conflict { base, left, right } = conflict else {
-                        return Err(TreeBuildingError::BuildConflictReturnedSomethingElse);
+                        return Err(TreeBuildingError::BuildConflictReturnedSomethingElse)
+                            .debug_panic();
                     };
 
                     if let PCSNode::Node { node: leader, .. } = node
@@ -303,7 +305,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 _ => {
                     return Err(TreeBuildingError::MoreThanTwoConflictingSides {
                         node: predecessor,
-                    });
+                    })
+                    .debug_panic();
                 }
             }
         }
@@ -373,7 +376,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             PCSNode::VirtualRoot => children
                 .into_iter()
                 .next()
-                .ok_or(TreeBuildingError::NoVirtualRootChildFound),
+                .ok_or(TreeBuildingError::NoVirtualRootChildFound)
+                .debug_panic(),
             PCSNode::LeftMarker => {
                 panic!("impossible to build a subtree for a virtual left marker")
             }
@@ -560,7 +564,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let pad = visiting_state.indentation();
         trace!("{pad}{node} commutative_or_line_based_local_fallback");
         let PCSNode::Node { node, .. } = node else {
-            return Err(TreeBuildingError::LineBasedFallbackOnVirtualNode);
+            return Err(TreeBuildingError::LineBasedFallbackOnVirtualNode).debug_panic();
         };
         // If the root happens to be commutative, we can merge all children accordingly.
         if let Some(commutative_parent) = node.commutative_parent_definition()
