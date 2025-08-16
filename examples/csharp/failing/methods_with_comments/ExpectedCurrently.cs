@@ -28,7 +28,7 @@ public partial class MyClass : IMyInterface
     /// </summary>
     [MyCustomAttribute]
     public string? MyProp { get; set; }
-
 >>>>>>> RIGHT
+
     private record MyPrivateRecord(bool Foo);
 }
