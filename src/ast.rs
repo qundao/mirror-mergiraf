@@ -52,6 +52,8 @@ pub struct AstNode<'a> {
     pub byte_range: Range<usize>,
     /// An internal node id, guaranteed to be unique within the tree.
     pub id: usize,
+    /// Whether this node is one that can appear anywhere in the source (such as a code comment)
+    pub is_extra: bool,
     /// A cached number of descendants
     descendant_count: usize,
     /// The parent of this node, if any.
@@ -353,6 +355,7 @@ impl<'a> AstNode<'a> {
                     commutative_parent: None,
                     dfs: UnsafeCell::new(None),
                     lang_profile,
+                    is_extra: node.is_extra(),
                 }));
                 *next_node_id += 1;
                 offset += line.len() + 1;
@@ -406,6 +409,7 @@ impl<'a> AstNode<'a> {
             commutative_parent,
             dfs: UnsafeCell::new(None),
             lang_profile,
+            is_extra: node.is_extra(),
         });
         *next_node_id += 1;
         result.internal_set_parent_on_children();
@@ -1959,5 +1963,20 @@ interface Foo {
         assert_eq!(union_type.children[0].grammar_name, "literal_type");
         assert_eq!(union_type.children[1].grammar_name, "|");
         assert_eq!(union_type.children[2].grammar_name, "intersection_type");
+    }
+
+    #[test]
+    fn is_extra() {
+        let ctx = ctx();
+        let source = "/* pub */ const a: u8 = 1;";
+
+        let rs = ctx.parse("a.rs", source);
+
+        let comment = rs[0];
+        assert_eq!(comment.grammar_name, "block_comment");
+        assert!(comment.is_extra);
+        let const_decl = rs[1];
+        assert_eq!(const_decl.grammar_name, "const_item");
+        assert!(!const_decl.is_extra);
     }
 }

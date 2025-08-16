@@ -319,6 +319,8 @@ impl CommutativeParent {
     /// Can children with the supplied types commute together?
     /// If so, return the separator to use when inserting two nodes
     /// in the same place.
+    /// TODO: return None if any of the node_types is extra,
+    /// see https://codeberg.org/mergiraf/mergiraf/issues/467
     pub(crate) fn child_separator(&self, node_types: &HashSet<&str>) -> Option<&'static str> {
         if self.children_groups.is_empty() {
             // If there are no children groups to restrict commutativity to,

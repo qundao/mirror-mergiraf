@@ -646,8 +646,22 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         let child_types: HashSet<&str> = (base_leaders.iter())
             .chain(left_leaders.iter())
             .chain(right_leaders.iter())
-            .map(Leader::grammar_name)
-            .collect();
+            .map(|leader| {
+                if self
+                    .class_mapping
+                    .representatives(leader)
+                    .iter()
+                    .any(|repr| repr.node.is_extra)
+                {
+                    Err(
+                        "One of the children is an extra node, cannot merge commutatively"
+                            .to_string(),
+                    )
+                } else {
+                    Ok(leader.grammar_name())
+                }
+            })
+            .try_collect()?;
         let Some(raw_separator) = commutative_parent.child_separator(&child_types) else {
             return Err("The children are not allowed to commute".to_string());
         };
