@@ -8,7 +8,7 @@ use crate::{
     ast::AstNode,
     class_mapping::{ClassMapping, Leader, RevNode},
     lang_profile::CommutativeParent,
-    merged_tree::MergedTree,
+    merged_tree::{Conflict, MergedTree},
     pcs::Revision,
     signature::isomorphic_merged_trees,
 };
@@ -283,11 +283,11 @@ fn merge_same_sigs<'a>(
         // but it's not clear how that can be avoided: it can be that the separator doesn't appear
         // at all in a given revision.
         (
-            vec![MergedTree::Conflict {
+            vec![MergedTree::Conflict(Conflict {
                 base: add_separators(base, separator, add_separator),
                 left: add_separators(left, separator, add_separator),
                 right: add_separators(right, separator, add_separator),
-            }],
+            })],
             false,
         )
     }

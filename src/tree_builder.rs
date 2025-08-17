@@ -6,6 +6,7 @@ use itertools::Itertools;
 use log::{debug, trace};
 use rustc_hash::FxHashSet;
 
+use crate::merged_tree::Conflict;
 use crate::{
     ast::AstNode,
     changeset::ChangeSet,
@@ -252,9 +253,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                         return line_based;
                     };
 
-                    let MergedTree::Conflict { base, left, right } = conflict else {
-                        unreachable!("`build_conflict` should return a conflict")
-                    };
+                    let Conflict { base, left, right } = conflict;
 
                     if let PCSNode::Node { node: leader, .. } = node
                         && let Some(commutative_parent) = leader.commutative_parent_definition()
@@ -412,7 +411,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         base_successors: &'b MultiMap<PCSNode<'a>, (Revision, PCSNode<'a>)>,
         seen_nodes: &mut HashSet<PCSNode<'a>>,
         visiting_state: &mut VisitingState<'a>,
-    ) -> Result<(&'b SuccessorsCursor<'a>, MergedTree<'a>), String> {
+    ) -> Result<(&'b SuccessorsCursor<'a>, Conflict<'a>), String> {
         let pad = visiting_state.indentation();
         trace!("{pad}{predecessor} build_conflict");
         let (end_left, list_left) = self.extract_conflict_side(
@@ -457,7 +456,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         } else {
             Ok((
                 end_base,
-                MergedTree::Conflict {
+                Conflict {
                     base: list_base,
                     left: list_left,
                     right: list_right,

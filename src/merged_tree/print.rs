@@ -5,7 +5,7 @@ use crate::{
     ast::AstNode,
     class_mapping::{ClassMapping, Leader, RevNode},
     merged_text::MergedText,
-    merged_tree::MergedTree,
+    merged_tree::{Conflict, MergedTree},
     pcs::Revision,
 };
 
@@ -98,7 +98,7 @@ impl<'a> MergedTree<'a> {
                     output.push_merged(Cow::from(whitespace));
                 }
             }
-            Self::Conflict { base, left, right } => {
+            Self::Conflict(Conflict { base, left, right }) => {
                 if base.is_empty() && left.is_empty() && right.is_empty() {
                     return;
                 }

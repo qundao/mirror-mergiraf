@@ -224,10 +224,8 @@ impl Hash for AstNodeEquiv<'_, '_> {
                 MergedTree::ExactTree { hash, .. } | MergedTree::MixedTree { hash, .. } => {
                     hash.hash(state);
                 }
-                MergedTree::Conflict { base, left, right } => {
-                    base.hash(state);
-                    left.hash(state);
-                    right.hash(state);
+                MergedTree::Conflict(conflict) => {
+                    conflict.hash(state);
                 }
                 MergedTree::LineBasedMerge { node, parsed, .. } => {
                     node.hash(state);

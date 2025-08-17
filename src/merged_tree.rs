@@ -47,14 +47,7 @@ pub enum MergedTree<'a> {
         hash: u64,
     },
     /// A conflict which needs to be resolved manually by the user
-    Conflict {
-        /// The list of nodes in the base revision
-        base: Vec<&'a AstNode<'a>>,
-        /// The list of nodes in the left revision
-        left: Vec<&'a AstNode<'a>>,
-        /// The list of nodes in the right revision
-        right: Vec<&'a AstNode<'a>>,
-    },
+    Conflict(Conflict<'a>),
     /// A part of the merged result which was obtained by running line-based
     /// merging on a part of the file. This happens in many different situations when
     /// structured merging encounters an error of some sort.
@@ -68,6 +61,23 @@ pub enum MergedTree<'a> {
     /// A synthetic part of the merged output, not taken from any revision, added
     /// to separate merged children of a commutative parent.
     CommutativeChildSeparator { separator: &'a str },
+}
+
+/// The inner struct of [`MergedTree::Conflict`]
+///
+/// For now, used only to allow returning _exactly_ a conflict from
+/// [`TreeBuilder::build_conflict`], effectively being a [pattern type]
+///
+/// [`TreeBuilder::build_conflict`]: crate::tree_builder::TreeBuilder::build_conflict
+/// [pattern type]: https://github.com/rust-lang/types-team/issues/126
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct Conflict<'a> {
+    /// The list of nodes in the base revision
+    pub(crate) base: Vec<&'a AstNode<'a>>,
+    /// The list of nodes in the left revision
+    pub(crate) left: Vec<&'a AstNode<'a>>,
+    /// The list of nodes in the right revision
+    pub(crate) right: Vec<&'a AstNode<'a>>,
 }
 
 impl<'a> MergedTree<'a> {
@@ -161,7 +171,11 @@ impl<'a> MergedTree<'a> {
                 class_mapping,
             ))
         } else {
-            Either::Left(iter::once(MergedTree::Conflict { base, left, right }))
+            Either::Left(iter::once(MergedTree::Conflict(Conflict {
+                base,
+                left,
+                right,
+            })))
         }
     }
 
@@ -312,14 +326,14 @@ impl<'a> MergedTree<'a> {
                 node == leader || children.iter().any(|c| c.contains(leader, class_mapping))
             }
             // TODO here we could look for all representatives in their corresponding conflict side, that would be more accurate.
-            Self::Conflict { base, left, right } => match leader.as_representative().rev {
-                Revision::Base => base
+            Self::Conflict(conflict) => match leader.as_representative().rev {
+                Revision::Base => (conflict.base)
                     .iter()
                     .any(|n| RevNode::new(Revision::Base, n).contains(leader, class_mapping)),
-                Revision::Left => left
+                Revision::Left => (conflict.left)
                     .iter()
                     .any(|n| RevNode::new(Revision::Left, n).contains(leader, class_mapping)),
-                Revision::Right => right
+                Revision::Right => (conflict.right)
                     .iter()
                     .any(|n| RevNode::new(Revision::Right, n).contains(leader, class_mapping)),
             },
@@ -377,11 +391,11 @@ impl<'a> MergedTree<'a> {
                                 "line-based merge should have been caught by the earlier filter"
                             )
                         }
-                        MergedTree::Conflict { base, left, right } => {
+                        MergedTree::Conflict (conflict) => {
                             let nodes = match revision {
-                                Revision::Base => base,
-                                Revision::Left => left,
-                                Revision::Right => right,
+                                Revision::Base => &conflict.base,
+                                Revision::Left => &conflict.left,
+                                Revision::Right => &conflict.right,
                             };
                             nodes.iter().copied().map(MergedChild::Original).collect()
                         }
