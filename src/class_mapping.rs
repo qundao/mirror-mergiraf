@@ -54,8 +54,8 @@ impl<'a> Leader<'a> {
 
     /// The type of this node, which is guaranteed to be the same for all representatives
     /// of this leader.
-    pub fn grammar_name(&self) -> &'static str {
-        self.0.node.grammar_name
+    pub fn kind(&self) -> &'static str {
+        self.0.node.kind
     }
 
     /// The language from which this was parsed, guaranteed to be invariant across representatives
@@ -79,7 +79,7 @@ impl Display for RevNode<'_> {
         write!(
             f,
             "{}:{}…{}@{}",
-            self.node.grammar_name, self.node.byte_range.start, self.node.byte_range.end, self.rev
+            self.node.kind, self.node.byte_range.start, self.node.byte_range.end, self.rev
         )
     }
 }

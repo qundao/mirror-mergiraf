@@ -3,7 +3,7 @@ use std::sync::LazyLock;
 use crate::{
     lang_profile::{ChildrenGroup, CommutativeParent, LangProfile},
     signature::{
-        PathStep::{ChildType, Field},
+        PathStep::{ChildKind, Field},
         signature,
     },
 };
@@ -32,6 +32,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         signature("public_field_definition", vec![vec![Field("name")]]),
         signature("property_signature", vec![vec![Field("name")]]),
         signature("property_identifier", vec![vec![]]),
+        signature("shorthand_property_identifier", vec![vec![]]),
         signature("pair_pattern", vec![vec![Field("key")]]),
         signature("literal_type", vec![vec![]]), // for union and intersection types
     ];
@@ -46,7 +47,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         typescript_signatures.clone(),
         vec![signature(
             "jsx_attribute",
-            vec![vec![ChildType("identifier")]],
+            vec![vec![ChildKind("property_identifier")]],
         )],
     ]
     .concat();
@@ -59,10 +60,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
     ];
     let ocaml_signatures = vec![signature(
         "field_expression",
-        vec![vec![
-            ChildType("field_path"),
-            ChildType("_lowercase_identifier"),
-        ]],
+        vec![vec![ChildKind("field_path"), ChildKind("field_name")]],
     )];
 
     vec![
@@ -121,7 +119,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     ChildrenGroup::with_separator(&["marker_annotation", "annotation"], "\n"),
                 ]),
                 CommutativeParent::without_delimiters("throws", ", ")
-                    .restricted_to_groups(&[&["identifier"]]),
+                    .restricted_to_groups(&[&["type_identifier"]]),
                 CommutativeParent::without_delimiters("catch_type", " | "),
                 CommutativeParent::without_delimiters("type_list", ", "), // for "implements" or "sealed"
                 CommutativeParent::new("annotation_argument_list", "{", ", ", "}"),
@@ -130,7 +128,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // program
                 signature("import_declaration", vec![vec![]]),
                 signature("module_declaration", vec![vec![Field("name")]]),
-                signature("package_declaration", vec![vec![ChildType("identifier")]]),
+                signature("package_declaration", vec![vec![ChildKind("identifier")]]),
                 signature("annotation_type_declaration", vec![vec![Field("name")]]),
                 signature("enum_declaration", vec![vec![Field("name")]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
@@ -148,13 +146,13 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         vec![Field("name")],
                         vec![
                             Field("parameters"),
-                            ChildType("formal_parameter"),
+                            ChildKind("formal_parameter"),
                             Field("type"),
                         ],
                         vec![
                             Field("parameters"),
-                            ChildType("spread_parameter"),
-                            ChildType("identifier"),
+                            ChildKind("spread_parameter"),
+                            ChildKind("identifier"),
                         ],
                     ],
                 ),
@@ -164,13 +162,13 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         vec![Field("name")],
                         vec![
                             Field("parameters"),
-                            ChildType("formal_parameter"),
+                            ChildKind("formal_parameter"),
                             Field("type"),
                         ],
                         vec![
                             Field("parameters"),
-                            ChildType("spread_parameter"),
-                            ChildType("identifier"),
+                            ChildKind("spread_parameter"),
+                            ChildKind("identifier"),
                         ],
                     ],
                 ),
@@ -196,7 +194,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             language: tree_sitter_properties::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![CommutativeParent::without_delimiters("file", "\n")],
-            signatures: vec![signature("property", vec![vec![ChildType("key")]])],
+            signatures: vec![signature("property", vec![vec![ChildKind("key")]])],
             injections: None,
             flattened_nodes: &[],
         },
@@ -235,17 +233,17 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     vec![
                         vec![Field("name")],
                         vec![
-                            ChildType("function_value_parameters"),
-                            ChildType("parameter"),
-                            ChildType("user_type"),
+                            ChildKind("function_value_parameters"),
+                            ChildKind("parameter"),
+                            ChildKind("user_type"),
                         ],
                     ],
                 ),
                 signature(
                     "property_declaration",
                     vec![vec![
-                        ChildType("variable_declaration"),
-                        ChildType("identifier"),
+                        ChildKind("variable_declaration"),
+                        ChildKind("identifier"),
                     ]],
                 ),
                 // class_declaration
@@ -410,7 +408,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: vec![
                 signature(
                     "type_declaration",
-                    vec![vec![ChildType("type_spec"), Field("name")]],
+                    vec![vec![ChildKind("type_spec"), Field("name")]],
                 ),
                 signature("field_declaration", vec![vec![Field("name")]]),
                 signature("function_declaration", vec![vec![Field("name")]]),
@@ -459,30 +457,30 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: vec![
                 signature(
                     "require_directive_single",
-                    vec![vec![ChildType("require_spec"), Field("path")]],
+                    vec![vec![ChildKind("require_spec"), Field("path")]],
                 ),
                 signature(
                     "replace_directive_single",
                     vec![
-                        vec![ChildType("replace_spec"), Field("from_path")],
-                        vec![ChildType("replace_spec"), Field("from_version")],
+                        vec![ChildKind("replace_spec"), Field("from_path")],
+                        vec![ChildKind("replace_spec"), Field("from_version")],
                     ],
                 ),
                 signature(
                     "exclude_directive_single",
-                    vec![vec![ChildType("exclude_spec")]],
+                    vec![vec![ChildKind("exclude_spec")]],
                 ),
                 signature(
                     "retract_directive_single",
-                    vec![vec![ChildType("retract_spec")]],
+                    vec![vec![ChildKind("retract_spec")]],
                 ),
                 signature(
                     "ignore_directive_single",
-                    vec![vec![ChildType("ignore_spec")]],
+                    vec![vec![ChildKind("ignore_spec")]],
                 ),
                 signature(
                     "godebug_directive_single",
-                    vec![vec![ChildType("godebug_spec"), Field("key")]],
+                    vec![vec![ChildKind("godebug_spec"), Field("key")]],
                 ),
                 signature("require_spec", vec![vec![Field("path")]]),
                 signature(
@@ -534,7 +532,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::without_delimiters("section", "\n")
                     .restricted_to_groups(&[&["setting"]]),
             ],
-            signatures: vec![signature("setting", vec![vec![ChildType("setting_name")]])],
+            signatures: vec![signature("setting", vec![vec![ChildKind("setting_name")]])],
             injections: None,
             flattened_nodes: &[],
         },
@@ -553,8 +551,12 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             signatures: vec![
                 signature("pair", vec![vec![Field("key")]]),
                 signature("identifier", vec![vec![]]),
+                signature("shorthand_property_identifier", vec![vec![]]),
                 signature("method_definition", vec![vec![Field("name")]]),
-                signature("jsx_attribute", vec![vec![ChildType("identifier")]]),
+                signature(
+                    "jsx_attribute",
+                    vec![vec![ChildKind("property_identifier")]],
+                ),
             ],
             injections: Some(tree_sitter_javascript::INJECTIONS_QUERY),
             flattened_nodes: &[],
@@ -598,10 +600,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::without_delimiters("table", "\n"),
                 CommutativeParent::new("inline_table", "{", ", ", "}"),
             ],
-            signatures: vec![
-                signature("pair", vec![vec![ChildType("bare_key")]]),
-                signature("_inline_pair", vec![vec![ChildType("bare_key")]]),
-            ],
+            signatures: vec![signature("pair", vec![vec![ChildKind("bare_key")]])],
             injections: None,
             flattened_nodes: &[],
         },
@@ -618,7 +617,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             ],
             signatures: vec![signature(
                 "attribute",
-                vec![vec![ChildType("attribute_name")]],
+                vec![vec![ChildKind("attribute_name")]],
             )],
             injections: Some(tree_sitter_html::INJECTIONS_QUERY),
             flattened_nodes: &[],
@@ -634,7 +633,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::new("EmptyElemTag", "<", " ", "/>"),
                 CommutativeParent::new("STag", "<", " ", ">"),
             ],
-            signatures: vec![signature("Attribute", vec![vec![ChildType("Name")]])],
+            signatures: vec![signature("Attribute", vec![vec![ChildKind("Name")]])],
             injections: None,
             flattened_nodes: &[],
         },
@@ -666,7 +665,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         vec![
                             Field("declarator"),
                             Field("parameters"),
-                            ChildType("parameter_declaration"),
+                            ChildKind("parameter_declaration"),
                             Field("type"),
                         ],
                     ],
@@ -725,14 +724,14 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     "method_declaration",
                     vec![
                         vec![Field("name")],
-                        vec![Field("parameters"), ChildType("parameter"), Field("type")],
+                        vec![Field("parameters"), ChildKind("parameter"), Field("type")],
                     ],
                 ),
                 signature(
                     "constructor_declaration",
                     vec![
                         vec![Field("name")],
-                        vec![Field("parameters"), ChildType("parameter"), Field("type")],
+                        vec![Field("parameters"), ChildKind("parameter"), Field("type")],
                     ],
                 ),
                 signature("destructor_declaration", vec![]), // only one destructor per class
@@ -740,7 +739,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     "operator_declaration",
                     vec![
                         vec![Field("operator")],
-                        vec![Field("parameters"), ChildType("parameter"), Field("type")],
+                        vec![Field("parameters"), ChildKind("parameter"), Field("type")],
                     ],
                 ),
                 signature("event_declaration", vec![vec![Field("name")]]),
@@ -898,14 +897,14 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("namespace_use_declaration", vec![vec![]]),
                 signature(
                     "const_declaration",
-                    vec![vec![ChildType("const_element"), ChildType("name")]],
+                    vec![vec![ChildKind("const_element"), ChildKind("name")]],
                 ),
                 signature("function_definition", vec![vec![Field("name")]]),
                 signature("interface_declaration", vec![vec![Field("name")]]),
                 signature("class_declaration", vec![vec![Field("name")]]),
                 signature(
                     "property_declaration",
-                    vec![vec![ChildType("property_element"), Field("name")]],
+                    vec![vec![ChildKind("property_element"), Field("name")]],
                 ),
                 signature("property_promotion_parameter", vec![vec![Field("name")]]),
                 signature("method_declaration", vec![vec![Field("name")]]),
@@ -1004,23 +1003,19 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             file_names: vec![],
             language: tree_sitter_md::LANGUAGE.into(),
             atomic_nodes: vec![
-                "paragraph_repeat1",
+                "inline",
                 "link_label",
                 "link_destination",
                 "link_title",
                 "code_fence_content",
-                "_line",
                 "indented_code_block",
                 "pipe_table_delimiter_cell",
                 "pipe_table_cell",
             ],
             commutative_parents: vec![
-                CommutativeParent::without_delimiters("document_repeat1", "\n\n").restricted_to(
-                    vec![ChildrenGroup::with_separator(
-                        &["link_reference_definition"],
-                        "\n",
-                    )],
-                ),
+                CommutativeParent::without_delimiters("section", "\n\n").restricted_to(vec![
+                    ChildrenGroup::with_separator(&["link_reference_definition"], "\n"),
+                ]),
             ],
             signatures: vec![],
             injections: Some(tree_sitter_md::INJECTION_QUERY_BLOCK),
@@ -1084,7 +1079,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                         "bind",
                         "signature",
                         "data_type",
-                        "type_synonym",
+                        "type_synomym", // typo to be fixed by https://github.com/tree-sitter/tree-sitter-haskell/pull/145
                         "deriving_instance",
                         "kind_signature",
                         "newtype",
@@ -1100,8 +1095,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("signature", vec![vec![Field("name")]]),
                 signature("name", vec![vec![]]), // in deriving lists
                 signature("kind_signature", vec![vec![Field("name")]]),
-                signature("type_synonym", vec![vec![Field("name")]]),
-                signature("variable", vec![vec![]]), // in import/export children
+                signature("type_synomym", vec![vec![Field("name")]]), // typo to be fixed by https://github.com/tree-sitter/tree-sitter-haskell/pull/145
+                signature("variable", vec![vec![]]),                  // in import/export children
                 signature("bind", vec![vec![Field("name")]]),
                 signature("deriving_instance", vec![vec![]]),
                 signature("data_type", vec![vec![Field("name")]]),
@@ -1118,6 +1113,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             language: tree_sitter_make::LANGUAGE.into(),
             atomic_nodes: vec!["recipe_line", "shell_command", "raw_text"],
             commutative_parents: vec![
+                CommutativeParent::without_delimiters("prerequisites", " "),
                 CommutativeParent::without_delimiters("list", " "),
                 CommutativeParent::without_delimiters("pattern_list", " "),
             ],
@@ -1212,6 +1208,18 @@ mod test {
                     "Injection query for language {lang_profile} set as an empty string, use None instead"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn language_profiles_refer_to_kinds_that_exist() {
+        for lang_profile in &*SUPPORTED_LANGUAGES {
+            lang_profile.check_kinds().unwrap_or_else(|err| {
+                panic!(
+                    "Inconsistent language profile for {}: {}",
+                    lang_profile.name, err
+                )
+            })
         }
     }
 }

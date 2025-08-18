@@ -236,8 +236,7 @@ impl TreeMatcher {
                 .take_while(|ancestor| !ancestor.is_root())
                 .take_while(|ancestor| seen_ancestors.insert(*ancestor))
                 .filter(|ancestor| {
-                    left_node.grammar_name == ancestor.grammar_name
-                        && matching.get_from_right(ancestor).is_none()
+                    left_node.kind == ancestor.kind && matching.get_from_right(ancestor).is_none()
                 });
             candidates.extend(node_candidates);
         }
@@ -260,7 +259,7 @@ impl TreeMatcher {
             if left_stripped.size > max_size || right_stripped.size > max_size {
                 debug!(
                     "falling back on linear recovery from {} because size is {}, {}",
-                    left.grammar_name, left_stripped.size, right_stripped.size,
+                    left.kind, left_stripped.size, right_stripped.size,
                 );
                 self.match_subtrees_linearly(left, right, true, matching, recovery_matching);
             } else {
@@ -303,7 +302,7 @@ impl TreeMatcher {
             .iter()
             .map(|node| {
                 (
-                    (node.grammar_name, None), // self.lang_profile.extract_signature(node)),
+                    (node.kind, None), // self.lang_profile.extract_signature(node)),
                     *node,
                 )
             })
@@ -313,7 +312,7 @@ impl TreeMatcher {
             .iter()
             .map(|node| {
                 (
-                    (node.grammar_name, None), // self.lang_profile.extract_signature(node)),
+                    (node.kind, None), // self.lang_profile.extract_signature(node)),
                     *node,
                 )
             })
@@ -394,8 +393,8 @@ impl TreeMatcher {
                         panic!("Trees to match and produced edit script are inconsistent");
                     };
                     assert_eq!(
-                        left_node.node.grammar_name, right_node.node.grammar_name,
-                        "Inconsistent grammar names between nodes matched by tree edit distance"
+                        left_node.node.kind, right_node.node.kind,
+                        "Inconsistent kinds between nodes matched by tree edit distance"
                     );
                     if matching.can_be_matched(left_node.node, right_node.node) {
                         matching.add(left_node.node, right_node.node);
@@ -439,7 +438,7 @@ impl<'a> tree_edit_distance::Node for TEDTree<'a> {
             None
         };
         (
-            self.node.grammar_name,
+            self.node.kind,
             maybe_source, // ensures that if the node is a leaf, it is only matched to a leaf with the same textual content
             self.matched_to_id, // ensures that if the node is matched, it can only be equated to its match on the other side
         )
@@ -469,7 +468,7 @@ impl TEDTree<'_> {
             f,
             "{}TEDTree({}, {}{}",
             pad,
-            self.node.grammar_name,
+            self.node.kind,
             match self.matched_to_id {
                 None => "unmatched".to_string(),
                 Some(id) => id.to_string(),
@@ -571,8 +570,8 @@ mod tests {
 
         assert_eq!(matching.exact.len(), 21);
         assert_eq!(matching.container.len(), 6);
-        assert_eq!(matching.recovery.len(), 9);
-        assert_eq!(matching.full.len(), 36);
+        assert_eq!(matching.recovery.len(), 11);
+        assert_eq!(matching.full.len(), 38);
     }
 
     #[test]

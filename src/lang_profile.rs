@@ -136,29 +136,64 @@ impl LangProfile {
     }
 
     /// Do all the children of this parent commute?
-    /// This will return any CommutativeParent defined on this grammar type.
+    /// This will return any CommutativeParent defined on this node kind.
     /// CommutativeParents defined by queries are ignored.
-    pub(crate) fn get_commutative_parent_by_grammar_name(
-        &self,
-        grammar_type: &str,
-    ) -> Option<&CommutativeParent> {
+    pub(crate) fn get_commutative_parent_by_kind(&self, kind: &str) -> Option<&CommutativeParent> {
         self.commutative_parents
             .iter()
-            .find(|cr| cr.parent_type == ParentType::ByGrammarName(grammar_type))
+            .find(|cr| cr.parent_type == ParentType::ByKind(kind))
     }
 
-    pub(crate) fn find_signature_definition_by_grammar_name(
+    pub(crate) fn find_signature_definition_by_kind(
         &self,
-        grammar_name: &str,
+        kind: &str,
     ) -> Option<&SignatureDefinition> {
         self.signatures
             .iter()
-            .find(|sig_def| sig_def.node_type == grammar_name)
+            .find(|sig_def| sig_def.node_type == kind)
     }
 
     /// Should this node type be treated as atomic?
     pub(crate) fn is_atomic_node_type(&self, node_type: &str) -> bool {
         self.atomic_nodes.contains(&node_type)
+    }
+
+    /// Check that all node type and field names that are used
+    /// in this language profile exist in the tree-sitter language.
+    /// This can be used to detect inconsistencies, for instance following
+    /// an update of the grammar.
+    /// This is a method on `LangProfile` and not just a test with the intention
+    /// that in the future, this can become a runtime check (for dynamically loaded
+    /// languages).
+    #[cfg(test)]
+    pub(crate) fn check_kinds(&self) -> Result<(), String> {
+        let name_is_valid = |name: &'static str| {
+            self.language.id_for_node_kind(name, true) != 0
+                || self.language.id_for_node_kind(name, false) != 0
+        };
+        let field_is_valid = |name: &'static str| self.language.field_id_for_name(name).is_some();
+
+        for atomic_node in &self.atomic_nodes {
+            if !name_is_valid(atomic_node) {
+                return Err(format!("invalid atomic node type: {atomic_node:?}"));
+            }
+        }
+
+        for commutative_parent in &self.commutative_parents {
+            commutative_parent.check_kinds(&name_is_valid)?;
+        }
+
+        for signature in &self.signatures {
+            signature.check_kinds(&name_is_valid, &field_is_valid)?;
+        }
+
+        for flattened_node in self.flattened_nodes {
+            if !name_is_valid(flattened_node) {
+                return Err(format!("invalid flattened node type: {flattened_node:?}"));
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -168,7 +203,7 @@ pub(crate) enum ParentType<'a> {
     /// Specified using the grammar node defined in the grammar
     ///
     /// This is used when a node is a commutative parent independent of the context, e.g. for sets
-    ByGrammarName(&'a str),
+    ByKind(&'a str),
     /// Specified using a tree-sitter query:
     ///
     /// ```tree-sitter
@@ -191,7 +226,7 @@ pub(crate) enum ParentType<'a> {
 impl Display for ParentType<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ByGrammarName(name) => f.write_str(name),
+            Self::ByKind(name) => f.write_str(name),
             // flatten the query to one line, since our logger doesn't handle multiline messages
             // too well
             Self::ByQuery(query) => write!(f, "specified by query: {}", query.lines().format(" ")),
@@ -219,7 +254,7 @@ impl CommutativeParent {
     /// Short-hand function to declare a commutative parent without any delimiters.
     pub(crate) fn without_delimiters(root_type: &'static str, separator: &'static str) -> Self {
         Self {
-            parent_type: ParentType::ByGrammarName(root_type),
+            parent_type: ParentType::ByKind(root_type),
             separator,
             left_delim: None,
             right_delim: None,
@@ -235,7 +270,7 @@ impl CommutativeParent {
         right_delim: &'static str,
     ) -> Self {
         Self {
-            parent_type: ParentType::ByGrammarName(parent_type),
+            parent_type: ParentType::ByKind(parent_type),
             separator,
             left_delim: Some(left_delim),
             right_delim: Some(right_delim),
@@ -250,7 +285,7 @@ impl CommutativeParent {
         separator: &'static str,
     ) -> Self {
         Self {
-            parent_type: ParentType::ByGrammarName(parent_type),
+            parent_type: ParentType::ByKind(parent_type),
             separator,
             left_delim: Some(left_delim),
             right_delim: None,
@@ -344,12 +379,30 @@ impl CommutativeParent {
     pub(crate) fn trimmed_separator(&self) -> &'static str {
         self.separator.trim()
     }
+
+    /// Check that all node types contained in this object exist in the language.
+    /// TODO: support checking the tree-sitter queries too (for parents defined by queries)
+    #[cfg(test)]
+    pub(crate) fn check_kinds<F>(&self, name_is_valid: &F) -> Result<(), String>
+    where
+        F: Fn(&'static str) -> bool,
+    {
+        if let ParentType::ByKind(name) = self.parent_type {
+            if !name_is_valid(name) {
+                return Err(format!("invalid commutative node type: {name:?}"));
+            }
+        }
+        for children_group in &self.children_groups {
+            children_group.check_kinds(name_is_valid)?;
+        }
+        Ok(())
+    }
 }
 
 /// A group of children of a commutative node which are allowed to commute together
 #[derive(Debug, Clone)]
 pub struct ChildrenGroup {
-    /// The types of nodes, as grammar names
+    /// The types of nodes, as kinds
     pub node_types: HashSet<&'static str>,
     /// An optional separator specific to this children group,
     /// better suited than the one from the commutative parent.
@@ -372,13 +425,27 @@ impl ChildrenGroup {
             separator: Some(separator),
         }
     }
+
+    /// Check that all node types contained in this object exist in the language.
+    #[cfg(test)]
+    pub(crate) fn check_kinds<F>(&self, name_is_valid: &F) -> Result<(), String>
+    where
+        F: Fn(&'static str) -> bool,
+    {
+        for child_type in &self.node_types {
+            if !name_is_valid(child_type) {
+                return Err(format!("invalid commutative child type: {child_type:?}"));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use crate::test_utils::ctx;
+    use crate::{signature::PathStep, test_utils::ctx};
 
     #[test]
     fn has_signature_conflicts() {
@@ -425,6 +492,83 @@ mod tests {
         assert!(
             find("file.unknown_extension", None).is_err(),
             "Looking up language by unknown extension should fail"
+        );
+    }
+
+    #[test]
+    fn check_kinds() {
+        let java = LangProfile::find_by_name("Java").expect("missing Java language profile");
+
+        let wrong_atomic_nodes = LangProfile {
+            atomic_nodes: vec!["foo_bar"],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_atomic_nodes.check_kinds(),
+            Err("invalid atomic node type: \"foo_bar\"".to_string())
+        );
+
+        let wrong_commutative_parent = LangProfile {
+            commutative_parents: vec![CommutativeParent::without_delimiters("foo_bar", ", ")],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_commutative_parent.check_kinds(),
+            Err("invalid commutative node type: \"foo_bar\"".to_string())
+        );
+
+        let wrong_children_group = LangProfile {
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("program", "\n\n")
+                    .restricted_to_groups(&[&["foo_bar", "class_declaration"]]),
+            ],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_children_group.check_kinds(),
+            Err("invalid commutative child type: \"foo_bar\"".to_string())
+        );
+
+        let wrong_signature = LangProfile {
+            signatures: vec![SignatureDefinition::new("foo_bar", vec![])],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_signature.check_kinds(),
+            Err("invalid node type for signature: \"foo_bar\"".to_string())
+        );
+
+        let wrong_field_in_path = LangProfile {
+            signatures: vec![SignatureDefinition::new(
+                "program",
+                vec![vec![PathStep::Field("foo_bar")]],
+            )],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_field_in_path.check_kinds(),
+            Err("invalid field name: \"foo_bar\"".to_string())
+        );
+
+        let wrong_type_in_path = LangProfile {
+            signatures: vec![SignatureDefinition::new(
+                "program",
+                vec![vec![PathStep::ChildKind("foo_bar")]],
+            )],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_type_in_path.check_kinds(),
+            Err("invalid child type: \"foo_bar\"".to_string())
+        );
+
+        let wrong_flattened_nodes = LangProfile {
+            flattened_nodes: &["foo_bar"],
+            ..java.clone()
+        };
+        assert_eq!(
+            wrong_flattened_nodes.check_kinds(),
+            Err("invalid flattened node type: \"foo_bar\"".to_string())
         );
     }
 }

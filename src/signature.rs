@@ -72,17 +72,13 @@ impl<'b> AstNodeEquiv<'_, 'b> {
         }
     }
 
-    /// Unified interface to fetch children by grammar name on either an original tree or a merged one
-    fn children_by_grammar_name(
-        &self,
-        grammar_name: &str,
-        class_mapping: &ClassMapping<'b>,
-    ) -> Vec<Self> {
+    /// Unified interface to fetch children by kind on either an original tree or a merged one
+    fn children_by_kind(&self, kind: &str, class_mapping: &ClassMapping<'b>) -> Vec<Self> {
         match self {
             Self::Original(ast_node) => ast_node
                 .children
                 .iter()
-                .filter(|child| child.grammar_name == grammar_name)
+                .filter(|child| child.kind == kind)
                 .copied()
                 .map(Self::Original)
                 .collect(),
@@ -94,12 +90,11 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     let representative = class_mapping
                         .node_at_rev(node, rev)
                         .expect("Inconsistent class_mapping and ExactTree revisions");
-                    Self::Original(representative)
-                        .children_by_grammar_name(grammar_name, class_mapping)
+                    Self::Original(representative).children_by_kind(kind, class_mapping)
                 }
                 MergedTree::MixedTree { children, .. } => children
                     .iter()
-                    .filter(|child| child.grammar_name() == Some(grammar_name))
+                    .filter(|child| child.kind() == Some(kind))
                     .map(Self::Merged)
                     .collect(),
                 MergedTree::Conflict { .. }
@@ -130,7 +125,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                         }
                     }
                     MergedTree::MixedTree { node, children, .. } => {
-                        node.grammar_name() == a.grammar_name
+                        node.kind() == a.kind
                             && node.lang_profile() == a.lang_profile
                             && children.len() == a.children.len()
                             && zip(children, &a.children).all(|(child, ast_node)| {
@@ -140,7 +135,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                     }
                     MergedTree::Conflict { .. } => false,
                     MergedTree::LineBasedMerge { node, parsed, .. } => {
-                        node.grammar_name() == a.grammar_name
+                        node.kind() == a.kind
                             && node.lang_profile() == a.lang_profile
                             // "SAFETY": nodes in an AST don't have conflicts in them
                             // (otherwise, they wouldn't have parsed in the first place)
@@ -195,7 +190,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
                         ..
                     },
                 ) => {
-                    node_a.grammar_name() == node_b.grammar_name()
+                    node_a.kind() == node_b.kind()
                         && node_a.lang_profile() == node_b.lang_profile()
                         && children_a.len() == children_b.len()
                         && zip(children_a, children_b).all(|(child_a, child_b)| {
@@ -309,6 +304,29 @@ impl SignatureDefinition {
                 .collect(),
         )
     }
+
+    /// Checks that all names found in this signarute are valid
+    #[cfg(test)]
+    pub(crate) fn check_kinds<F1, F2>(
+        &self,
+        name_is_valid: &F1,
+        field_is_valid: &F2,
+    ) -> Result<(), String>
+    where
+        F1: Fn(&'static str) -> bool,
+        F2: Fn(&'static str) -> bool,
+    {
+        if !name_is_valid(self.node_type) {
+            return Err(format!(
+                "invalid node type for signature: {:?}",
+                self.node_type
+            ));
+        }
+        for path in &self.paths {
+            path.check_kinds(name_is_valid, field_is_valid)?;
+        }
+        Ok(())
+    }
 }
 
 /// Describes how to go from a node to a set of descendants, by following
@@ -326,8 +344,8 @@ pub struct AstPath {
 pub enum PathStep {
     /// Fetch all children in the field
     Field(&'static str),
-    /// Fetch all children of a given grammar type
-    ChildType(&'static str),
+    /// Fetch all children of a given kind
+    ChildKind(&'static str),
 }
 
 impl AstPath {
@@ -363,9 +381,7 @@ impl AstPath {
                         // select children of the node which have a matching type
                         node.children_by_field_name(field_name, class_mapping)
                     }
-                    PathStep::ChildType(grammar_name) => {
-                        node.children_by_grammar_name(grammar_name, class_mapping)
-                    }
+                    PathStep::ChildKind(kind) => node.children_by_kind(kind, class_mapping),
                 };
 
                 for child in children {
@@ -373,6 +389,34 @@ impl AstPath {
                 }
             }
         }
+    }
+
+    /// Checks that all names found in this signature are valid
+    #[cfg(test)]
+    pub(crate) fn check_kinds<F1, F2>(
+        &self,
+        name_is_valid: &F1,
+        field_is_valid: &F2,
+    ) -> Result<(), String>
+    where
+        F1: Fn(&'static str) -> bool,
+        F2: Fn(&'static str) -> bool,
+    {
+        for step in &self.steps {
+            match step {
+                PathStep::Field(field_name) => {
+                    if !field_is_valid(field_name) {
+                        return Err(format!("invalid field name: {field_name:?}"));
+                    }
+                }
+                PathStep::ChildKind(node_name) => {
+                    if !name_is_valid(node_name) {
+                        return Err(format!("invalid child type: {node_name:?}"));
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -386,7 +430,7 @@ impl Display for PathStep {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Field(field_name) => write!(f, "field({field_name})"),
-            Self::ChildType(child_type) => write!(f, "child_type({child_type})"),
+            Self::ChildKind(child_type) => write!(f, "child_type({child_type})"),
         }
     }
 }
@@ -497,8 +541,8 @@ mod tests {
         let args_java = tree_java[0][0][1];
 
         // those nodes would satisfy all other conditions to be isomorphic…
-        assert_eq!(args_python.grammar_name, "argument_list");
-        assert_eq!(args_java.grammar_name, "argument_list");
+        assert_eq!(args_python.kind, "argument_list");
+        assert_eq!(args_java.kind, "argument_list");
         assert_eq!(args_python.children.len(), 2);
         assert_eq!(args_java.children.len(), 2);
         assert_eq!(args_python.source, "()");

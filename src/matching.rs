@@ -61,7 +61,7 @@ impl<'tree> Matching<'tree> {
 
     /// Is it possible to add this pair while keeping the matching consistent?
     pub fn can_be_matched(&self, from: &AstNode<'tree>, to: &AstNode<'tree>) -> bool {
-        from.grammar_name == to.grammar_name
+        from.kind == to.kind
             && from.lang_profile == to.lang_profile
             && !self.left_to_right.contains_key(from)
             && !self.right_to_left.contains_key(to)
@@ -81,8 +81,8 @@ impl<'tree> Matching<'tree> {
     /// Adds a match between two nodes (in both directions)
     pub fn add(&mut self, from: &'tree AstNode<'tree>, to: &'tree AstNode<'tree>) {
         debug_assert_eq!(
-            from.grammar_name, to.grammar_name,
-            "Attempting to match nodes with different grammar_names"
+            from.kind, to.kind,
+            "Attempting to match nodes with different kinds"
         );
         debug_assert_eq!(
             from.lang_profile.name, to.lang_profile.name,
@@ -102,8 +102,8 @@ impl<'tree> Matching<'tree> {
     {
         for (l, r) in pairs.clone() {
             debug_assert_eq!(
-                l.grammar_name, r.grammar_name,
-                "Attempting to match nodes with different grammar_names"
+                l.kind, r.kind,
+                "Attempting to match nodes with different kinds"
             );
             debug_assert_eq!(
                 l.lang_profile.name, r.lang_profile.name,

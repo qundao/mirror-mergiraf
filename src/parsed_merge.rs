@@ -305,7 +305,7 @@ impl<'a> ParsedMerge<'a> {
     ) {
         match self.rev_range_to_merged_range(&node.byte_range, revision) {
             Some(range) => {
-                map.insert((node.grammar_name, range), node);
+                map.insert((node.kind, range), node);
             }
             None => {
                 node.children
@@ -1244,7 +1244,7 @@ struct MyType {
         }
 
         #[test]
-        fn identical_ranges_but_different_grammar_names() {
+        fn identical_ranges_but_different_kinds() {
             let ctx = ctx();
             let source = "\
 {
@@ -1270,9 +1270,9 @@ struct MyType {
             let parsed_left = ctx.parse("a.nix", &left_rev);
 
             let binding_set_base = parsed_base[0][2][1];
-            assert_eq!(binding_set_base.grammar_name, "binding_set");
+            assert_eq!(binding_set_base.kind, "binding_set");
             let binding_left = parsed_left[0][2][1][0];
-            assert_eq!(binding_left.grammar_name, "binding");
+            assert_eq!(binding_left.kind, "binding");
             // two nodes of different types have the same range
             assert_eq!(binding_set_base.byte_range, binding_left.byte_range);
 

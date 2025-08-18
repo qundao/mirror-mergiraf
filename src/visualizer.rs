@@ -125,7 +125,7 @@ fn add_node<W: Write>(
     let label = if node.children.is_empty() {
         node.source
     } else {
-        node.grammar_name
+        node.kind
     };
     let label = label.replace('\\', "\\\\").replace('"', "\\\"");
     let label_with_range = format!(

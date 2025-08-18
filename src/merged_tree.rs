@@ -102,7 +102,7 @@ impl<'a> MergedTree<'a> {
         // NOTE: we allow creating a mixed tree without children, because trying to do otherwise
         // turned out to be very much not worth it: https://codeberg.org/mergiraf/mergiraf/pulls/326
         let mut hasher = crate::fxhasher();
-        node.grammar_name().hash(&mut hasher);
+        node.kind().hash(&mut hasher);
         node.lang_profile().hash(&mut hasher);
         children
             .iter()
@@ -189,12 +189,12 @@ impl<'a> MergedTree<'a> {
         }
     }
 
-    /// The `grammar_name` of the underlying AST node, if any.
-    pub(crate) fn grammar_name(&self) -> Option<&'static str> {
+    /// The `kind` of the underlying AST node, if any.
+    pub(crate) fn kind(&self) -> Option<&'static str> {
         match self {
             Self::ExactTree { node, .. }
             | Self::LineBasedMerge { node, .. }
-            | Self::MixedTree { node, .. } => Some(node.grammar_name()),
+            | Self::MixedTree { node, .. } => Some(node.kind()),
             Self::Conflict { .. } | Self::CommutativeChildSeparator { .. } => None,
         }
     }
@@ -364,8 +364,7 @@ impl<'a> MergedTree<'a> {
                 ast_node.isomorphic_to(other_node)
             }
             MergedTree::MixedTree { node, children, .. } => {
-                if node.grammar_name() != other_node.grammar_name
-                    || node.lang_profile() != other_node.lang_profile
+                if node.kind() != other_node.kind || node.lang_profile() != other_node.lang_profile
                 {
                     return false;
                 }

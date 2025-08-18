@@ -272,9 +272,9 @@ To understand the difference between `Field` and `ChildType` in the signature de
 
 Notice that some nodes have two labels attached to them:
 * the field name, such as `name`, indicating which [field](https://tree-sitter.github.io/tree-sitter/creating-parsers#using-fields) of its parent node it belongs to. It is optional: some nodes like `parameter` ones are not associated to any field.
-* the grammar name, such as `identifier`, which is the type of AST node. Every node has one (for separators or keywords, the source text is the grammar name)
+* the kind, such as `identifier`, which is the type of AST node. Every node has one (for separators or keywords, the source text is the kind)
 
-In general, when descending into a single predetermined child of a given node, one should use a `Field`. If the number of children is variable then we expect to select them by grammar name using `ChildType`.
+In general, when descending into a single predetermined child of a given node, one should use a `Field`. If the number of children is variable then we expect to select them by kind using `ChildKind`.
 
 The grammar of a tree-sitter parser is defined in [a `grammar.js` file](https://github.com/tree-sitter/tree-sitter-c-sharp/blob/master/grammar.js) and reading it directly can be useful, for instance to understand what are the possible children or parent of a given type of node. Note that node types starting with `_` are private, meaning that they are not exposed to Mergiraf. In case of doubt, just parse some small example to check.
 

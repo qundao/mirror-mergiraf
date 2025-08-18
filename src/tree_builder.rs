@@ -657,7 +657,7 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                             .to_string(),
                     )
                 } else {
-                    Ok(leader.grammar_name())
+                    Ok(leader.kind())
                 }
             })
             .try_collect()?;

@@ -45,7 +45,7 @@ pub struct AstNode<'a> {
     /// The portion of the source code which corresponds to this node
     pub source: &'a str,
     /// The type of node as returned by tree-sitter
-    pub grammar_name: &'static str,
+    pub kind: &'static str,
     /// The field name via which this node can be accessed from its parent
     pub field_name: Option<&'static str>,
     /// The range of bytes in the original source code that the source of this node spans
@@ -219,7 +219,7 @@ impl<'a> AstNode<'a> {
     ) -> Result<&'a Self, String> {
         let field_name = cursor.field_name();
         let node = cursor.node();
-        let atomic = lang_profile.is_atomic_node_type(node.grammar_name());
+        let atomic = lang_profile.is_atomic_node_type(node.kind());
 
         let mut children = Vec::new();
         let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
@@ -344,7 +344,7 @@ impl<'a> AstNode<'a> {
                     children: Vec::new(),
                     field_to_children: FxHashMap::default(),
                     source: trimmed,
-                    grammar_name: "@virtual_line@",
+                    kind: "@virtual_line@",
                     field_name: None,
                     byte_range: start_position..start_position + trimmed.len(),
                     id: *next_node_id,
@@ -362,17 +362,16 @@ impl<'a> AstNode<'a> {
             }
         }
 
-        let grammar_name = node.grammar_name();
+        let kind = node.kind();
 
         // check if this node needs flattening.
-        if children_added_by_flattening > 0 && lang_profile.flattened_nodes.contains(&grammar_name)
-        {
-            children = Self::flatten_children(children, children_added_by_flattening, grammar_name);
+        if children_added_by_flattening > 0 && lang_profile.flattened_nodes.contains(&kind) {
+            children = Self::flatten_children(children, children_added_by_flattening, kind);
         }
 
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
-        grammar_name.hash(&mut hasher);
+        kind.hash(&mut hasher);
         lang_profile.hash(&mut hasher);
         if children.is_empty() {
             local_source.hash(&mut hasher);
@@ -391,7 +390,7 @@ impl<'a> AstNode<'a> {
 
         // pre-compute the commutative parent, either by node type or via a query.
         let commutative_parent = lang_profile
-            .get_commutative_parent_by_grammar_name(grammar_name)
+            .get_commutative_parent_by_kind(kind)
             .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
 
         let result = arena.alloc(Self {
@@ -399,7 +398,7 @@ impl<'a> AstNode<'a> {
             children,
             field_to_children,
             source: local_source,
-            grammar_name,
+            kind,
             field_name,
             // parse-specific fields not included in hash/isomorphism
             byte_range: range,
@@ -447,17 +446,17 @@ impl<'a> AstNode<'a> {
         process_node(self, result, &mut i);
     }
 
-    /// Pull in all the grandchildren whose parent is of the given grammar name as children,
+    /// Pull in all the grandchildren whose parent is of the given kind as children,
     /// to flatten binary operators which are associative.
     fn flatten_children(
         children: Vec<&'a AstNode<'a>>,
         children_added_by_flattening: usize,
-        grammar_name: &str,
+        kind: &str,
     ) -> Vec<&'a AstNode<'a>> {
         let mut flattened_children =
             Vec::with_capacity(children.len() + children_added_by_flattening);
         for child in children {
-            if child.grammar_name == grammar_name {
+            if child.kind == kind {
                 flattened_children.extend(&child.children);
             } else {
                 flattened_children.push(child);
@@ -560,7 +559,7 @@ impl<'a> AstNode<'a> {
         let mut zipped = self.dfs().zip(other.dfs());
         self.hash == other.hash
             && zipped.all(|(n1, n2)| {
-                n1.grammar_name == n2.grammar_name
+                n1.kind == n2.kind
                     && n1.children.len() == n2.children.len()
                     && (!n1.children.is_empty() || n1.source == n2.source)
             })
@@ -574,7 +573,7 @@ impl<'a> AstNode<'a> {
     /// The signature definition associated with this node.
     pub fn signature_definition(&self) -> Option<&SignatureDefinition> {
         self.lang_profile
-            .find_signature_definition_by_grammar_name(self.grammar_name)
+            .find_signature_definition_by_kind(self.kind)
     }
 
     /// Checks whether a node is isomorphic to another,
@@ -607,8 +606,8 @@ impl<'a> AstNode<'a> {
     #[cfg(feature = "dev")]
     fn precompute_commutative_hashes(&self, hash_store: &mut Vec<u64>) -> u64 {
         let mut hasher = crate::fxhasher();
-        // like for non-commutative hashes, take the grammar name (node type) and language into account
-        self.grammar_name.hash(&mut hasher);
+        // like for non-commutative hashes, take the node kind and language into account
+        self.kind.hash(&mut hasher);
         self.lang_profile.hash(&mut hasher);
 
         if self.children.is_empty() {
@@ -643,8 +642,7 @@ impl<'a> AstNode<'a> {
     ) -> bool {
         use crate::multimap::MultiMap;
 
-        if hashes_self[self.id] != hashes_other[other.id] || self.grammar_name != other.grammar_name
-        {
+        if hashes_self[self.id] != hashes_other[other.id] || self.kind != other.kind {
             return false;
         }
 
@@ -964,14 +962,14 @@ impl<'a> AstNode<'a> {
             String::new()
         };
 
-        let escaped_grammar_name = escape_whitespace(self.grammar_name);
-        let grammar_name = if self.source != self.grammar_name {
-            escaped_grammar_name
+        let escaped_kind = escape_whitespace(self.kind);
+        let kind = if self.source != self.kind {
+            escaped_kind
         } else {
-            Color::Red.paint(escaped_grammar_name).to_string()
+            Color::Red.paint(escaped_kind).to_string()
         };
 
-        let source = if num_children == 0 && self.source != self.grammar_name {
+        let source = if num_children == 0 && self.source != self.kind {
             format!(" {}", Color::Red.paint(escape_whitespace(self.source)))
         } else {
             String::new()
@@ -992,13 +990,13 @@ impl<'a> AstNode<'a> {
         };
 
         std::iter::once(format!(
-            "{prefix}{tree_sym}{key}\x1b[0m{grammar_name}{source}{commutative}{sig}\n"
+            "{prefix}{tree_sym}{key}\x1b[0m{kind}{source}{commutative}{sig}\n"
         ))
         .chain(
             self.children
                 .iter()
                 .enumerate()
-                .filter(|(_, child)| child.grammar_name != "@virtual_line@")
+                .filter(|(_, child)| child.kind != "@virtual_line@")
                 .map(|(index, child)| {
                     let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
                     child.internal_ascii_tree(
@@ -1050,7 +1048,7 @@ impl Hash for AstNode<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash.hash(state);
         self.id.hash(state);
-        self.grammar_name.hash(state);
+        self.kind.hash(state);
         self.byte_range.hash(state);
     }
 }
@@ -1059,7 +1057,7 @@ impl PartialEq for AstNode<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.hash == other.hash
             && self.id == other.id
-            && self.grammar_name == other.grammar_name
+            && self.kind == other.kind
             && self.lang_profile == other.lang_profile
             && self.byte_range == other.byte_range
     }
@@ -1079,7 +1077,7 @@ impl Display for AstNode<'_> {
         write!(
             f,
             "{}:{}…{}",
-            self.grammar_name, self.byte_range.start, self.byte_range.end
+            self.kind, self.byte_range.start, self.byte_range.end
         )
     }
 }
@@ -1243,7 +1241,7 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse("a.rs", "  /// test\n  fn foo() {\n    ()\n  }\n");
         let comment = tree[0][0][0];
-        assert_eq!(comment.grammar_name, "line_outer_doc_comment");
+        assert_eq!(comment.kind, "line_outer_doc_comment");
         // tree-sitter-rust includes a newline at the end of the source for this node,
         // but we strip it when converting the tree to our own data structure (`AstNode`)
         assert_eq!(comment.source, "/// test");
@@ -1307,8 +1305,8 @@ mod tests {
         let arguments_java = tree_java[0][0][1];
 
         // those nodes would satisfy all other conditions to be isomorphic…
-        assert_eq!(arguments_python.grammar_name, "argument_list");
-        assert_eq!(arguments_java.grammar_name, "argument_list");
+        assert_eq!(arguments_python.kind, "argument_list");
+        assert_eq!(arguments_java.kind, "argument_list");
         assert_eq!(arguments_python.children.len(), 2);
         assert_eq!(arguments_java.children.len(), 2);
         assert_eq!(arguments_python.source, "()");
@@ -1338,7 +1336,7 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse("a.json", "{\"foo\": 3}");
 
-        let node_types = tree.dfs().map(|n| n.grammar_name).collect_vec();
+        let node_types = tree.dfs().map(|n| n.kind).collect_vec();
 
         assert_eq!(
             node_types,
@@ -1385,7 +1383,7 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse("a.json", "{\"foo\": 3}");
 
-        let node_types = tree.postfix().map(|n| n.grammar_name).collect_vec();
+        let node_types = tree.postfix().map(|n| n.kind).collect_vec();
 
         assert_eq!(
             node_types,
@@ -1411,9 +1409,9 @@ mod tests {
         let tree = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
 
         let arena = Arena::new();
-        let truncated = tree.truncate(|node| node.grammar_name == "pair", &arena);
+        let truncated = tree.truncate(|node| node.kind == "pair", &arena);
 
-        let node_types = truncated.postfix().map(|n| n.grammar_name).collect_vec();
+        let node_types = truncated.postfix().map(|n| n.kind).collect_vec();
 
         let truncated_object = truncated.root()[0];
         let original_object = tree[0];
@@ -1531,9 +1529,9 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse("a.yaml", "hello:\n  foo: 2\nbar: 4\n");
         let block_node = tree[0][0];
-        assert_eq!(block_node.grammar_name, "block_node");
+        assert_eq!(block_node.kind, "block_node");
         let value = block_node[0][0][2];
-        assert_eq!(value.grammar_name, "block_node");
+        assert_eq!(value.kind, "block_node");
 
         assert_eq!(block_node.indentation_shift(), None);
         assert_eq!(value.indentation_shift(), Some("  "));
@@ -1823,15 +1821,15 @@ line 3";"#;
         let source = "<html><head><script>console.log('hi');</script></head></html>";
         let html = ctx.parse("a.html", source);
 
-        assert_eq!(html.grammar_name, "document");
+        assert_eq!(html.kind, "document");
         assert_eq!(html.lang_profile.name, "HTML");
         let script_element = html[0][1][1];
-        assert_eq!(script_element.grammar_name, "script_element");
-        assert_eq!(script_element[1].grammar_name, "raw_text");
+        assert_eq!(script_element.kind, "script_element");
+        assert_eq!(script_element[1].kind, "raw_text");
         assert_eq!(script_element[1].lang_profile.name, "HTML");
-        assert_eq!(script_element[1][0].grammar_name, "program");
+        assert_eq!(script_element[1][0].kind, "program");
         assert_eq!(script_element[1][0].lang_profile.name, "Javascript");
-        assert_eq!(script_element[1][0][0].grammar_name, "expression_statement");
+        assert_eq!(script_element[1][0][0].kind, "expression_statement");
         assert_eq!(script_element[1][0][0].lang_profile.name, "Javascript");
     }
 
@@ -1841,11 +1839,11 @@ line 3";"#;
         let source = "<html><head><script>invalid(][)</script></head></html>";
         let html = ctx.parse("a.html", source);
 
-        assert_eq!(html.grammar_name, "document");
+        assert_eq!(html.kind, "document");
         assert_eq!(html.lang_profile.name, "HTML");
         let script_element = html[0][1][1];
-        assert_eq!(script_element.grammar_name, "script_element");
-        assert_eq!(script_element[1].grammar_name, "raw_text");
+        assert_eq!(script_element.kind, "script_element");
+        assert_eq!(script_element[1].kind, "raw_text");
         assert_eq!(script_element[1].lang_profile.name, "HTML");
         assert_eq!(script_element[1].children.len(), 0);
     }
@@ -1868,10 +1866,10 @@ A list:
         let markdown = ctx.parse("a.md", source);
 
         let paragraph = markdown[0][1][0][1];
-        assert_eq!(paragraph.grammar_name, "paragraph");
+        assert_eq!(paragraph.kind, "paragraph");
         assert_eq!(paragraph.children.len(), 2);
-        assert_eq!(paragraph[0].grammar_name, "paragraph_repeat1");
-        assert_eq!(paragraph[1].grammar_name, "block_continuation");
+        assert_eq!(paragraph[0].kind, "inline");
+        assert_eq!(paragraph[1].kind, "block_continuation");
         assert_eq!(paragraph[1].preceding_whitespace(), Some("\n"));
     }
 
@@ -1884,11 +1882,11 @@ A list:
         let root = ctx.parse("a.html", source);
 
         let raw_text = root[0][1][1];
-        assert_eq!(raw_text.grammar_name, "raw_text");
+        assert_eq!(raw_text.kind, "raw_text");
         assert_eq!(raw_text.byte_range, 14..14);
 
         let program = raw_text[0];
-        assert_eq!(program.grammar_name, "program");
+        assert_eq!(program.kind, "program");
         assert_eq!(program.byte_range, 14..14);
 
         assert_eq!(raw_text.trailing_whitespace(), None);
@@ -1898,11 +1896,11 @@ A list:
         let root_2 = ctx.parse("a.html", source_2);
 
         let raw_text_2 = root_2[0][1][1];
-        assert_eq!(raw_text_2.grammar_name, "raw_text");
+        assert_eq!(raw_text_2.kind, "raw_text");
         assert_eq!(raw_text_2.byte_range, 14..17);
 
         let program_2 = raw_text_2[0];
-        assert_eq!(program_2.grammar_name, "program");
+        assert_eq!(program_2.kind, "program");
         // the source of this node is shrunk to an empty string to ensure
         // isomorphism regardless of the amount of whitespace
         assert_eq!(program_2.byte_range, 14..14);
@@ -1923,8 +1921,8 @@ other = [ 1, 2 ]
 
         let first_list = python[0][0][2];
         let second_list = python[1][0][2];
-        assert_eq!(first_list.grammar_name, "list");
-        assert_eq!(second_list.grammar_name, "list");
+        assert_eq!(first_list.kind, "list");
+        assert_eq!(second_list.kind, "list");
 
         // the __all__ assignment is captured by the query defining the commutative parent
         assert!(first_list.commutative_parent_definition().is_some());
@@ -1941,12 +1939,12 @@ interface MyInterface {
 }";
         let ts = ctx.parse("a.ts", source);
         let union_type = ts[0][2][1][1][1];
-        assert_eq!(union_type.grammar_name, "union_type");
+        assert_eq!(union_type.kind, "union_type");
         assert_eq!(union_type.children.len(), 7);
-        assert_eq!(union_type.children[0].grammar_name, "literal_type");
-        assert_eq!(union_type.children[1].grammar_name, "|");
-        assert_eq!(union_type.children[2].grammar_name, "literal_type");
-        assert_eq!(union_type.children[3].grammar_name, "|");
+        assert_eq!(union_type.children[0].kind, "literal_type");
+        assert_eq!(union_type.children[1].kind, "|");
+        assert_eq!(union_type.children[2].kind, "literal_type");
+        assert_eq!(union_type.children[3].kind, "|");
     }
 
     #[test]
@@ -1958,11 +1956,11 @@ interface Foo {
 }";
         let ts = ctx.parse("a.ts", source);
         let union_type = ts[0][2][1][1][1];
-        assert_eq!(union_type.grammar_name, "union_type");
+        assert_eq!(union_type.kind, "union_type");
         assert_eq!(union_type.children.len(), 3);
-        assert_eq!(union_type.children[0].grammar_name, "literal_type");
-        assert_eq!(union_type.children[1].grammar_name, "|");
-        assert_eq!(union_type.children[2].grammar_name, "intersection_type");
+        assert_eq!(union_type.children[0].kind, "literal_type");
+        assert_eq!(union_type.children[1].kind, "|");
+        assert_eq!(union_type.children[2].kind, "intersection_type");
     }
 
     #[test]
@@ -1973,10 +1971,10 @@ interface Foo {
         let rs = ctx.parse("a.rs", source);
 
         let comment = rs[0];
-        assert_eq!(comment.grammar_name, "block_comment");
+        assert_eq!(comment.kind, "block_comment");
         assert!(comment.is_extra);
         let const_decl = rs[1];
-        assert_eq!(const_decl.grammar_name, "const_item");
+        assert_eq!(const_decl.kind, "const_item");
         assert!(!const_decl.is_extra);
     }
 }
