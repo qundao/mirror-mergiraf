@@ -790,6 +790,17 @@ impl<'a> AstNode<'a> {
         Some(&parent.source[start..end])
     }
 
+    /// Any whitespace that follows this node.
+    /// This will be None if the node doesn't have a successor,
+    /// otherwise it's the whitespace between itself and its successor.
+    pub fn succeeding_whitespace(&'a self) -> Option<&'a str> {
+        let parent = self.parent()?;
+        let successor = self.successor()?;
+        let start = self.byte_range.end - parent.byte_range.start;
+        let end = successor.byte_range.start - parent.byte_range.start;
+        Some(&parent.source[start..end])
+    }
+
     /// Raw indentation that precedes this node.
     /// This is None if the preceding whitespace does not contain any newline.
     pub fn preceding_indentation(&'a self) -> Option<&'a str> {
@@ -1436,7 +1447,7 @@ mod tests {
     }
 
     #[test]
-    fn preceding_whitespace() {
+    fn preceding_succeeding_whitespace() {
         let ctx = ctx();
         let tree = ctx.parse("a.json", "[1, 2,\n 3]");
 
@@ -1451,10 +1462,17 @@ mod tests {
         assert_eq!(comma.preceding_whitespace(), Some(""));
         assert_eq!(two.preceding_whitespace(), Some(" "));
         assert_eq!(three.preceding_whitespace(), Some("\n "));
+
+        assert_eq!(root.succeeding_whitespace(), None);
+        assert_eq!(bracket.succeeding_whitespace(), Some(""));
+        assert_eq!(one.succeeding_whitespace(), Some(""));
+        assert_eq!(comma.succeeding_whitespace(), Some(" "));
+        assert_eq!(two.succeeding_whitespace(), Some(""));
+        assert_eq!(three.succeeding_whitespace(), Some(""));
     }
 
     #[test]
-    fn preceding_whitespace_go() {
+    fn preceding_succeeding_whitespace_go() {
         let ctx = ctx();
         let tree = ctx.parse("a.go", "import (\n    \"fmt\"\n    \"core\"\n)\n");
         let root = tree[0];
@@ -1462,6 +1480,7 @@ mod tests {
         let core = import_list[2];
         assert_eq!(core.source, "\"core\"");
         assert_eq!(core.preceding_whitespace(), Some("\n    "));
+        assert_eq!(core.succeeding_whitespace(), Some("\n"));
         assert_eq!(core.ancestor_indentation(), None);
     }
 
