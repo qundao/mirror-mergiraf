@@ -376,6 +376,16 @@ impl<'a> AstNode<'a> {
             .get_commutative_parent_by_kind(kind)
             .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
 
+        if let Some(commutative_parent) = commutative_parent {
+            children = Self::bundle_comments(
+                children,
+                global_source,
+                commutative_parent,
+                arena,
+                next_node_id,
+            );
+        }
+
         let node = Self::internal_finalize(
             lang_profile,
             arena,
@@ -2021,10 +2031,10 @@ interface Foo {
 
         let rs = ctx.parse("a.rs", source);
 
-        let comment = rs[0];
+        let comment = rs[0][0]; // the comment got bundled into `const_item`
         assert_eq!(comment.kind, "block_comment");
         assert!(comment.is_extra);
-        let const_decl = rs[1];
+        let const_decl = rs[0];
         assert_eq!(const_decl.kind, "const_item");
         assert!(!const_decl.is_extra);
     }

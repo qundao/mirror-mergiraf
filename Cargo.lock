@@ -541,6 +541,7 @@ dependencies = [
  "etcetera",
  "itertools 0.14.0",
  "log",
+ "nonempty-collections",
  "nu-ansi-term",
  "oneshot",
  "rand",
@@ -609,6 +610,12 @@ checksum = "1fa76a2c86f704bdb222d66965fb3d63269ce38518b83cb0575fca855ebb6316"
 dependencies = [
  "adler2",
 ]
+
+[[package]]
+name = "nonempty-collections"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3761f83543b22e36b7ea1145309acf9c251ef67dd8b186047f85d8cc985272d4"
 
 [[package]]
 name = "nu-ansi-term"
