@@ -1171,6 +1171,18 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
             flattened_nodes: &[],
         },
+        LangProfile {
+            name: "CMake",
+            alternate_names: &["cmake"],
+            extensions: vec!["cmake"],
+            file_names: vec!["CMakeLists.txt"],
+            language: tree_sitter_cmake::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![],
+            signatures: vec![],
+            injections: None,
+            flattened_nodes: &[],
+        },
     ]
 });
 
