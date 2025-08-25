@@ -1,3 +1,5 @@
+mod bundle_comments;
+
 #[cfg(feature = "dev")]
 use std::iter::zip;
 use std::{
