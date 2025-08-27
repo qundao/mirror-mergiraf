@@ -2,7 +2,7 @@
 use std::iter::zip;
 use std::{
     borrow::Cow,
-    cell::UnsafeCell,
+    cell::Cell,
     cmp::max,
     fmt::Display,
     hash::{Hash, Hasher},
@@ -57,14 +57,14 @@ pub struct AstNode<'a> {
     /// A cached number of descendants
     descendant_count: usize,
     /// The parent of this node, if any.
-    parent: UnsafeCell<Option<&'a Self>>,
+    parent: Cell<Option<&'a Self>>,
     /// The commutative merging settings associated with this node.
     commutative_parent: Option<&'a CommutativeParent>,
     /// As the DFS of a child is a subslice of the DFS of its parent, we compute the entire DFS of
     /// the root once and slice all child DFS into this slice.
     /// This is computed right after construction and then never written to again.
     /// On nodes that have been truncated (which is rare) this will be `None`.
-    dfs: UnsafeCell<Option<&'a [&'a Self]>>,
+    dfs: Cell<Option<&'a [&'a Self]>>,
     /// The language this node was parsed from
     pub lang_profile: &'a LangProfile,
 }
@@ -349,11 +349,11 @@ impl<'a> AstNode<'a> {
                     byte_range: start_position..start_position + trimmed.len(),
                     id: *next_node_id,
                     descendant_count: 1,
-                    parent: UnsafeCell::new(None),
+                    parent: Cell::new(None),
                     // `@virtual_line@` isn't an actual grammar type, so it cannot be present in
                     // the grammar and thus can't have a commutative parent defined
                     commutative_parent: None,
-                    dfs: UnsafeCell::new(None),
+                    dfs: Cell::new(None),
                     lang_profile,
                     is_extra: node.is_extra(),
                 }));
@@ -404,9 +404,9 @@ impl<'a> AstNode<'a> {
             byte_range: range,
             id: *next_node_id,
             descendant_count,
-            parent: UnsafeCell::new(None),
+            parent: Cell::new(None),
             commutative_parent,
-            dfs: UnsafeCell::new(None),
+            dfs: Cell::new(None),
             lang_profile,
             is_extra: node.is_extra(),
         });
@@ -417,7 +417,7 @@ impl<'a> AstNode<'a> {
 
     fn internal_set_parent_on_children(&'a self) {
         for child in &self.children {
-            unsafe { *child.parent.get() = Some(self) }
+            child.parent.set(Some(self))
         }
     }
 
@@ -439,7 +439,7 @@ impl<'a> AstNode<'a> {
                 process_node(child, result, i);
             }
             let end = *i;
-            unsafe { *node.dfs.get() = Some(&result[start..end]) };
+            node.dfs.set(Some(&result[start..end]));
         }
 
         let mut i = 0;
@@ -518,8 +518,7 @@ impl<'a> AstNode<'a> {
 
     /// Depth-first search iterator
     pub fn dfs(&'a self) -> impl ExactSizeIterator<Item = &'a Self> + Clone {
-        // SAFETY: This is not written to after construction.
-        if let Some(dfs) = unsafe { *self.dfs.get() } {
+        if let Some(dfs) = self.dfs.get() {
             Either::Left(dfs.iter().copied())
         } else {
             Either::Right(self.calculate_dfs())
@@ -689,7 +688,7 @@ impl<'a> AstNode<'a> {
 
     /// Get the parent of this node, if any
     pub fn parent(&'a self) -> Option<&'a Self> {
-        unsafe { *self.parent.get() }
+        self.parent.get()
     }
 
     /// The node that comes just before this node in the list of children
@@ -755,8 +754,8 @@ impl<'a> AstNode<'a> {
                 children,
                 field_to_children,
                 byte_range: node.byte_range.clone(),
-                parent: UnsafeCell::new(None),
-                dfs: UnsafeCell::new(None),
+                parent: Cell::new(None),
+                dfs: Cell::new(None),
                 ..*node
             });
             result.internal_set_parent_on_children();
@@ -1284,9 +1283,9 @@ mod tests {
         let node_2 = ctx.parse("a.rs", "fn x() -> i32 { 8 - 1 }");
         let fake_hash_collision = AstNode {
             hash: node_1.hash,
-            parent: UnsafeCell::new(None),
+            parent: Cell::new(None),
             commutative_parent: node_2.commutative_parent,
-            dfs: UnsafeCell::new(None),
+            dfs: Cell::new(None),
             children: node_2.children.to_owned(),
             field_to_children: FxHashMap::default(),
             byte_range: node_2.byte_range.to_owned(),
