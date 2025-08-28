@@ -224,6 +224,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 }
             }
 
+            if let Some(debug_dir) = debug_dir {
+                fs::create_dir_all(debug_dir)
+                    .map_err(|err| format!("could not create the debug directory: {err}"))?;
+            }
+
             let fname_base = &*base;
             let original_contents_base = read_file_to_string(fname_base)?;
             let contents_base = normalize_to_lf(original_contents_base);
@@ -311,6 +316,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 conflict_marker_size,
                 ..Default::default()
             };
+
+            if let Some(debug_dir) = &debug_dir {
+                fs::create_dir_all(debug_dir)
+                    .map_err(|err| format!("could not create the debug directory: {err}"))?;
+            }
 
             let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
             let conflict_contents = normalize_to_lf(&original_conflict_contents);
@@ -555,16 +565,47 @@ mod test {
         assert!(test_file_orig_file_path.exists());
     }
 
-    #[test]
-    fn manual_language_selection_for_solve() {
-        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
-        let repo_path = repo_dir.path();
-
+    fn create_file_for_solve(repo_path: &Path) -> PathBuf {
         let test_file_name = "test.txt";
 
         let test_file_abs_path = repo_path.join(test_file_name);
         fs::write(&test_file_abs_path, "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n")
             .expect("failed to write test file to git repository");
+
+        test_file_abs_path
+    }
+
+    fn create_files_for_merge(repo_path: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
+        let base_file_name = "base.txt";
+        let left_file_name = "left.txt";
+        let right_file_name = "right.txt";
+        let output_file_name = "output.txt";
+
+        let base_file_abs_path = repo_path.join(base_file_name);
+        fs::write(&base_file_abs_path, "[1, 2, 3]\n")
+            .expect("failed to write test base file to git repository");
+        let left_file_abs_path = repo_path.join(left_file_name);
+        fs::write(&left_file_abs_path, "[1, 2, 3, 4]\n")
+            .expect("failed to write test left file to git repository");
+        let right_file_abs_path = repo_path.join(right_file_name);
+        fs::write(&right_file_abs_path, "[0, 1, 2, 3]\n")
+            .expect("failed to write test right file to git repository");
+        let output_file_abs_path = repo_path.join(output_file_name);
+
+        (
+            base_file_abs_path,
+            left_file_abs_path,
+            right_file_abs_path,
+            output_file_abs_path,
+        )
+    }
+
+    #[test]
+    fn manual_language_selection_for_solve() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let test_file_abs_path = create_file_for_solve(repo_path);
 
         // first try without specifying a language
         let return_code = real_main(CliArgs::parse_from([
@@ -601,21 +642,8 @@ mod test {
         let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
         let repo_path = repo_dir.path();
 
-        let base_file_name = "base.txt";
-        let left_file_name = "left.txt";
-        let right_file_name = "right.txt";
-        let output_file_name = "output.txt";
-
-        let base_file_abs_path = repo_path.join(base_file_name);
-        fs::write(&base_file_abs_path, "[1, 2, 3]\n")
-            .expect("failed to write test base file to git repository");
-        let left_file_abs_path = repo_path.join(left_file_name);
-        fs::write(&left_file_abs_path, "[1, 2, 3, 4]\n")
-            .expect("failed to write test left file to git repository");
-        let right_file_abs_path = repo_path.join(right_file_name);
-        fs::write(&right_file_abs_path, "[0, 1, 2, 3]\n")
-            .expect("failed to write test right file to git repository");
-        let output_file_abs_path = repo_path.join(output_file_name);
+        let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
+            create_files_for_merge(repo_path);
 
         // first try without specifying a language
         let return_code = real_main(CliArgs::parse_from([
@@ -653,5 +681,56 @@ mod test {
         let merge_result =
             fs::read_to_string(output_file_abs_path).expect("couldn't read the merge result");
         assert_eq!(merge_result, "[0, 1, 2, 3, 4]\n");
+    }
+
+    #[test]
+    fn debug_dir_is_created_for_solve() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let test_file_abs_path = create_file_for_solve(repo_path);
+
+        let debug_dir = tempfile::tempdir().unwrap();
+        let debug_dir_path = debug_dir.path().to_path_buf();
+        // hopefully no one creates a tmp file with the same exact name directly after we've
+        // deleted our one
+        debug_dir.close().unwrap();
+
+        _ = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "solve",
+            test_file_abs_path.to_str().unwrap(),
+            "--debug",
+            debug_dir_path.to_str().unwrap(),
+        ]));
+
+        assert!(fs::exists(debug_dir_path).unwrap());
+    }
+
+    #[test]
+    fn debug_dir_is_created_for_merge() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) =
+            create_files_for_merge(repo_path);
+
+        let debug_dir = tempfile::tempdir().unwrap();
+        let debug_dir_path = debug_dir.path().to_path_buf();
+        // hopefully no one creates a tmp file with the same exact name directly after we've
+        // deleted our one
+        debug_dir.close().unwrap();
+
+        _ = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "merge",
+            base_file_abs_path.to_str().unwrap(),
+            left_file_abs_path.to_str().unwrap(),
+            right_file_abs_path.to_str().unwrap(),
+            "--debug",
+            debug_dir_path.to_str().unwrap(),
+        ]));
+
+        assert!(fs::exists(debug_dir_path).unwrap());
     }
 }
