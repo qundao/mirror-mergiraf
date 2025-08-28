@@ -371,12 +371,48 @@ impl<'a> AstNode<'a> {
             children = Self::flatten_children(children, children_added_by_flattening, kind);
         }
 
+        // pre-compute the commutative parent, either by node type or via a query.
+        let commutative_parent = lang_profile
+            .get_commutative_parent_by_kind(kind)
+            .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
+
+        let node = Self::internal_finalize(
+            lang_profile,
+            arena,
+            next_node_id,
+            field_name,
+            node.is_extra(),
+            children,
+            field_to_children,
+            local_source,
+            range,
+            kind,
+            commutative_parent,
+        );
+        Ok(node)
+    }
+
+    #[inline]
+    #[allow(clippy::too_many_arguments, reason = "hopefully it gets inlined?..")]
+    fn internal_finalize(
+        lang_profile: &'a LangProfile,
+        arena: &'a Arena<AstNode<'a>>,
+        next_node_id: &mut usize,
+        field_name: Option<&'static str>,
+        is_extra: bool,
+        children: Vec<&'a AstNode<'a>>,
+        field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>>,
+        source: &'a str,
+        byte_range: Range<usize>,
+        kind: &'static str,
+        commutative_parent: Option<&'a CommutativeParent>,
+    ) -> &'a Self {
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
         kind.hash(&mut hasher);
         lang_profile.hash(&mut hasher);
         if children.is_empty() {
-            local_source.hash(&mut hasher);
+            source.hash(&mut hasher);
         } else {
             children
                 .iter()
@@ -390,31 +426,26 @@ impl<'a> AstNode<'a> {
             .map(|child| child.descendant_count)
             .sum::<usize>();
 
-        // pre-compute the commutative parent, either by node type or via a query.
-        let commutative_parent = lang_profile
-            .get_commutative_parent_by_kind(kind)
-            .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
-
         let result = arena.alloc(Self {
             hash: hasher.finish(),
             children,
             field_to_children,
-            source: local_source,
+            source,
             kind,
             field_name,
             // parse-specific fields not included in hash/isomorphism
-            byte_range: range,
+            byte_range,
             id: *next_node_id,
             descendant_count,
             parent: Cell::new(None),
             commutative_parent,
             dfs: Cell::new(None),
             lang_profile,
-            is_extra: node.is_extra(),
+            is_extra,
         });
         *next_node_id += 1;
         result.internal_set_parent_on_children();
-        Ok(result)
+        result
     }
 
     fn internal_set_parent_on_children(&'a self) {
