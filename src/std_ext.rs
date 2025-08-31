@@ -34,9 +34,25 @@ impl StrExt for &'_ str {
         if index > len {
             len
         } else {
-            (index..len)
+            (index..=len)
                 .find(|&i| self.is_char_boundary(i))
                 .expect("`i = len` must be a char boundary") // otherwise `self` wouldn't have been a valid `&str` to begin with
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[allow(unstable_name_collisions)]
+    #[test]
+    fn char_boundary_at_end() {
+        let string = "❤️🧡💛";
+        assert_eq!(string.ceil_char_boundary(0), 0);
+        assert_eq!(string.ceil_char_boundary(1), 3);
+        assert_eq!(string.ceil_char_boundary(3), 3);
+        assert_eq!(string.ceil_char_boundary(4), 6);
+        assert_eq!(string.ceil_char_boundary(13), string.len());
     }
 }
