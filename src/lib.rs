@@ -19,22 +19,22 @@ pub mod ast;
 pub mod attempts;
 pub mod bug_reporter;
 pub(crate) mod changeset;
-pub mod class_mapping;
+pub(crate) mod class_mapping;
 pub(crate) mod git;
 pub mod lang_profile;
 pub mod line_based;
 pub(crate) mod matching;
 mod merge;
-pub mod merge_3dm;
+pub(crate) mod merge_3dm;
 pub(crate) mod merge_result;
-pub mod merged_text;
-pub mod merged_tree;
+pub(crate) mod merged_text;
+pub(crate) mod merged_tree;
 #[cfg(feature = "dev")]
 pub mod minimize;
 pub(crate) mod multimap;
 pub mod newline;
 pub(crate) mod parsed_merge;
-pub mod pcs;
+pub(crate) mod pcs;
 pub mod settings;
 pub(crate) mod signature;
 mod solve;
@@ -44,7 +44,7 @@ pub mod supported_langs;
 #[cfg(test)]
 pub(crate) mod test_utils;
 pub(crate) mod tree_builder;
-pub mod tree_matcher;
+pub(crate) mod tree_matcher;
 pub mod util;
 pub(crate) mod visualizer;
 

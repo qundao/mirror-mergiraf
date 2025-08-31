@@ -182,7 +182,7 @@ impl<'a> MergedText<'a> {
     }
 
     /// Renders the full file according to the supplied [`DisplaySettings`]
-    pub fn render(&self, settings: &DisplaySettings) -> String {
+    pub(crate) fn render(&self, settings: &DisplaySettings) -> String {
         // if all the chunks are `Merged`, just concatenate them all
         if let Some(contents) = self
             .sections
