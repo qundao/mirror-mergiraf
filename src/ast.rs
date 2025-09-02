@@ -224,7 +224,6 @@ impl<'a> AstNode<'a> {
         let atomic = lang_profile.is_atomic_node_type(node.kind());
 
         let mut children = Vec::new();
-        let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
         let mut last_child_end = node.byte_range().start;
         // for nodes that we flatten, track the number of children this will add so that
         // we are able to allocate the new children vector efficiently.
@@ -258,9 +257,6 @@ impl<'a> AstNode<'a> {
                     None,
                 )?;
                 children.push(child);
-                if let Some(field_name) = cursor.field_name() {
-                    field_to_children.entry(field_name).or_default().push(child);
-                }
                 if cursor.node().grammar_id() == node.grammar_id() {
                     children_added_by_flattening += child.children.len() - 1;
                 }
@@ -393,7 +389,6 @@ impl<'a> AstNode<'a> {
             field_name,
             node.is_extra(),
             children,
-            field_to_children,
             local_source,
             range,
             kind,
@@ -411,12 +406,19 @@ impl<'a> AstNode<'a> {
         field_name: Option<&'static str>,
         is_extra: bool,
         children: Vec<&'a AstNode<'a>>,
-        field_to_children: FxHashMap<&'a str, Vec<&'a AstNode<'a>>>,
         source: &'a str,
         byte_range: Range<usize>,
         kind: &'static str,
         commutative_parent: Option<&'a CommutativeParent>,
     ) -> &'a Self {
+        let field_to_children: FxHashMap<&'static str, Vec<&Self>> = children
+            .iter()
+            .filter_map(|c| c.field_name.map(|name| (name, c)))
+            .fold(FxHashMap::default(), |mut acc, (name, c)| {
+                acc.entry(name).or_default().push(c);
+                acc
+            });
+
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
         kind.hash(&mut hasher);

@@ -423,7 +423,6 @@ impl<'a> AstNode<'a> {
             bundled.field_name,
             bundled.is_extra,
             bundled_new_children,
-            bundled.field_to_children.clone(),
             &global_source[bundled_new_byte_range.clone()],
             bundled_new_byte_range,
             bundled.kind,
