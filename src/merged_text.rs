@@ -416,7 +416,7 @@ impl<'a> MergedText<'a> {
 mod tests {
     use super::*;
 
-    fn merged(contents: &str) -> MergeSection {
+    fn merged(contents: &str) -> MergeSection<'_> {
         MergeSection::Merged(contents.into())
     }
 

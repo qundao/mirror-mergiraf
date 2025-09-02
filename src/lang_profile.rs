@@ -347,7 +347,7 @@ impl CommutativeParent {
     }
 
     /// the type of the root node
-    pub(crate) fn parent_type(&self) -> &ParentType {
+    pub(crate) fn parent_type(&self) -> &ParentType<'_> {
         &self.parent_type
     }
 
@@ -387,10 +387,10 @@ impl CommutativeParent {
     where
         F: Fn(&'static str) -> bool,
     {
-        if let ParentType::ByKind(name) = self.parent_type {
-            if !name_is_valid(name) {
-                return Err(format!("invalid commutative node type: {name:?}"));
-            }
+        if let ParentType::ByKind(name) = self.parent_type
+            && !name_is_valid(name)
+        {
+            return Err(format!("invalid commutative node type: {name:?}"));
         }
         for children_group in &self.children_groups {
             children_group.check_kinds(name_is_valid)?;

@@ -171,25 +171,24 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             revisions,
             node: leader,
         } = node
+            && revisions.is_full()
+            && self.class_mapping.is_isomorphic_in_all_revisions(&leader)
         {
-            if revisions.is_full() && self.class_mapping.is_isomorphic_in_all_revisions(&leader) {
-                // If one of the sides is doing a reformatting, make sure we pick this side for pretty printing,
-                // so that we preserve the new formatting.
-                let final_revisions = if self.class_mapping.is_reformatting(&leader, Revision::Left)
-                {
-                    RevisionNESet::singleton(Revision::Left)
-                } else if self.class_mapping.is_reformatting(&leader, Revision::Right) {
-                    RevisionNESet::singleton(Revision::Right)
-                } else {
-                    revisions
-                };
+            // If one of the sides is doing a reformatting, make sure we pick this side for pretty printing,
+            // so that we preserve the new formatting.
+            let final_revisions = if self.class_mapping.is_reformatting(&leader, Revision::Left) {
+                RevisionNESet::singleton(Revision::Left)
+            } else if self.class_mapping.is_reformatting(&leader, Revision::Right) {
+                RevisionNESet::singleton(Revision::Right)
+            } else {
+                revisions
+            };
 
-                return Ok(MergedTree::new_exact(
-                    leader,
-                    final_revisions,
-                    self.class_mapping,
-                ));
-            }
+            return Ok(MergedTree::new_exact(
+                leader,
+                final_revisions,
+                self.class_mapping,
+            ));
         }
 
         let children_map = self.merged_successors.get(&node);

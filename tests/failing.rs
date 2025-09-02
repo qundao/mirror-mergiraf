@@ -5,8 +5,8 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
+use mergiraf::line_merge_and_structured_resolution;
 use mergiraf::settings::DisplaySettings;
-use mergiraf::{PathBufExt, line_merge_and_structured_resolution};
 use rstest::rstest;
 
 mod common;
@@ -48,7 +48,6 @@ fn integration_failing(
     test_dir: PathBuf,
 ) {
     let suffix = detect_test_suffix(&test_dir);
-    #[expect(unstable_name_collisions)]
     let fname_base = test_dir.join(format!("Base{suffix}")).leak();
     let contents_base = fs::read_to_string(&fname_base).expect("Unable to read base file");
     let contents_base = Arc::new(Cow::Owned(contents_base));

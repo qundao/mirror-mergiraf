@@ -249,12 +249,12 @@ fn merge_same_sigs<'a>(
     separator: Option<RevNode<'a>>,
     add_separator: AddSeparator,
 ) -> (Vec<MergedTree<'a>>, bool) {
-    if let &[first, second] = elements {
-        if isomorphic_merged_trees(first, second, class_mapping) {
-            // The two elements don't just have the same signature, they are actually isomorphic!
-            // So let's just deduplicate them.
-            return (vec![first.clone()], true);
-        }
+    if let &[first, second] = elements
+        && isomorphic_merged_trees(first, second, class_mapping)
+    {
+        // The two elements don't just have the same signature, they are actually isomorphic!
+        // So let's just deduplicate them.
+        return (vec![first.clone()], true);
     }
     let base = filter_by_revision(elements, Revision::Base, class_mapping);
     let left = filter_by_revision(elements, Revision::Left, class_mapping);

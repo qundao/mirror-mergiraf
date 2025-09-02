@@ -495,7 +495,7 @@ mod tests {
     use super::*;
 
     #[track_caller]
-    fn parse(source: &str) -> ParsedMerge {
+    fn parse(source: &str) -> ParsedMerge<'_> {
         ParsedMerge::parse(source, &DisplaySettings::default()).expect("unexpected parse error")
     }
 
@@ -1359,7 +1359,7 @@ rest of file
 
     #[test]
     fn is_empty() {
-        const fn resolved(contents: &str) -> MergedChunk {
+        const fn resolved(contents: &str) -> MergedChunk<'_> {
             MergedChunk::Resolved {
                 contents,
                 offset: 0,

@@ -3,7 +3,7 @@ on:
     tags: 'v*'
 jobs:
   release:
-    runs-on: ubuntu-with-rust-1.88 # uses Docker image https://hub.docker.com/r/pintoch/ubuntu-act-with-rust
+    runs-on: ubuntu-with-rust-1.89 # uses Docker image https://hub.docker.com/r/pintoch/ubuntu-act-with-rust
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,11 +20,6 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}} lock ${{ hashFiles('**/Cargo.lock') }}"
-      - name: Set up git-cliff
-        run: |
-          if [ ! -e ~/.cargo/bin/git-cliff ]; then
-            cargo install git-cliff --features gitea --version 2.9.1 --locked
-          fi
       - name: Run tests
         run: cargo test --workspace --locked
       - name: Create release_artifacts dir and generate release notes

@@ -181,17 +181,12 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         } => {
             let old_git_detected = base_name.as_deref().is_some_and(|n| n == "%S");
 
-            #[expect(unstable_name_collisions)]
             let base = base.leak();
-            #[expect(unstable_name_collisions)]
             let left = left.leak();
-            #[expect(unstable_name_collisions)]
             let right = right.leak();
 
             // NOTE: reborrow to turn `&mut Path` returned by `PathBuf::leak` into `&Path`
-            #[expect(unstable_name_collisions)]
             let path_name = path_name.map(|s| &*s.leak());
-            #[expect(unstable_name_collisions)]
             let debug_dir = debug_dir.map(|s| &*s.leak());
 
             let settings: DisplaySettings<'static> = DisplaySettings {
