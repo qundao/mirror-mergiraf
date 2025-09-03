@@ -256,15 +256,14 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
 
                     if let PCSNode::Node { node: leader, .. } = node
                         && let Some(commutative_parent) = leader.commutative_parent_definition()
-                    {
-                        // knowing that the order of all elements of the conflict does not matter, solve the conflict
-                        let solved_conflict = self.commutatively_merge_lists(
+                        && let Ok(solved_conflict) = self.commutatively_merge_lists(
                             &base,
                             &left,
                             &right,
                             commutative_parent,
                             visiting_state,
-                        )?;
+                        )
+                    {
                         children.extend(solved_conflict);
                     } else {
                         children.extend(MergedTree::new_conflict(

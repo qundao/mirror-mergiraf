@@ -9,8 +9,8 @@ class App {
 ||||||| BASE
 =======
     public function baz(string $param) {}
-
 >>>>>>> RIGHT
+
     public function bar() {}
 }
 ?>
