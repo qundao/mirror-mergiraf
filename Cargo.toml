@@ -119,3 +119,14 @@ trivially_copy_pass_by_ref = "warn"
 uninlined_format_args = "warn"
 use_self = "warn"
 redundant_closure_for_method_calls = "warn"
+
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }_{ target }{ archive-suffix }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+archive-suffix = ".tar.gz"
+
+[package.metadata.binstall.overrides.x86_64-pc-windows-gnu]
+pkg-fmt = "zip"
+archive-suffix = ".zip"
+

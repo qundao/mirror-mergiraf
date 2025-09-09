@@ -15,6 +15,8 @@ Mergiraf is also available from the following package repositories:
 
 If you have Rust installed, you can also install Mergiraf from source by cloning [its repository](https://codeberg.org/mergiraf/mergiraf) and running `cargo install --path .` in it. Or download and build [Mergiraf on crates.io](https://crates.io/crates/mergiraf) with Cargo by running: `cargo install --locked mergiraf`.
 
+You can also download compiled binaries from Codeberg with `cargo binstall mergiraf` (assuming [cargo binstall](https://github.com/cargo-bins/cargo-binstall) is installed).
+
 ## Pssst! Why don't you install Difftastic too?
 
 [Difftastic](https://difftastic.wilfred.me.uk/) is a fantastic structural diff tool which works great in combination with Mergiraf.
