@@ -1,3 +1,5 @@
+mod bundle_comments;
+
 #[cfg(feature = "dev")]
 use std::iter::zip;
 use std::{
@@ -222,7 +224,6 @@ impl<'a> AstNode<'a> {
         let atomic = lang_profile.is_atomic_node_type(node.kind());
 
         let mut children = Vec::new();
-        let mut field_to_children: FxHashMap<&'a str, Vec<&'a Self>> = FxHashMap::default();
         let mut last_child_end = node.byte_range().start;
         // for nodes that we flatten, track the number of children this will add so that
         // we are able to allocate the new children vector efficiently.
@@ -256,9 +257,6 @@ impl<'a> AstNode<'a> {
                     None,
                 )?;
                 children.push(child);
-                if let Some(field_name) = cursor.field_name() {
-                    field_to_children.entry(field_name).or_default().push(child);
-                }
                 if cursor.node().grammar_id() == node.grammar_id() {
                     children_added_by_flattening += child.children.len() - 1;
                 }
@@ -369,12 +367,64 @@ impl<'a> AstNode<'a> {
             children = Self::flatten_children(children, children_added_by_flattening, kind);
         }
 
+        // pre-compute the commutative parent, either by node type or via a query.
+        let commutative_parent = lang_profile
+            .get_commutative_parent_by_kind(kind)
+            .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
+
+        if let Some(commutative_parent) = commutative_parent {
+            children = Self::bundle_comments(
+                children,
+                global_source,
+                commutative_parent,
+                arena,
+                next_node_id,
+            );
+        }
+
+        let node = Self::internal_finalize(
+            lang_profile,
+            arena,
+            next_node_id,
+            field_name,
+            node.is_extra(),
+            children,
+            local_source,
+            range,
+            kind,
+            commutative_parent,
+        );
+        Ok(node)
+    }
+
+    #[inline]
+    #[allow(clippy::too_many_arguments, reason = "hopefully it gets inlined?..")]
+    fn internal_finalize(
+        lang_profile: &'a LangProfile,
+        arena: &'a Arena<AstNode<'a>>,
+        next_node_id: &mut usize,
+        field_name: Option<&'static str>,
+        is_extra: bool,
+        children: Vec<&'a AstNode<'a>>,
+        source: &'a str,
+        byte_range: Range<usize>,
+        kind: &'static str,
+        commutative_parent: Option<&'a CommutativeParent>,
+    ) -> &'a Self {
+        let field_to_children: FxHashMap<&'static str, Vec<&Self>> = children
+            .iter()
+            .filter_map(|c| c.field_name.map(|name| (name, c)))
+            .fold(FxHashMap::default(), |mut acc, (name, c)| {
+                acc.entry(name).or_default().push(c);
+                acc
+            });
+
         // pre-compute a hash value that is invariant under isomorphism
         let mut hasher = crate::fxhasher();
         kind.hash(&mut hasher);
         lang_profile.hash(&mut hasher);
         if children.is_empty() {
-            local_source.hash(&mut hasher);
+            source.hash(&mut hasher);
         } else {
             children
                 .iter()
@@ -388,31 +438,26 @@ impl<'a> AstNode<'a> {
             .map(|child| child.descendant_count)
             .sum::<usize>();
 
-        // pre-compute the commutative parent, either by node type or via a query.
-        let commutative_parent = lang_profile
-            .get_commutative_parent_by_kind(kind)
-            .or_else(|| node_id_to_commutative_parent.get(&node.id()).copied());
-
         let result = arena.alloc(Self {
             hash: hasher.finish(),
             children,
             field_to_children,
-            source: local_source,
+            source,
             kind,
             field_name,
             // parse-specific fields not included in hash/isomorphism
-            byte_range: range,
+            byte_range,
             id: *next_node_id,
             descendant_count,
             parent: Cell::new(None),
             commutative_parent,
             dfs: Cell::new(None),
             lang_profile,
-            is_extra: node.is_extra(),
+            is_extra,
         });
         *next_node_id += 1;
         result.internal_set_parent_on_children();
-        Ok(result)
+        result
     }
 
     fn internal_set_parent_on_children(&'a self) {
@@ -1988,10 +2033,10 @@ interface Foo {
 
         let rs = ctx.parse("a.rs", source);
 
-        let comment = rs[0];
+        let comment = rs[0][0]; // the comment got bundled into `const_item`
         assert_eq!(comment.kind, "block_comment");
         assert!(comment.is_extra);
-        let const_decl = rs[1];
+        let const_decl = rs[0];
         assert_eq!(const_decl.kind, "const_item");
         assert!(!const_decl.is_extra);
     }

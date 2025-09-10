@@ -351,6 +351,14 @@ impl CommutativeParent {
         &self.parent_type
     }
 
+    /// The default separator for children of this parent.
+    ///
+    /// You generally want to use [`Self::child_separator`] instead, since it returns the suitable
+    /// separator for a given set of children.
+    pub(crate) fn default_separator(&self) -> &'static str {
+        self.separator
+    }
+
     /// Can children with the supplied types commute together?
     /// If so, return the separator to use when inserting two nodes
     /// in the same place.
