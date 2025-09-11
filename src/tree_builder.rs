@@ -605,12 +605,17 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
     ) -> Result<Vec<MergedTree<'a>>, String> {
         let pad = visiting_state.indentation();
         trace!("{pad}commutatively_merge_lists");
-        let trimmed_sep = commutative_parent.trimmed_separator();
-        let trimmed_left_delim = commutative_parent.left_delim.unwrap_or_default().trim();
-        let trimmed_right_delim = commutative_parent.right_delim.unwrap_or_default().trim();
         // TODO improve handling of comments? comments added by the right side should ideally be placed sensibly
 
-        // first, map each list via class mapping to make each element comparable
+        // check that all the nodes involved are allowed to commute in this context
+        let raw_separator = commutative_parent
+            .child_separator(base, left, right)
+            .ok_or("The children are not allowed to commute")?;
+        let trimmed_sep = raw_separator.trim();
+        let trimmed_left_delim = commutative_parent.left_delim.unwrap_or_default().trim();
+        let trimmed_right_delim = commutative_parent.right_delim.unwrap_or_default().trim();
+
+        // map each list via class mapping to make each element comparable
         let base_leaders: HashSet<_> = self
             .keep_content_only(
                 base,
@@ -638,32 +643,6 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
                 trimmed_right_delim,
             )
             .collect();
-
-        // check that all the nodes involved are allowed to commute in this context
-        let child_types: HashSet<&str> = (base_leaders.iter())
-            .chain(left_leaders.iter())
-            .chain(right_leaders.iter())
-            .map(|leader| {
-                if self
-                    .class_mapping
-                    .representatives(leader)
-                    .iter()
-                    .any(|repr| repr.node.is_extra)
-                {
-                    Err(
-                        "One of the children is an extra node, cannot merge commutatively"
-                            .to_string(),
-                    )
-                } else {
-                    Ok(leader.kind())
-                }
-            })
-            .try_collect()?;
-        let Some(raw_separator) = commutative_parent.child_separator(&child_types) else {
-            return Err("The children are not allowed to commute".to_string());
-        };
-        // NOTE: trimmed_sep is still consistent with raw_separator per the assumption that the two
-        // kinds of separators are equal up to leading and trailing whitespace
 
         let left_added: HashSet<_> = left_leaders
             .iter()

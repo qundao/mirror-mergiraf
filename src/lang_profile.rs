@@ -3,7 +3,7 @@ use std::{collections::HashSet, ffi::OsStr, fmt::Display, hash::Hash, path::Path
 use itertools::Itertools;
 use tree_sitter::Language;
 
-use crate::{signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
+use crate::{ast::AstNode, signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
 
 /// Language-dependent settings to influence how merging is done.
 /// All those settings are declarative (except for the tree-sitter parser, which is
@@ -326,20 +326,6 @@ impl CommutativeParent {
 
     /// Restrict a commutative parent to some children groups, possibly with their own separators
     pub(crate) fn restricted_to(self, children_groups: Vec<ChildrenGroup>) -> Self {
-        #[cfg(debug_assertions)]
-        {
-            for children_group in &children_groups {
-                if let Some(specific_separator) = children_group.separator {
-                    assert_eq!(
-                        specific_separator.trim(),
-                        self.separator.trim(),
-                        "Children group separator '{specific_separator:?}' inconsistent with parent separator '{:?}' in commutative parent '{:?}'",
-                        self.separator,
-                        self.parent_type
-                    );
-                }
-            }
-        }
         Self {
             children_groups,
             ..self
@@ -362,22 +348,43 @@ impl CommutativeParent {
     /// Can children with the supplied types commute together?
     /// If so, return the separator to use when inserting two nodes
     /// in the same place.
-    /// TODO: return None if any of the node_types is extra,
-    /// see https://codeberg.org/mergiraf/mergiraf/issues/467
-    pub(crate) fn child_separator(&self, node_types: &HashSet<&str>) -> Option<&'static str> {
-        if self.children_groups.is_empty() {
+    pub(crate) fn child_separator<'a>(
+        &self,
+        base_nodes: &[&'a AstNode<'a>],
+        left_nodes: &[&'a AstNode<'a>],
+        right_nodes: &[&'a AstNode<'a>],
+    ) -> Option<&'static str> {
+        let trimmed_left_delim = self.left_delim.unwrap_or_default().trim();
+        let trimmed_right_delim = self.right_delim.unwrap_or_default().trim();
+
+        if (base_nodes.iter())
+            .chain(left_nodes)
+            .chain(right_nodes)
+            .any(|node| node.is_extra)
+        {
+            // Extra nodes can't commute
+            None
+        } else if self.children_groups.is_empty() {
             // If there are no children groups to restrict commutativity to,
             // any children can commute and the default separator is used
             Some(self.separator)
         } else {
-            // Otherwise, children can only commute if their types all belong
-            // to the same group, in which case the separator is either that of
-            // that specific group, or the default one for the commutative parent
-            // as a fall-back.
-            self.children_groups
-                .iter()
-                .find(|group| group.node_types.is_superset(node_types))
-                .map(|group| group.separator.unwrap_or(self.separator))
+            // Otherwise, children belong to a given group if both the grammar kinds of the content nodes
+            // and the contents of the separator nodes are accepted by the group.
+            self.children_groups.iter().find_map(|group| {
+                let group_separator = group.separator.unwrap_or(self.separator);
+                (base_nodes.iter())
+                    .chain(left_nodes)
+                    .chain(right_nodes)
+                    .all(|node| {
+                        let trimmed = node.source.trim();
+                        group.node_types.contains(node.kind)
+                            || trimmed == group_separator.trim()
+                            || trimmed == trimmed_right_delim
+                            || trimmed == trimmed_left_delim
+                    })
+                    .then_some(group_separator)
+            })
         }
     }
 
@@ -414,8 +421,6 @@ pub struct ChildrenGroup {
     pub node_types: HashSet<&'static str>,
     /// An optional separator specific to this children group,
     /// better suited than the one from the commutative parent.
-    /// It must only differ from the separator of the parent up to
-    /// whitespace (their trimmed versions should be equal).
     pub separator: Option<&'static str>,
 }
 

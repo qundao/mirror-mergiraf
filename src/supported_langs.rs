@@ -16,7 +16,15 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             .restricted_to_groups(&[&["import_statement"]]),
         CommutativeParent::new("named_imports", "{", ", ", "}"),
         CommutativeParent::new("object", "{", ", ", "}"),
-        CommutativeParent::new("class_body", " {\n", "\n\n", "\n}\n"),
+        CommutativeParent::new("class_body", " {\n", "\n\n", "\n}\n").restricted_to(vec![
+            ChildrenGroup::with_separator(&["public_field_definition", "index_signature"], ";\n"),
+            ChildrenGroup::new(&["class_static_block"]),
+            ChildrenGroup::new(&[
+                "abstract_method_signature",
+                "method_definition",
+                "method_signature",
+            ]),
+        ]),
         CommutativeParent::new("interface_body", " {\n", ";\n", "\n}\n"),
         CommutativeParent::new("object_type", " {\n", ";\n", "\n}\n"),
         CommutativeParent::new("enum_body", " {\n", ",\n", "\n}\n"),

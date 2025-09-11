@@ -215,8 +215,6 @@ CommutativeParent::new("declaration_list", "{", "\n\n", "}")
     ]),
 ```
 
-Note that the separator for a children group and the separator for the commutative parent can only differ in leading and trailing whitespace.
-
 ## Add signatures
 
 One piece of knowledge we have not encoded yet is the fact that `using` statements should be unique: there is no point in importing the same thing twice. This is specified using so-called signatures, which associate keys to the children of commutative parents. Those keys are then required to be unique among the children of a particular commutative parent. This mechanism can be used to define such keys for a lot of other elements. For instance, class fields are keyed by their name only, given that field names should be unique in a given class, regardless of their type. Keys can also be generated for methods, which not only includes their name but also the types of the arguments the function takes, as [C# supports method overloading](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/member-overloading).
