@@ -29,6 +29,8 @@ pub(crate) mod merge_3dm;
 pub(crate) mod merge_result;
 pub(crate) mod merged_text;
 pub(crate) mod merged_tree;
+#[cfg(feature = "dev")]
+pub mod minimize;
 pub(crate) mod multimap;
 pub mod newline;
 pub(crate) mod parsed_merge;
@@ -43,6 +45,7 @@ pub mod supported_langs;
 pub(crate) mod test_utils;
 pub(crate) mod tree_builder;
 pub(crate) mod tree_matcher;
+pub mod util;
 pub(crate) mod visualizer;
 
 use core::fmt::Write;
@@ -70,6 +73,9 @@ pub const DISABLING_ENV_VAR: &str = "mergiraf";
 
 pub use merge::line_merge_and_structured_resolution;
 pub use solve::resolve_merge_cascading;
+
+#[cfg(feature = "dev")]
+pub use minimize::minimize;
 
 /// Takes the result of an earlier merge process (likely line-based)
 /// and attempts to resolve the remaining conflicts using structured merge

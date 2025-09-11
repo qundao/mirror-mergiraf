@@ -10,16 +10,14 @@ use std::{
 use clap::{ArgAction, Args, Parser, Subcommand};
 use log::warn;
 use mergiraf::{
-    DISABLING_ENV_VAR,
-    PathBufExt,
+    DISABLING_ENV_VAR, PathBufExt,
     attempts::AttemptsCache,
     bug_reporter::report_bug,
-    languages,
-    line_merge_and_structured_resolution,
-    // XXX: move the uses to lib to avoid making these public?
+    languages, line_merge_and_structured_resolution,
     newline::{imitate_cr_lf_from_input, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
+    util::{read_file_to_string, write_string_to_file},
 };
 
 /// Syntax-aware merge driver for Git.
@@ -369,15 +367,6 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
         }
     };
     Ok(return_code)
-}
-
-fn read_file_to_string(path: &Path) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|err| format!("Could not read {}: {err}", path.display()))
-}
-
-fn write_string_to_file(path: impl AsRef<Path>, contents: &str) -> Result<(), String> {
-    let path = path.as_ref();
-    fs::write(path, contents).map_err(|err| format!("Could not write {}: {err}", path.display()))
 }
 
 fn fallback_to_git_merge_file(

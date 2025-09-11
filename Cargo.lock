@@ -596,7 +596,9 @@ name = "mgf_dev"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "log",
  "mergiraf",
+ "rand",
  "stderrlog",
  "tempfile",
  "typed-arena",

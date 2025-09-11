@@ -9,6 +9,7 @@ use clap::{Parser, Subcommand};
 use mergiraf::{
     ast::AstNode,
     lang_profile::LangProfile,
+    minimize::minimize,
     // XXX: move the uses to lib to avoid making these public?
     newline::normalize_to_lf,
 };
@@ -46,6 +47,31 @@ enum Command {
         /// Enable commutative isomorphism checking, disregarding the order of nodes where it's not significant.
         #[arg(short, long)]
         commutative: bool,
+    },
+    /// Minimize a test case while maintaining a specific behaviour from a supplied script
+    Minimize {
+        /// Path to a directory containing Base, Left and Right files (with some extension)
+        test_case: PathBuf,
+        /// Command to execute on the test case. It will be supplied with the path to the minimized test case as only argument.
+        script: String,
+        /// Exit status code expected from the script.
+        #[arg(short, long, default_value_t = 0)]
+        expected_exit_code: i32,
+        /// Output path of the minimized test case
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Seed for all randomness involved
+        #[arg(long)]
+        seed: Option<u64>,
+        /// Maximum number of minimization steps to take
+        #[arg(long, default_value_t = 100)]
+        max_steps: i32,
+        /// Maximum number of failures to accept when attempting a minimization step
+        #[arg(long, default_value_t = 100)]
+        max_failures: i32,
+        /// Only delete nodes which are identical in all three revisions (up to reformatting)
+        #[arg(long, default_value_t = false)]
+        only_unchanged: bool,
     },
 }
 
@@ -116,6 +142,28 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             } else {
                 1
             }
+        }
+        Command::Minimize {
+            test_case,
+            script,
+            expected_exit_code,
+            output,
+            seed,
+            max_steps,
+            max_failures,
+            only_unchanged,
+        } => {
+            minimize(
+                test_case,
+                script,
+                *expected_exit_code,
+                output.as_deref(),
+                *seed,
+                *max_steps,
+                *max_failures,
+                *only_unchanged,
+            );
+            0
         }
     };
     Ok(exit_code)

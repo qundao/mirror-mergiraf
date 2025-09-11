@@ -1,7 +1,7 @@
 #![allow(dead_code, reason = "the functions do get used in integration tests")]
 
 use core::str;
-use std::fs::{self, read_dir, read_to_string};
+use std::fs::{self, read_to_string};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -45,18 +45,7 @@ pub(crate) fn write_file_from_rev(
 /// a separate `language` file and just use bare `Base`, `Left` and `Right`
 /// revision files (and similarly for expected outputs).
 pub(crate) fn detect_test_suffix(test_dir: &Path) -> String {
-    read_dir(test_dir)
-        .expect("Could not list files in test directory")
-        .find_map(|filename| {
-            filename
-                .unwrap()
-                .file_name()
-                .into_string()
-                .expect("Unable to read filename in test directory")
-                .strip_prefix("Base")
-                .map(String::from)
-        })
-        .expect("Could not find a Base* file in the test directory")
+    mergiraf::util::detect_suffix(test_dir)
 }
 
 /// Returns the language name specified in a test case (if any).
