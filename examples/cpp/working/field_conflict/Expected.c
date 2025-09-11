@@ -3,4 +3,4 @@ struct my_struct {
     char field_2;
     size_t field_3;
     void* pointer;
-}
+};

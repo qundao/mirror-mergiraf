@@ -9,4 +9,4 @@ class MyClass {
     void run() {
         printf("hello\n");
     }
-}
+};

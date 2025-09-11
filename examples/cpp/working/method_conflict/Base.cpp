@@ -5,4 +5,4 @@ class MyClass {
         printf("too few arguments\n");
         exit(1);
     }
-}
+};

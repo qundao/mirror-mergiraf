@@ -9,4 +9,4 @@ class MyClass {
     void run(bool reallyFast) {
         printf("world\n");
     }
-}
+};

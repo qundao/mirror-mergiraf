@@ -13,4 +13,4 @@ class MyClass {
     void runFast() {
         printf("world\n");
     }
-}
+};

@@ -319,12 +319,21 @@ impl<'a> AstNode<'a> {
             let idx = local_source.ceil_char_boundary(32);
 
             return Err(format!(
-                "parse error at {}:{}..{}:{}, starting with: {}",
+                "parse error at {}:{}..{}:{}, starting with: `{}`",
                 full_range.start_point.row,
                 full_range.start_point.column,
                 full_range.end_point.row,
                 full_range.end_point.column,
                 &local_source[..idx]
+            ));
+        } else if node.is_missing() {
+            let full_range = node.range();
+
+            return Err(format!(
+                "parse error at {}:{}, expected `{}`",
+                full_range.start_point.row,
+                full_range.start_point.column,
+                node.kind(),
             ));
         }
 
@@ -1222,7 +1231,7 @@ mod tests {
 
         assert_eq!(
             parse,
-            Err("parse error at 1:1..1:3, starting with: {,".to_string())
+            Err("parse error at 1:1..1:3, starting with: `{,`".to_string())
         );
 
         let parse = AstNode::parse(
@@ -1234,8 +1243,18 @@ mod tests {
 
         assert_eq!(
             parse,
-            Err("parse error at 0:0..0:39, starting with: 属于个人的非赢利性开源".to_string())
+            Err("parse error at 0:0..0:39, starting with: `属于个人的非赢利性开源`".to_string())
         );
+    }
+
+    #[test]
+    fn missing_token() {
+        let ctx = ctx();
+        let lang_profile = LangProfile::detect_from_filename("test.java")
+            .expect("Could not load the Java lang profile");
+        let parse = AstNode::parse("class Test {", lang_profile, &ctx.arena, &ctx.ref_arena);
+
+        assert_eq!(parse, Err("parse error at 0:12, expected `}`".to_string()));
     }
 
     #[test]
@@ -1625,7 +1644,7 @@ mod tests {
 {
     "a": [
         1,
-        2,
+        2
     ],
     "b": {
         "c": "foo"
@@ -1643,7 +1662,7 @@ mod tests {
             "\
 \"a\": [
         1,
-        2,
+        2
     ]"
         );
         assert_eq!(entry_a.indentation_shift(), Some("    "));
@@ -1653,7 +1672,7 @@ mod tests {
             "\
 \"a\": [
     1,
-    2,
+    2
 ]"
         );
         assert_eq!(
@@ -1661,7 +1680,7 @@ mod tests {
             "\
 \"a\": [
       1,
-      2,
+      2
   ]"
         );
 
@@ -1670,7 +1689,7 @@ mod tests {
             "\
 [
         1,
-        2,
+        2
     ]"
         );
         assert_eq!(array.indentation_shift(), None);
@@ -1680,7 +1699,7 @@ mod tests {
             "\
 [
     1,
-    2,
+    2
 ]"
         );
         assert_eq!(
@@ -1688,7 +1707,7 @@ mod tests {
             "\
 [
       1,
-      2,
+      2
   ]"
         );
     }

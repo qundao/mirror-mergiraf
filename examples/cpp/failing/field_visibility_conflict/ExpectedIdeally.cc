@@ -8,4 +8,4 @@ class MyClass {
 =======
         char field_3;
 >>>>>>> RIGHT
-}
+};

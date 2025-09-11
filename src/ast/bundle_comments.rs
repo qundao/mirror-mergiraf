@@ -569,10 +569,10 @@ fn foo() {
     #[test]
     fn dont_bundle_into_delims() {
         let ctx = ctx();
-        let source = "(/* this is a comment */)";
+        let source = "fn test(/* this is a comment */) {}";
         let rs = ctx.parse("a.rs", source);
 
-        let tup = rs[0][0];
+        let tup = rs[0][2];
         assert_n_children(tup, 3);
         let comment = tup[1];
         assert_eq!(comment.kind, "block_comment");
