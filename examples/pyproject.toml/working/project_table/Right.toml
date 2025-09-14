@@ -1,0 +1,8 @@
+[project]
+keywords = [ "boat", "plane" ]
+classifiers = [
+  "Intended Audience :: Sailors",
+  "Intended Audience :: Pilots",
+]
+authors = [
+]

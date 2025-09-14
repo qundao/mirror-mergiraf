@@ -596,6 +596,78 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             injections: None,
             flattened_nodes: &[],
         },
+        // This language profile is before the TOML one, so that the more specific pyproject.toml one is encountered first.
+        LangProfile {
+            name: "pyproject.toml",
+            alternate_names: &[],
+            extensions: vec![],
+            file_names: vec!["pyproject.toml"],
+            language: tree_sitter_toml_ng::LANGUAGE.into(),
+            atomic_nodes: vec!["string"],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("document", "\n"),
+                CommutativeParent::without_delimiters("table", "\n"),
+                CommutativeParent::new("inline_table", "{", ", ", "}"),
+                // Make certain pyproject-specific attributes commutative.
+                // In the interest of having a single query, we don't make a difference between the
+                // tables in which the fields listed below belong, but strictly speaking only
+                // "requires" belongs to the "build-system" one, and all others to the "project"
+                // one. What's important is that other attributes from tool tables aren't made
+                // commutative, as their meaning is defined by each tool.
+                // See https://packaging.python.org/en/latest/specifications/pyproject-toml/
+                CommutativeParent::from_query(
+                    r#"(table
+(bare_key) @table_key (#any-of? @table_key "build-system" "project")
+   (pair
+   		(bare_key) @pair_key (#any-of? @pair_key "requires" "license-files" "authors" "maintainers" "keywords" "classifiers" "dependencies" "dynamic")
+        (array) @commutative
+   )
+)"#,
+                    "[",
+                    ", ",
+                    "]",
+                ),
+                // Also support optional dependencies
+                CommutativeParent::from_query(
+                    r#"(table
+  (dotted_key
+    (bare_key) @project (#eq? @project "project")
+    (bare_key) @deps (#eq? @deps "optional-dependencies")
+  )
+  (pair
+    (bare_key)
+    (array) @commutative
+  )
+)"#,
+                    "[",
+                    ", ",
+                    "]",
+                ),
+                // and also when they are formulated as inline tables
+                CommutativeParent::from_query(
+                    r#"(table
+  (bare_key) @table_key (#eq? @table_key "project")
+  (pair
+    (bare_key) @pair_key (#eq? @pair_key "optional-dependencies")
+    (inline_table
+      (pair
+        (array) @commutative
+      )
+    )
+  )
+)"#,
+                    "[",
+                    ", ",
+                    "]",
+                ),
+            ],
+            signatures: vec![
+                signature("pair", vec![vec![ChildKind("bare_key")]]),
+                signature("string", vec![vec![]]),
+            ],
+            injections: None,
+            flattened_nodes: &[],
+        },
         LangProfile {
             name: "TOML",
             alternate_names: &[],

@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools", "wheel", "pytest"]
+
+[tool.foo]
+<<<<<<< LEFT
+requires = ["a", "b"]
+||||||| BASE
+requires = ["a"]
+=======
+requires = ["a", "c"]
+>>>>>>> RIGHT

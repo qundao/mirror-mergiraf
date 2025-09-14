@@ -1,0 +1,5 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.foo]
+requires = ["a", "b"]

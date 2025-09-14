@@ -1,0 +1,9 @@
+[project]
+keywords = [ "boat", "plane" ]
+classifiers = [
+  "Intended Audience :: Sailors",
+  "Intended Audience :: Pilots",
+]
+authors = [
+  { name = "Huckleberry Finn", email = "hfinn@mississippi.org" },
+]

@@ -1,0 +1,10 @@
+[project]
+keywords = [ "parser", "boat" ]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Intended Audience :: Sailors",
+]
+authors = [
+  { name = "Ursula Le Guin", email = "hello@ursula-le-guin.net" },
+  { name = "Huckleberry Finn", email = "hfinn@mississippi.org" },
+]

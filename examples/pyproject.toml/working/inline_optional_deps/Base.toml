@@ -1,0 +1,2 @@
+[project]
+optional-dependencies = { foo = ["one"], bar = ["four"] }

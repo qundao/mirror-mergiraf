@@ -30,7 +30,7 @@ and the following declarative file formats:
 * HTML (*.html, *.htm)
 * XML (*.xml, *.xhtml)
 * YAML (*.yml, *.yaml)
-* TOML (*.toml)
+* TOML (*.toml), with dedicated support for `pyproject.toml` files
 * INI (*.ini)
 * Devicetree Source (*.dts)
 * Java properties files (*.properties)
