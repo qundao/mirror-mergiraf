@@ -991,88 +991,104 @@ impl<'a> AstNode<'a> {
 
     /// Represents the node and its sub-structure in ASCII art, optionally printing only the nodes
     /// up to a given depth
-    pub fn ascii_tree(&'a self, max_depth: Option<usize>) -> String {
-        self.internal_ascii_tree(
+    pub fn ascii_tree(&'a self, max_depth: Option<usize>, colorize: bool) -> String {
+        fn internal_ascii_tree<'a>(
+            node: &'a AstNode<'a>,
+            depth: usize,
+            max_depth: Option<usize>,
+            colorize: bool,
+            prefix: &str,
+            last_child: bool,
+            parent: Option<&CommutativeParent>,
+        ) -> String {
+            let maybe_colorize = |thing: String, color: Color| {
+                if colorize {
+                    color.paint(thing).to_string()
+                } else {
+                    thing
+                }
+            };
+            if max_depth == Some(depth) {
+                return String::new();
+            }
+
+            let num_children = node.children.len();
+            let next_parent = node.commutative_parent_definition();
+
+            let tree_sym = if last_child { "└" } else { "├" };
+
+            let escape_whitespace = |string: &str| string.replace('\n', "\\n").replace('\t', "\\t");
+
+            let key = if let Some(key) = node.field_name {
+                format!("{key}: ")
+            } else {
+                String::new()
+            };
+
+            let escaped_kind = escape_whitespace(node.kind);
+            let kind = if node.source != node.kind {
+                escaped_kind
+            } else {
+                maybe_colorize(escaped_kind, Color::Red)
+            };
+
+            let source = if num_children == 0 && node.source != node.kind {
+                format!(
+                    " {}",
+                    maybe_colorize(escape_whitespace(node.source), Color::Red)
+                )
+            } else {
+                String::new()
+            };
+
+            let commutative = if next_parent.is_some() {
+                maybe_colorize(" Commutative".to_string(), Color::LightPurple)
+            } else {
+                String::new()
+            };
+
+            let sig = if parent.is_some()
+                && let Some(sig) = node.signature()
+            {
+                format!(" {}", maybe_colorize(sig.to_string(), Color::LightCyan))
+            } else {
+                String::new()
+            };
+
+            std::iter::once(format!(
+                "{prefix}{tree_sym}{key}{reset}{kind}{source}{commutative}{sig}\n",
+                reset = if colorize { "\x1b[0m" } else { "" }
+            ))
+            .chain(
+                node.children
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, child)| child.kind != "@virtual_line@")
+                    .map(|(index, child)| {
+                        let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
+                        internal_ascii_tree(
+                            child,
+                            depth + 1,
+                            max_depth,
+                            colorize,
+                            &new_prefix,
+                            index == num_children - 1,
+                            next_parent,
+                        )
+                    }),
+            )
+            .collect()
+        }
+        let prefix = Color::DarkGray.prefix().to_string();
+        internal_ascii_tree(
+            self,
             0,
             max_depth,
-            &Color::DarkGray.prefix().to_string(),
+            colorize,
+            if colorize { &prefix } else { "" },
             true,
             None,
         )
-    }
-
-    fn internal_ascii_tree(
-        &'a self,
-        depth: usize,
-        max_depth: Option<usize>,
-        prefix: &str,
-        last_child: bool,
-        parent: Option<&CommutativeParent>,
-    ) -> String {
-        if max_depth == Some(depth) {
-            return String::new();
-        }
-
-        let num_children = self.children.len();
-        let next_parent = self.commutative_parent_definition();
-
-        let tree_sym = if last_child { "└" } else { "├" };
-
-        let escape_whitespace = |string: &str| string.replace('\n', "\\n").replace('\t', "\\t");
-
-        let key = if let Some(key) = self.field_name {
-            format!("{key}: ")
-        } else {
-            String::new()
-        };
-
-        let escaped_kind = escape_whitespace(self.kind);
-        let kind = if self.source != self.kind {
-            escaped_kind
-        } else {
-            Color::Red.paint(escaped_kind).to_string()
-        };
-
-        let source = if num_children == 0 && self.source != self.kind {
-            format!(" {}", Color::Red.paint(escape_whitespace(self.source)))
-        } else {
-            String::new()
-        };
-
-        let commutative = if next_parent.is_some() {
-            Color::LightPurple.paint(" Commutative").to_string()
-        } else {
-            String::new()
-        };
-
-        let sig = if parent.is_some()
-            && let Some(sig) = self.signature()
-        {
-            format!(" {}", Color::LightCyan.paint(sig.to_string()))
-        } else {
-            String::new()
-        };
-
-        std::iter::once(format!(
-            "{prefix}{tree_sym}{key}\x1b[0m{kind}{source}{commutative}{sig}\n"
-        ))
-        .chain(
-            self.children
-                .iter()
-                .enumerate()
-                .filter(|(_, child)| child.kind != "@virtual_line@")
-                .map(|(index, child)| {
-                    let new_prefix = format!("{prefix}{} ", if last_child { " " } else { "│" });
-                    child.internal_ascii_tree(
-                        depth + 1,
-                        max_depth,
-                        &new_prefix,
-                        index == num_children - 1,
-                        next_parent,
-                    )
-                }),
-        )
-        .collect()
     }
 
     /// Checks if a tree has any signature conflicts in it
@@ -1761,8 +1777,8 @@ mod tests {
 \u{1b}[90m    └\u{1b}[0m\u{1b}[31m}\u{1b}[0m
 ";
 
-        assert_eq!(tree.ascii_tree(None), expected);
-        assert_eq!(tree.ascii_tree(Some(5)), expected);
+        assert_eq!(tree.ascii_tree(None, true), expected);
+        assert_eq!(tree.ascii_tree(Some(5), true), expected);
 
         let expected = "\
 \u{1b}[90m└\u{1b}[0mdocument
@@ -1780,15 +1796,38 @@ mod tests {
 \u{1b}[90m    └\u{1b}[0m\u{1b}[31m}\u{1b}[0m
 ";
 
-        assert_eq!(tree.ascii_tree(Some(4)), expected);
+        assert_eq!(tree.ascii_tree(Some(4), true), expected);
 
         let expected = "\
 \u{1b}[90m└\u{1b}[0mdocument
 ";
 
-        assert_eq!(tree.ascii_tree(Some(1)), expected);
+        assert_eq!(tree.ascii_tree(Some(1), true), expected);
 
-        assert_eq!(tree.ascii_tree(Some(0)), "");
+        assert_eq!(tree.ascii_tree(Some(0), true), "");
+
+        let expected = "\
+└document
+  └object Commutative
+    ├{
+    ├pair Signature [[\"foo\"]]
+    │ ├key: string
+    │ │ ├\"
+    │ │ ├string_content foo
+    │ │ └\"
+    │ ├:
+    │ └value: number 3
+    ├,
+    ├pair Signature [[\"bar\"]]
+    │ ├key: string
+    │ │ ├\"
+    │ │ ├string_content bar
+    │ │ └\"
+    │ ├:
+    │ └value: number 4
+    └}
+";
+        assert_eq!(tree.ascii_tree(None, false), expected);
     }
 
     #[test]

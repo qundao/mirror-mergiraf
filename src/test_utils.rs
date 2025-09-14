@@ -17,6 +17,7 @@ pub fn ctx<'a>() -> TestContext<'a> {
 }
 
 impl<'a> TestContext<'a> {
+    #[track_caller]
     pub fn parse(&'a self, filename: &str, source: &'a str) -> &'a AstNode<'a> {
         let lang_profile =
             LangProfile::detect_from_filename(filename).expect("could not load language profile");

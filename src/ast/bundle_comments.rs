@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use nonempty_collections::{NEVec, nev};
 use typed_arena::Arena;
 
@@ -23,6 +25,20 @@ enum BundlingState<'a> {
     /// // ..more comments
     /// // last comment
     /// ```
+    ///
+    /// NOTE: `non_comment` may be a node that can't be bundled into (e.g. a separator).
+    /// That's required for edges case like:
+    /// ```
+    /// enum Foo {
+    ///     A, // comment
+    ///     B,
+    /// }
+    /// ```
+    /// which have the following conflict:
+    /// - `comment` is closer to the `,` than to `B`
+    /// - but `,` can't be bundled into
+    ///
+    /// And where we therefore want to not bundle `comment` at all.
     BundlingCommentsFromBelow {
         non_comment: &'a AstNode<'a>,
         /// distance between `non_comment` and the first comment
@@ -63,10 +79,8 @@ impl<'a> AstNode<'a> {
                 }
 
                 (BundlingState::SingleNonComment(non_comment), true) => {
-                    if non_comment.can_be_bundled_into(commutative_parent)
-                        && let distance = non_comment.distance_to(node, global_source)
-                        && distance <= 1
-                    {
+                    let distance = non_comment.distance_to(node, global_source);
+                    if distance <= 1 {
                         // ```
                         // non-comment
                         // // node
@@ -179,9 +193,6 @@ impl<'a> AstNode<'a> {
                         // // .. further comments
                         // // node
                         // ```
-                        //
-                        // NOTE: we know that `first_comment` can be bundled with `non-comm`,
-                        // otherwise we wouldn't have ended up in this state
 
                         // Just continue collecting `comments`
                         comments.push(node);
@@ -198,8 +209,6 @@ impl<'a> AstNode<'a> {
                         //
                         // // node
                         // ```
-                        //
-                        // NOTE: see above
 
                         // Bundle existing `comments` into `prev non-comment`, and finalize that
                         new_children.push(Self::bundle_comments_from_below(
@@ -224,71 +233,93 @@ impl<'a> AstNode<'a> {
                     false,
                 ) => {
                     let distance_after = comments.last().distance_to(node, global_source);
-                    if !node.can_be_bundled_into(commutative_parent)
-                        || distance_before < distance_after
-                    {
+                    match (
+                        non_comment.can_be_bundled_into(commutative_parent),
+                        distance_before.cmp(&distance_after),
+                        node.can_be_bundled_into(commutative_parent),
+                    ) {
+                        (true, Ordering::Less, _) => {
+                            // ```
+                            // prev non-comment
+                            // // ..earlier comments
+                            // // last comment
+                            //
+                            // node
+                            // ```
+
+                            // Bundle `comments` into `prev non-comment`, and finalize that
+                            new_children.push(Self::bundle_comments_from_below(
+                                non_comment,
+                                comments,
+                                global_source,
+                                arena,
+                                next_node_id,
+                            ));
+
+                            // Make `node` the `prev non-comment` for the next nodes to look at
+                            state = BundlingState::SingleNonComment(node);
+                        }
+
                         // ```
                         // prev non-comment
                         // // ..earlier comments
                         // // last comment
-                        //
                         // node
                         // ```
                         //
-                        // NOTE: we know that the comments could be bundled with `prev non-comment`,
-                        // otherwise we would've had finalized it
-
-                        // Bundle `comments` into `prev non-comment`, and finalize that
-                        new_children.push(Self::bundle_comments_from_below(
-                            non_comment,
-                            comments,
-                            global_source,
-                            arena,
-                            next_node_id,
-                        ));
-
-                        // Make `node` the `prev non-comment` for the next nodes to look at
-                        state = BundlingState::SingleNonComment(node);
-                    } else if distance_before == distance_after {
+                        // Can't bundle the comments because they touch nodes at either side
+                        (_, Ordering::Equal, _)
                         // ```
-                        // prev non-comment
-                        // // ..earlier comments
-                        // // last comment
+                        // { /* comment */ }
+                        // ```
+                        //
+                        // Can't bundle "up" _or_ "down", because the nodes just can't be bundled into
+                        | (false, _, false)
+                        // ```
+                        // , // comment
                         // node
                         // ```
                         //
-                        // NOTE: see above
-
-                        // The comments can't be bundled because they touch nodes at either side --
-                        // finalize `prev non-comment`, and all the `comments`, separately
-                        new_children.push(non_comment);
-                        new_children.extend(comments);
-
-                        // Make `node` the `prev non-comment` for the next nodes to look at
-                        state = BundlingState::SingleNonComment(node);
-                    } else if distance_before > distance_after {
+                        // Can't bundle "up" because `prev non-comment` can't be bundled into,
+                        // but can't bundle "down" because `node` is further away than `prev non-comment`
+                        | (false, Ordering::Less, true)
                         // ```
                         // prev non-comment
-                        // // ..earlier comments
-                        // /* last comment */ node
+                        // /* comment */ ,
                         // ```
                         //
-                        // NOTE: see above
+                        // Can't bundle "down" because `node` can't be bundled into,
+                        // but can't bundle "up" because `prev non-comment` is further away than `node`
+                        | (true, Ordering::Greater, false)
+                        => {
+                            // finalize `prev non-comment`, and all the `comments`, separately
+                            new_children.push(non_comment);
+                            new_children.extend(comments);
 
-                        // Finalize `prev non-comment`
-                        new_children.push(non_comment);
-                        // Bundle `comments` into `node`, and make that the new `prev non-comment` for the next nodes to look at
-                        state = BundlingState::SingleNonComment(Self::bundle_comments_from_above(
-                            node,
-                            comments,
-                            global_source,
-                            arena,
-                            next_node_id,
-                        ));
-                    } else {
-                        unreachable!(
-                            "checked all 3 orderings of `distance_before` vs `distance_after`"
-                        )
+                            // Make `node` the `prev non-comment` for the next nodes to look at
+                            state = BundlingState::SingleNonComment(node);
+                        }
+                        (_, Ordering::Greater, true) => {
+                            // ```
+                            // prev non-comment
+                            //
+                            // // ..earlier comments
+                            // // last comment
+                            // node
+                            // ```
+
+                            // Finalize `prev non-comment`
+                            new_children.push(non_comment);
+                            // Bundle `comments` into `node`, and make that the new `prev non-comment` for the next nodes to look at
+                            state =
+                                BundlingState::SingleNonComment(Self::bundle_comments_from_above(
+                                    node,
+                                    comments,
+                                    global_source,
+                                    arena,
+                                    next_node_id,
+                                ));
+                        }
                     }
                 }
             }
@@ -483,7 +514,6 @@ impl<'a> AstNode<'a> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::test_utils::ctx;
 
     #[test]
@@ -514,30 +544,24 @@ mod test {
         test!(not "fn function1() {} \n\n fn function2() {}");
     }
 
-    #[track_caller]
-    fn assert_n_children<'a>(node: &'a AstNode<'a>, n: usize) {
-        assert_eq!(node.children.len(), n, "\n{}", node.ascii_tree(None));
-    }
-
     #[test]
     fn it_works() {
         let ctx = ctx();
         let source = "
 // this is a comment
-fn foo() {}
+mod foo;
 ";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 1);
-        let function = rs[0];
-        // between the start of the comment, and the end of the function
-        assert_eq!(function.source, "// this is a comment\nfn foo() {}");
-        assert_n_children(function, 5);
-        let &[comment, _fn, _name, _params, _body] = &function.children[..] else {
-            unreachable!()
-        };
-        assert_eq!(comment.kind, "line_comment");
-        assert_eq!(comment.source, "// this is a comment");
+        let expected = "\
+└source_file Commutative
+  └mod_item Signature [[foo]]
+    ├line_comment // this is a comment
+    ├mod
+    ├name: identifier foo
+    └;
+";
+        assert_eq!(rs.ascii_tree(Some(3), false), expected);
     }
 
     #[test]
@@ -545,38 +569,39 @@ fn foo() {}
         let ctx = ctx();
         let source = "
 // this is a comment
-fn foo() {
-    let _ = 0;
+mod foo {
+    mod bar;
 }
 ";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 1);
-        let function = rs[0];
-        // between the start of the comment, and the end of the function
-        assert_eq!(
-            function.source,
-            "// this is a comment\nfn foo() {\n    let _ = 0;\n}"
-        );
-        assert_n_children(function, 5);
-        let &[comment, _fn, _name, _params, _body] = &function.children[..] else {
-            unreachable!()
-        };
-        assert_eq!(comment.kind, "line_comment");
-        assert_eq!(comment.source, "// this is a comment");
+        let expected = "\
+└source_file Commutative
+  └mod_item Signature [[foo]]
+    ├line_comment // this is a comment
+    ├mod
+    ├name: identifier foo
+    └body: declaration_list Commutative
+";
+        assert_eq!(rs.ascii_tree(Some(3), false), expected);
     }
 
     #[test]
     fn dont_bundle_into_delims() {
         let ctx = ctx();
-        let source = "fn test(/* this is a comment */) {}";
+        let source = "(/* this is a comment */);";
         let rs = ctx.parse("a.rs", source);
 
-        let tup = rs[0][2];
-        assert_n_children(tup, 3);
-        let comment = tup[1];
-        assert_eq!(comment.kind, "block_comment");
-        assert_eq!(comment.source, "/* this is a comment */");
+        let expected = "\
+└source_file Commutative
+  └expression_statement
+    ├unit_expression
+    │ ├(
+    │ ├block_comment /* this is a comment */
+    │ └)
+    └;
+";
+        assert_eq!(rs.ascii_tree(Some(4), false), expected);
     }
 
     #[test]
@@ -584,31 +609,24 @@ fn foo() {
         let ctx = ctx();
         let source = "
 // this is a comment
-fn foo() {
+mod foo {
     // this is inner comment
 }
 ";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 1);
-        let function = rs[0];
-        // between the start of the comment, and the end of the function
-        assert_eq!(
-            function.source,
-            "// this is a comment\nfn foo() {\n    // this is inner comment\n}"
-        );
-        assert_n_children(function, 5);
-        let &[comment, _fn, _name, _params, body] = &function.children[..] else {
-            unreachable!()
-        };
-        assert_eq!(comment.kind, "line_comment");
-        assert_eq!(comment.source, "// this is a comment");
-        assert_eq!(body.children.len(), 3, "\n{}", body.ascii_tree(None));
-        let [_brace1, inner_comment, _brace2] = &body[..] else {
-            unreachable!()
-        };
-        assert_eq!(inner_comment.kind, "line_comment");
-        assert_eq!(inner_comment.source, "// this is inner comment");
+        let expected = "\
+└source_file Commutative
+  └mod_item Signature [[foo]]
+    ├line_comment // this is a comment
+    ├mod
+    ├name: identifier foo
+    └body: declaration_list Commutative
+      ├{
+      ├line_comment // this is inner comment
+      └}
+";
+        assert_eq!(rs.ascii_tree(Some(4), false), expected);
     }
 
     #[test]
@@ -618,28 +636,21 @@ fn foo() {
 // line 1
 // line 2
 // line 3
-fn foo() {}
+mod foo;
 ";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 1);
-        let function = rs[0];
-        // between the start of the first comment, and the end of the function
-        assert_eq!(
-            function.source,
-            "// line 1\n// line 2\n// line 3\nfn foo() {}"
-        );
-        assert_n_children(function, 7);
-        let &[line1, line2, line3, _paren1, _paren2, _brace1, _brace2] = &function.children[..]
-        else {
-            unreachable!()
-        };
-        assert_eq!(line1.kind, "line_comment");
-        assert_eq!(line1.source, "// line 1");
-        assert_eq!(line2.kind, "line_comment");
-        assert_eq!(line2.source, "// line 2");
-        assert_eq!(line2.kind, "line_comment");
-        assert_eq!(line3.source, "// line 3");
+        let expected = "\
+└source_file Commutative
+  └mod_item Signature [[foo]]
+    ├line_comment // line 1
+    ├line_comment // line 2
+    ├line_comment // line 3
+    ├mod
+    ├name: identifier foo
+    └;
+";
+        assert_eq!(rs.ascii_tree(Some(4), false), expected);
     }
 
     #[test]
@@ -650,28 +661,21 @@ fn foo() {}
 /* line 2
  * continuation of line 2 */
 // line 3
-fn foo() {}
+mod foo;
 ";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 1);
-        let function = rs[0];
-        // between the start of the first comment, and the end of the function
-        assert_eq!(
-            function.source,
-            "// line 1\n/* line 2\n * continuation of line 2 */\n// line 3\nfn foo() {}"
-        );
-        assert_n_children(function, 7);
-        let &[line1, line2, line3, _paren1, _paren2, _brace1, _brace2] = &function.children[..]
-        else {
-            unreachable!()
-        };
-        assert_eq!(line1.kind, "line_comment");
-        assert_eq!(line1.source, "// line 1");
-        assert_eq!(line2.kind, "block_comment");
-        assert_eq!(line2.source, "/* line 2\n * continuation of line 2 */");
-        assert_eq!(line3.kind, "line_comment");
-        assert_eq!(line3.source, "// line 3");
+        let expected = "\
+└source_file Commutative
+  └mod_item Signature [[foo]]
+    ├line_comment // line 1
+    ├block_comment
+    ├line_comment // line 3
+    ├mod
+    ├name: identifier foo
+    └;
+";
+        assert_eq!(rs.ascii_tree(Some(4), false), expected);
     }
 
     // doubles as a test for everything for comments bundled from below
@@ -681,8 +685,8 @@ fn foo() {}
         let source = "
 // line 1 above
 // line 2 above
-fn foo() {
-    let _ = 0;
+mod foo {
+    mod bar;
 }
 // line 1 below
 /* line 2 below
@@ -691,200 +695,525 @@ fn foo() {
 ";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 1);
-        let function = rs[0];
-        // between the start of the first comment, and the end of the last comment
-        assert_eq!(
-            function.source,
-            "// line 1 above\n// line 2 above\nfn foo() {\n    let _ = 0;\n}\n// line 1 below\n/* line 2 below\n * continuation of line 2 below */\n// line 3 below"
-        );
-        assert_n_children(function, 9);
-        let &[
-            comment1_above,
-            comment2_above,
-            _fn,
-            _name,
-            _params,
-            _body,
-            comment1_below,
-            comment2_below,
-            comment3_below,
-        ] = &function.children[..]
-        else {
-            unreachable!()
-        };
-        assert_eq!(comment1_above.kind, "line_comment");
-        assert_eq!(comment1_above.source, "// line 1 above");
-        assert_eq!(comment2_above.kind, "line_comment");
-        assert_eq!(comment2_above.source, "// line 2 above");
-
-        assert_eq!(comment1_below.kind, "line_comment");
-        assert_eq!(comment1_below.source, "// line 1 below");
-        assert_eq!(comment2_below.kind, "block_comment");
-        #[rustfmt::skip]
-        assert_eq!(comment2_below.source, "/* line 2 below\n * continuation of line 2 below */");
-        assert_eq!(comment3_below.kind, "line_comment");
-        assert_eq!(comment3_below.source, "// line 3 below");
+        let expected = "\
+└source_file Commutative
+  └mod_item Signature [[foo]]
+    ├line_comment // line 1 above
+    ├line_comment // line 2 above
+    ├mod
+    ├name: identifier foo
+    ├body: declaration_list Commutative
+    │ ├{
+    │ ├mod_item Signature [[bar]]
+    │ └}
+    ├line_comment // line 1 below
+    ├block_comment
+    └line_comment // line 3 below
+";
+        assert_eq!(rs.ascii_tree(Some(4), false), expected);
     }
 
     mod affinities {
         use super::*;
 
-        #[test]
-        fn both_too_far() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {}
+        mod node_node {
+            use super::*;
+
+            const BUNDLED_INTO_ABOVE: &str = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├mod
+  │ ├name: identifier foo
+  │ ├;
+  │ └line_comment // comment below
+  └mod_item Signature [[bar]]
+    ├mod
+    ├name: identifier bar
+    └;
+";
+
+            #[test]
+            // don't bundle -- both too far
+            fn node_2_comment_2_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo;
 
 // lonely comment :(
 
-fn bar() {}";
-            let rs = ctx.parse("a.rs", source);
+mod bar;";
+                let rs = ctx.parse("a.rs", source);
 
-            assert_n_children(rs, 3);
-            let &[foo, comment, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_n_children(foo, 4); // regular number of children of a `function_item`
-            assert_eq!(comment.kind, "line_comment");
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 4); // regular number of children of a `function_item`
-        }
+                let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  ├line_comment // lonely comment :(
+  └mod_item Signature [[bar]]
+";
+                assert_eq!(rs.ascii_tree(Some(2), false), expected);
+            }
 
-        #[test]
-        fn bundle_with_above() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {}
+            #[test]
+            fn node_1_comment_2_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo;
 // comment below
 
-fn bar() {}";
-            let rs = ctx.parse("a.rs", source);
+mod bar;";
+                let rs = ctx.parse("a.rs", source);
 
-            assert_n_children(rs, 2);
-            let &[foo, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_n_children(foo, 5);
-            let &[_fn, _name, _params, _body, comment] = &foo.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_eq!(comment.kind, "line_comment");
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 4); // regular number of children of a `function_item`
-        }
+                assert_eq!(rs.ascii_tree(Some(3), false), BUNDLED_INTO_ABOVE);
+            }
 
-        #[test]
-        fn bundle_with_below() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {}
+            #[test]
+            // bundle into below
+            fn node_2_comment_1_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo;
 
 // comment above
-fn bar() {}";
+mod bar;";
+                let rs = ctx.parse("a.rs", source);
 
-            let rs = ctx.parse("a.rs", source);
+                let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├mod
+  │ ├name: identifier foo
+  │ └;
+  └mod_item Signature [[bar]]
+    ├line_comment // comment above
+    ├mod
+    ├name: identifier bar
+    └;
+";
+                assert_eq!(rs.ascii_tree(Some(4), false), expected);
+            }
 
-            assert_n_children(rs, 2);
-            let &[foo, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_n_children(foo, 4); // regular number of children of a `function_item`
-
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 5);
-            let &[comment, _fn, _name, _params, _body] = &bar.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(comment.kind, "line_comment");
-        }
-
-        #[test]
-        fn both_too_close() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {}
+            #[test]
+            // don't bundle -- same distance
+            fn node_1_comment_1_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo;
 // Buridan's comment
-fn bar() {}";
+mod bar;";
+                let rs = ctx.parse("a.rs", source);
 
-            let rs = ctx.parse("a.rs", source);
-            assert_n_children(rs, 3);
-            let &[foo, comment, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_n_children(foo, 4); // regular number of children of a `function_item`
-            assert_eq!(comment.kind, "line_comment");
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 4); // regular number of children of a `function_item`
+                let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  ├line_comment // Buridan's comment
+  └mod_item Signature [[bar]]
+";
+                assert_eq!(rs.ascii_tree(Some(2), false), expected);
+            }
+
+            #[test]
+            fn node_0_comment_1_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo; // comment below
+mod bar;";
+                let rs = ctx.parse("a.rs", source);
+
+                assert_eq!(rs.ascii_tree(Some(4), false), BUNDLED_INTO_ABOVE);
+            }
+
+            #[test]
+            // bundle into below
+            fn node_1_comment_0_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo;
+/* comment above */ mod bar;";
+                let rs = ctx.parse("a.rs", source);
+
+                let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├mod
+  │ ├name: identifier foo
+  │ └;
+  └mod_item Signature [[bar]]
+    ├block_comment /* comment above */
+    ├mod
+    ├name: identifier bar
+    └;
+";
+                assert_eq!(rs.ascii_tree(Some(4), false), expected);
+            }
+
+            #[test]
+            // don't bundle
+            fn node_0_comment_0_node() {
+                let ctx = ctx();
+                let source = "\
+mod foo; /* Buridan's comment */ mod bar;";
+                let rs = ctx.parse("a.rs", source);
+
+                let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  ├block_comment /* Buridan's comment */
+  └mod_item Signature [[bar]]
+";
+                assert_eq!(rs.ascii_tree(Some(2), false), expected);
+            }
         }
 
-        #[test]
-        fn bundle_with_above_same_line() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {} // comment below
-fn bar() {}";
-            let rs = ctx.parse("a.rs", source);
+        mod sep_node {
+            use super::*;
 
-            assert_n_children(rs, 2);
-            let &[foo, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_eq!(foo.source, "fn foo() {} // comment below");
-            assert_n_children(foo, 5);
-            let &[_fn, _name, _params, _body, comment] = &foo.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(comment.kind, "line_comment");
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 4); // regular number of children of a `function_item`
+            const UNBUNDLED: &str = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      ├,
+      ├line_comment // comment
+      ├enum_variant Signature [[B]]
+      └}
+";
+            const BUNDLED_INTO_BELOW: &str = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      │ └name: identifier A
+      ├,
+      ├enum_variant Signature [[B]]
+      │ ├line_comment // comment
+      │ └name: identifier B
+      └}
+";
+
+            #[test]
+            fn sep_2_comment_2_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A,
+
+    // comment
+
+    B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            fn sep_1_comment_2_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A,
+    // comment
+
+    B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            fn sep_2_comment_1_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A,
+
+    // comment
+    B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(5), false), BUNDLED_INTO_BELOW);
+            }
+
+            #[test]
+            // don't bundle -- same distance
+            fn sep_1_comment_1_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A,
+    // comment
+    B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            fn sep_0_comment_1_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A, // comment
+    B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            // bundle into below
+            fn sep_1_comment_0_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A,
+    /* comment */ B
+}";
+
+                let rs = ctx.parse("a.rs", source);
+
+                let expected = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      │ └name: identifier A
+      ├,
+      ├enum_variant Signature [[B]]
+      │ ├block_comment /* comment */
+      │ └name: identifier B
+      └}
+";
+                assert_eq!(rs.ascii_tree(Some(5), false), expected);
+            }
+
+            #[test]
+            // don't bundle
+            fn sep_0_comment_0_node() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A, /* comment */ B
+}";
+                let rs = ctx.parse("a.rs", source);
+
+                let expected = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      ├,
+      ├block_comment /* comment */
+      ├enum_variant Signature [[B]]
+      └}
+";
+                assert_eq!(rs.ascii_tree(Some(4), false), expected);
+            }
         }
 
-        #[test]
-        fn bundle_with_below_same_line() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {}
-/* comment above */ fn bar() {}";
+        mod node_sep {
+            use super::*;
 
-            let rs = ctx.parse("a.rs", source);
+            const BUNDLED_INTO_ABOVE: &str = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      │ ├name: identifier A
+      │ └line_comment // comment
+      ├,
+      ├enum_variant Signature [[B]]
+      │ └name: identifier B
+      └}
+";
+            const UNBUNDLED: &str = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      ├line_comment // comment
+      ├,
+      ├enum_variant Signature [[B]]
+      └}
+";
 
-            assert_n_children(rs, 2);
-            let &[foo, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_n_children(foo, 4); // regular number of children of a `function_item`
+            #[test]
+            fn node_2_comment_2_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A
 
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 5);
-            let &[comment, _fn, _name, _params, _body] = &bar.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(comment.kind, "block_comment");
+    // comment
+
+    , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            fn node_1_comment_2_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A
+    // comment
+
+    , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(5), false), BUNDLED_INTO_ABOVE);
+            }
+
+            #[test]
+            fn node_2_comment_1_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A
+
+    // comment
+    , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            // don't bundle -- same distance
+            fn node_1_comment_1_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A
+    // comment
+    , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+            }
+
+            #[test]
+            fn node_0_comment_1_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A // comment
+    , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(5), false), BUNDLED_INTO_ABOVE);
+            }
+
+            const UNBUNDLED_SAME_LINE: &str = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├enum_variant Signature [[A]]
+      ├block_comment /* comment */
+      ├,
+      ├enum_variant Signature [[B]]
+      └}
+";
+            #[test]
+            fn node_1_comment_0_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A
+    /* comment */ , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED_SAME_LINE);
+            }
+
+            #[test]
+            // don't bundle -- same distance
+            fn node_0_comment_0_sep() {
+                let ctx = ctx();
+                let source = "\
+enum Foo {
+    A /* comment */ , B
+}";
+                let rs = ctx.parse("a.rs", source);
+                assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED_SAME_LINE);
+            }
         }
 
-        #[test]
-        fn both_too_close_same_line() {
-            let ctx = ctx();
-            let source = "\
-fn foo() {} /* Buridan's comment */ fn bar() {}";
+        mod sep_sep {
+            use super::*;
 
-            let rs = ctx.parse("a.rs", source);
-            assert_n_children(rs, 3);
-            let &[foo, comment, bar] = &rs.children[..] else {
-                unreachable!()
-            };
-            assert_eq!(foo.kind, "function_item");
-            assert_n_children(foo, 4); // regular number of children of a `function_item`
-            assert_eq!(comment.kind, "block_comment");
-            assert_eq!(bar.kind, "function_item");
-            assert_n_children(bar, 4); // regular number of children of a `function_item`
+            const UNBUNDLED: &str = "\
+└source_file Commutative
+  └enum_item Signature [[Foo]]
+    ├enum
+    ├name: type_identifier Foo
+    └body: enum_variant_list Commutative
+      ├{
+      ├block_comment /* comment */
+      └}
+";
+            #[test]
+            fn its_all_the_same() {
+                let ctx = ctx();
+
+                let sources = [
+                    "\
+enum Foo {
+
+    /* comment */
+
+}",
+                    "\
+enum Foo {
+    /* comment */
+
+}",
+                    "\
+enum Foo {
+
+/* comment */
+}",
+                    "\
+enum Foo {
+/* comment */
+}",
+                    "\
+enum Foo { /* comment */
+}",
+                    "\
+enum Foo {
+/* comment */ }",
+                    "\
+enum Foo { /* comment */ }",
+                ];
+
+                for source in sources {
+                    let rs = ctx.parse("a.rs", source);
+                    assert_eq!(rs.ascii_tree(Some(4), false), UNBUNDLED);
+                }
+            }
         }
     }
 
@@ -895,51 +1224,43 @@ fn foo() {} /* Buridan's comment */ fn bar() {}";
         let ctx = ctx();
         let source = "\
 // comment above
-fn foo() {}
+mod foo;
 
 // another comment";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 2);
-        let &[foo_w_comment, another_comment] = &rs.children[..] else {
-            unreachable!()
-        };
-        assert_n_children(foo_w_comment, 5);
-        let &[comment_above, _fn, _name, _params, _body] = &foo_w_comment[..] else {
-            unreachable!()
-        };
-        assert_eq!(comment_above.kind, "line_comment");
-        assert_eq!(comment_above.source, "// comment above");
-        assert_eq!(foo_w_comment.kind, "function_item");
-
-        assert_eq!(another_comment.kind, "line_comment");
-        assert_eq!(another_comment.source, "// another comment");
+        let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├line_comment // comment above
+  │ ├mod
+  │ ├name: identifier foo
+  │ └;
+  └line_comment // another comment
+";
+        assert_eq!(rs.ascii_tree(Some(3), false), expected);
     }
 
     #[test]
     fn node_comment_newline_comment() {
         let ctx = ctx();
         let source = "\
-fn foo() {}
+mod foo;
 // comment below
 
 // another comment";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 2);
-        let &[foo_w_comment, another_comment] = &rs.children[..] else {
-            unreachable!()
-        };
-        assert_n_children(foo_w_comment, 5);
-        let &[_fn, _name, _params, _body, comment_below] = &foo_w_comment[..] else {
-            unreachable!()
-        };
-        assert_eq!(foo_w_comment.kind, "function_item");
-        assert_eq!(comment_below.kind, "line_comment");
-        assert_eq!(comment_below.source, "// comment below");
-
-        assert_eq!(another_comment.kind, "line_comment");
-        assert_eq!(another_comment.source, "// another comment");
+        let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├mod
+  │ ├name: identifier foo
+  │ ├;
+  │ └line_comment // comment below
+  └line_comment // another comment
+";
+        assert_eq!(rs.ascii_tree(Some(3), false), expected);
     }
 
     #[test]
@@ -947,29 +1268,23 @@ fn foo() {}
         let ctx = ctx();
         let source = "\
 // comment above
-fn foo() {}
+mod foo;
 // comment below
 
 // another comment";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 2);
-        let &[foo_w_comments, another_comment] = &rs.children[..] else {
-            unreachable!()
-        };
-        assert_n_children(foo_w_comments, 6);
-        let &[comment_above, _fn, _name, _params, _body, comment_below] = &foo_w_comments[..]
-        else {
-            unreachable!()
-        };
-        assert_eq!(comment_above.kind, "line_comment");
-        assert_eq!(comment_above.source, "// comment above");
-        assert_eq!(foo_w_comments.kind, "function_item");
-        assert_eq!(comment_below.kind, "line_comment");
-        assert_eq!(comment_below.source, "// comment below");
-
-        assert_eq!(another_comment.kind, "line_comment");
-        assert_eq!(another_comment.source, "// another comment");
+        let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├line_comment // comment above
+  │ ├mod
+  │ ├name: identifier foo
+  │ ├;
+  │ └line_comment // comment below
+  └line_comment // another comment
+";
+        assert_eq!(rs.ascii_tree(Some(3), false), expected);
     }
 
     #[test]
@@ -977,27 +1292,25 @@ fn foo() {}
         let ctx = ctx();
         let source = "\
 // comment above
-fn foo() {}
+mod foo;
 // comment below
 
-fn bar() {}";
+mod bar;";
         let rs = ctx.parse("a.rs", source);
 
-        assert_n_children(rs, 2);
-        let &[foo_w_comments, bar] = &rs.children[..] else {
-            unreachable!()
-        };
-        assert_n_children(foo_w_comments, 6);
-        let &[comment_above, _fn, _name, _params, _body, comment_below] = &foo_w_comments[..]
-        else {
-            unreachable!()
-        };
-        assert_eq!(comment_above.kind, "line_comment");
-        assert_eq!(comment_above.source, "// comment above");
-        assert_eq!(foo_w_comments.kind, "function_item");
-        assert_eq!(comment_below.kind, "line_comment");
-        assert_eq!(comment_below.source, "// comment below");
-
-        assert_eq!(bar.kind, "function_item");
+        let expected = "\
+└source_file Commutative
+  ├mod_item Signature [[foo]]
+  │ ├line_comment // comment above
+  │ ├mod
+  │ ├name: identifier foo
+  │ ├;
+  │ └line_comment // comment below
+  └mod_item Signature [[bar]]
+    ├mod
+    ├name: identifier bar
+    └;
+";
+        assert_eq!(rs.ascii_tree(Some(3), false), expected);
     }
 }

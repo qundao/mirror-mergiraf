@@ -112,7 +112,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             let tree = AstNode::parse(&contents, lang_profile, &arena, &ref_arena)
                 .map_err(|err| format!("File has parse errors: {err}"))?;
 
-            print!("{}", tree.ascii_tree(*max_depth));
+            print!("{}", tree.ascii_tree(*max_depth, true));
             0
         }
         Command::Compare {
