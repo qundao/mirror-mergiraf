@@ -651,9 +651,9 @@ mod tests {
             write!(
                 &mut attrfile,
                 concat!(
-                    "*.bogus    mergiraf.language=bogus\n",
-                    "*.js       mergiraf.language=javascript\n",
-                    "*.myjs     mergiraf.language=javascript\n",
+                    "*.bogus    linguist-language=bogus\n",
+                    "*.js       linguist-language=javascript\n",
+                    "*.myjs     linguist-language=javascript\n",
                 ),
             )
             .unwrap();

@@ -119,6 +119,6 @@ pub(crate) fn read_lang_attribute(repo_dir: &Path, file_name: &Path) -> Option<S
     // TODO: potentially the `read_attribute_for_file` could expose attribute values
     // in a more structured way, for instance with an enum which picks out those specific variants
     // to be excluded.
-    read_attribute_for_file(repo_dir, file_name, "mergiraf.language")
+    read_attribute_for_file(repo_dir, file_name, "linguist-language")
         .filter(|value| value != "unspecified" && value != "set" && value != "unset")
 }

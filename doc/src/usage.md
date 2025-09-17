@@ -109,9 +109,9 @@ This will fall back on Git's regular merge heuristics, without requiring changes
 If `mergiraf` does not recognize your file's language by extension, you can use the `--language` option (short: `-L`) to specify the language of the files to merge.
 It accepts both file extensions (`--language js`) and language names (`--language javascript`), as specified in the list of [supported languages](./languages.md).
 
-Another option is to set the `mergiraf.language` attribute in a `gitattributes` file, making it possible to associate a specific language to all file paths matching a pattern:
+Another option is to set the `linguist-language` attribute in a `gitattributes` file, making it possible to associate a specific language to all file paths matching a pattern:
 ```
-*.myjs  mergiraf.language=javascript
+*.myjs  linguist-language=javascript
 ```
 
 #### Reporting a bad merge
