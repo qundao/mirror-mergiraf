@@ -106,7 +106,10 @@ impl LangProfile {
         git::read_lang_attribute(repo_dir, filename.as_ref())
     }
 
-    /// Loads a language either by name or by detecting it from a filename
+    /// Loads a language, by:
+    /// - first, looking up the language using its name if provided
+    /// - failing that, by detecting it via configuration from the gitattributes file
+    /// - failing that, by detecting it from a filename
     pub fn find<P>(
         filename: P,
         language_name: Option<&str>,
