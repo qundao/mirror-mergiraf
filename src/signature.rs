@@ -537,7 +537,7 @@ mod tests {
 
         let tree_python = ctx.parse("a.py", "foo()");
         let tree_java = ctx.parse("a.java", "foo();");
-        let args_python = tree_python[0][0][1];
+        let args_python = tree_python[0][1];
         let args_java = tree_java[0][0][1];
 
         // those nodes would satisfy all other conditions to be isomorphic…

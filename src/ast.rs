@@ -1391,7 +1391,7 @@ mod tests {
 
         let tree_python = ctx.parse("a.py", "foo()");
         let tree_java = ctx.parse("a.java", "foo();");
-        let arguments_python = tree_python[0][0][1];
+        let arguments_python = tree_python[0][1];
         let arguments_java = tree_java[0][0][1];
 
         // those nodes would satisfy all other conditions to be isomorphic…
@@ -2040,8 +2040,8 @@ other = [ 1, 2 ]
 ";
         let python = ctx.parse("a.py", source);
 
-        let first_list = python[0][0][2];
-        let second_list = python[1][0][2];
+        let first_list = python[0][2];
+        let second_list = python[1][2];
         assert_eq!(first_list.kind, "list");
         assert_eq!(second_list.kind, "list");
 

@@ -31,6 +31,10 @@ pub struct LangProfile {
     pub injections: Option<&'static str>,
     /// List of node types that should be flattened
     pub flattened_nodes: &'static [&'static str],
+    /// List of node types that should be treated like comments,
+    /// meaning that they can be bundled into neighbouring nodes to ease commutative merging.
+    /// Nodes that are already `extra` in the tree-sitter grammar don't need to be added here.
+    pub comment_nodes: &'static [&'static str],
 }
 
 impl PartialEq for LangProfile {
@@ -320,6 +324,27 @@ impl CommutativeParent {
             separator,
             left_delim: Some(left_delim),
             right_delim: Some(right_delim),
+            children_groups: Vec::new(),
+        }
+    }
+
+    /// Short-hand function to create a commutative parent with delimiters and separator, with the
+    /// parent node specified using a tree-sitter query
+    ///
+    /// See [`ParentType::ByQuery`] for more information
+    pub(crate) fn from_query_without_delimiters(
+        query: &'static str,
+        separator: &'static str,
+    ) -> Self {
+        debug_assert!(
+            query.contains("@commutative"),
+            "A '@commutative' capture is needed to identify which of the captured nodes is commutative, in query '{query:?}'",
+        );
+        Self {
+            parent_type: ParentType::ByQuery(query),
+            separator,
+            left_delim: None,
+            right_delim: None,
             children_groups: Vec::new(),
         }
     }
