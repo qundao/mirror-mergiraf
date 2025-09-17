@@ -60,11 +60,6 @@ $ mergiraf languages --gitattributes
 
 If you want to enable Mergiraf only in a certain repository, add the lines above in the `.gitattributes` file at the root of that repository instead, or in `.git/info/attributes` if you don't want it to be tracked in the repository.
 
-If `mergiraf` does not recognize your file's language by extension, you may set the `mergiraf.language` attribute on the file to specify it manually:
-```
-*.myjs  mergiraf.language=javascript
-```
-
 #### Trying it out
 
 An [example repository](https://codeberg.org/mergiraf/example-repo) is available for you to try out Mergiraf on simple examples:
@@ -111,9 +106,13 @@ This will fall back on Git's regular merge heuristics, without requiring changes
 
 #### Manually specifying the file's language
 
-You can use the `--language` option (short: `-L`) to specify the language of the files to merge.
+If `mergiraf` does not recognize your file's language by extension, you can use the `--language` option (short: `-L`) to specify the language of the files to merge.
 It accepts both file extensions (`--language js`) and language names (`--language javascript`), as specified in the list of [supported languages](./languages.md).
-This will override the language detection done by Mergiraf, which is currently based on file extensions only. 
+
+Another option is to set the `mergiraf.language` attribute in a `gitattributes` file, making it possible to associate a specific language to all file paths matching a pattern:
+```
+*.myjs  mergiraf.language=javascript
+```
 
 #### Reporting a bad merge
 
