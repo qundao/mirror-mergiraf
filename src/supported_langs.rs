@@ -609,7 +609,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::without_delimiters("table", "\n"),
                 CommutativeParent::new("inline_table", "{", ", ", "}"),
                 // Make certain pyproject-specific attributes commutative.
-                // In the interest of having a single query, we don't make a difference between the
+                // In the interest of having a simpler query, we don't make a difference between the
                 // tables in which the fields listed below belong, but strictly speaking only
                 // "requires" belongs to the "build-system" one, and all others to the "project"
                 // one. What's important is that other attributes from tool tables aren't made
@@ -622,14 +622,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
    		(bare_key) @pair_key (#any-of? @pair_key "requires" "license-files" "authors" "maintainers" "keywords" "classifiers" "dependencies" "dynamic")
         (array) @commutative
    )
-)"#,
-                    "[",
-                    ", ",
-                    "]",
-                ),
-                // Also support optional dependencies
-                CommutativeParent::from_query(
-                    r#"(table
+)
+
+; Optional dependencies expressed as regular key-value pairs
+(table
   (dotted_key
     (bare_key) @project (#eq? @project "project")
     (bare_key) @deps (#eq? @deps "optional-dependencies")
@@ -638,14 +634,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
     (bare_key)
     (array) @commutative
   )
-)"#,
-                    "[",
-                    ", ",
-                    "]",
-                ),
-                // and also when they are formulated as inline tables
-                CommutativeParent::from_query(
-                    r#"(table
+)
+
+; Optional dependencies expressed as inline tables
+(table
   (bare_key) @table_key (#eq? @table_key "project")
   (pair
     (bare_key) @pair_key (#eq? @pair_key "optional-dependencies")
