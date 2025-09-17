@@ -124,8 +124,8 @@ impl LangProfile {
                 .ok_or_else(|| format!("Specified language '{lang_name}' could not be found"))
             // If lookup by name failed, we don't fall back on the other detection methods,
             // because don't want to silently ignore an invalid language name.
-        } else if let Some(lang_name) =
-            repo_dir.and_then(|repo_dir| Self::detect_language_from_vcs_attr(repo_dir, filename))
+        } else if let Some(repo_dir) = repo_dir
+            && let Some(lang_name) = Self::detect_language_from_vcs_attr(repo_dir, filename)
         {
             Self::find_by_name(&lang_name).ok_or_else(|| {
                 format!("Attribute-specified language '{lang_name}' could not be found")
