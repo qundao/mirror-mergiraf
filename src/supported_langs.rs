@@ -438,7 +438,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "go.mod",
-            alternate_names: &[],
+            alternate_names: &["Go module", "go mod"],
             extensions: vec![],
             file_names: vec!["go.mod"],
             language: tree_sitter_gomod_orchard::LANGUAGE.into(),
@@ -511,9 +511,9 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "go.sum",
-            alternate_names: &[],
+            alternate_names: &["Go checksums"],
             extensions: vec![],
-            file_names: vec!["go.sum"],
+            file_names: vec!["go.sum", "go.work.sum"],
             language: tree_sitter_gosum_orchard::LANGUAGE.into(),
             atomic_nodes: vec![],
             commutative_parents: vec![
@@ -765,7 +765,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "C#",
-            alternate_names: &["CSharp"],
+            alternate_names: &["CSharp", "cake", "cakescript"],
             extensions: vec!["cs"],
             file_names: vec![],
             language: tree_sitter_c_sharp::LANGUAGE.into(),
@@ -916,7 +916,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         },
         LangProfile {
             name: "Python",
-            alternate_names: &[],
+            alternate_names: &["Python3"],
             extensions: vec!["py"],
             file_names: vec![],
             language: tree_sitter_python_orchard::LANGUAGE.into(),
@@ -970,7 +970,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "PHP",
             alternate_names: &[],
-            extensions: vec!["php", "phtml"],
+            extensions: vec!["php", "phtml", "php3", "php4", "php5", "phps", "phpt"],
             file_names: vec![],
             language: tree_sitter_php::LANGUAGE_PHP.into(),
             // optional settings, explained below
