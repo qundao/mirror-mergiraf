@@ -671,14 +671,7 @@ mod tests {
             .output()
             .expect("failed to commit attribute file");
 
-        fn find_impl(
-            filename: &str,
-            name: Option<&str>,
-            repo_dir: &Path,
-        ) -> Result<&'static LangProfile, String> {
-            LangProfile::find(filename, name, Some(repo_dir))
-        }
-        let find = |filename, name| find_impl(filename, name, tempdir.path());
+        let find = |filename, name| LangProfile::find(filename, name, Some(tempdir.path()));
         assert_eq!(
             find("file.bogus", None).unwrap_err(),
             "Attribute-specified language 'bogus' could not be found",
