@@ -11,7 +11,7 @@ typed-arena = "2"
 
 [package]
 name = "mergiraf"
-version = "0.14.0"
+version = "0.15.0"
 edition = "2024"
 license = "GPL-3.0-only"
 repository = "https://codeberg.org/mergiraf/mergiraf"
