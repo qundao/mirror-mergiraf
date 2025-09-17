@@ -179,7 +179,34 @@ CommutativeParent::new("declaration_list", "{", "\n\n", "}")
 ```
 and so on. While it is useful to identify as many commutative parent types as possible, not being exhaustive is not a problem as it will only prevent the automated resolution of certain conflicts, but should not otherwise degrade the quality of merges.
 
-## Adding children groups
+### Commutative parents via tree-sitter queries
+
+Sometimes, commutative parents can't be defined just by specifying a node type inside which children should commute. It depends from the context whether this particular node should be treated as commutative or not.
+For example, Python lists aren't commutative in general (the order matters for iteration,
+indexing etc.), but they can be seen as commutative in an [`__all__` declaration](https://docs.python.org/3/tutorial/modules.html#importing-from-a-package).
+
+We can define a [tree-sitter query](https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html) to select which nodes should be treated as commutative.
+The [tree-sitter playground](https://tree-sitter.github.io/tree-sitter/7-playground.html) can be useful to experiment with queries and find one that matches the desired set of nodes.
+In the example above, the following query selects the relevant lists:
+```tree-sitter
+(expression_statement (assignment
+  left: (identifier) @variable (#eq? @variable "__all__")
+  right: (list) @commutative
+))
+```
+Note the use of the `@commutative` capture to select which node matched by the query should be treated as commutative.
+This query can then be used to define a commutative parent as part of the language profile:
+```rust
+CommutativeParent::from_query(
+  r#"(expression_statement (assignment
+     left: (identifier) @variable (#eq? @variable "__all__")
+     right: (list) @commutative)
+  )"#,
+  "[", ", ", "]",
+)
+```
+
+## Add children groups
 
 Within a commutative parent, it is possible to restrict which types of children are able to commute together.
 In C#, the `compilation_unit` root node can not only contain `using` statements, but also some global statements, namespace declarations and type declarations, for instance.
@@ -288,37 +315,11 @@ Certain languages can contain text fragments in other languages. For instance, H
 The `injections` field on the `LangProfile` object can be used to provide a [tree-sitter query locating such fragments](https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection).
 Such a query is normally exposed by the Rust crate for the parser as the `INJECTIONS_QUERY` constant if it has been defined by the parser authors, so it just needs wiring up as `injections: Some(tree_sitter_html::INJECTIONS_QUERY)`.
 
-## Commutative parents via tree-sitter queries
-
-Sometimes, commutative parents can't be defined just by specifying a node type inside which children should commute. It depends from the context whether this particular node should be treated as commutative or not.
-For example, Python lists aren't commutative in general (the order matters for iteration,
-indexing etc.), but they can be seen as commutative in an [`__all__` declaration](https://docs.python.org/3/tutorial/modules.html#importing-from-a-package).
-
-We can define a [tree-sitter query](https://tree-sitter.github.io/tree-sitter/using-parsers/queries/1-syntax.html) to select which nodes should be treated as commutative.
-The [tree-sitter playground](https://tree-sitter.github.io/tree-sitter/7-playground.html) can be useful to experiment with queries and find one that matches the desired set of nodes.
-In the example above, the following query selects the relevant lists:
-```tree-sitter
-(expression_statement (assignment
-  left: (identifier) @variable (#eq? @variable "__all__")
-  right: (list) @commutative
-))
-```
-Note the use of the `@commutative` capture to select which node matched by the query should be treated as commutative.
-This query can then be used to define a commutative parent as part of the language profile:
-```rust
-CommutativeParent::from_query(
-  r#"(expression_statement (assignment
-     left: (identifier) @variable (#eq? @variable "__all__")
-     right: (list) @commutative)
-  )"#,
-  "[", ", ", "]",
-)
-```
-
 ## Add tests
 
 We didn't write any code, just declarative things, but it's still worth checking that the merging that they enable works as expected, and that it keeps doing so in the future.
 
+### Directory structure
 You can add test cases to the end-to-end suite by following the directory structure of other such test cases. Create a directory of the form:
 ```
 examples/csharp/working/add_imports
@@ -334,6 +335,27 @@ Expected.cs
 
 All files should have an extension which matches what you defined in the language profile, for them to be parsed correctly. The `Base`, `Left` and `Right` files contain the contents of a sample file at all three revisions, and `Expected` contains the expected merge output of the tool (including any conflict markers).
 
+If the language you're adding is specified using the full file name (`Makefile`/`pyproject.toml`), the test directory should additionally contain a `language` file with one of the `file_names` specified in the language profile.
+
+For example, here's a directory structure of a `Makefile` test:
+```
+Base
+Left
+Right
+Expected
+language // contains "Makefile" (without the quotes)
+```
+
+and for `pyproject.toml`:
+```
+Base.toml
+Left.toml
+Right.toml
+Expected.toml
+language // contains "pyproject.toml"
+```
+
+### Running the tests
 To run an individual test, you can use a helper:
 ```console
 $ helpers/inspect.sh examples/csharp/working/add_imports
