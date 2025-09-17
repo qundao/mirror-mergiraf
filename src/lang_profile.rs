@@ -3,7 +3,9 @@ use std::{collections::HashSet, ffi::OsStr, fmt::Display, hash::Hash, path::Path
 use itertools::Itertools;
 use tree_sitter::Language;
 
-use crate::{ast::AstNode, git, signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
+use crate::{
+    ast::AstNode, git, signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES,
+};
 
 /// Language-dependent settings to influence how merging is done.
 /// All those settings are declarative (except for the tree-sitter parser, which is
