@@ -107,7 +107,7 @@ impl LangProfile {
     }
 
     /// Loads a language either by name or by detecting it from a filename
-    pub fn find_by_filename_or_name<P>(
+    pub fn find<P>(
         filename: P,
         language_name: Option<&str>,
         repo_dir: Option<&Path>,
@@ -532,7 +532,7 @@ mod tests {
     #[test]
     fn find_by_filename_or_name() {
         fn find(filename: &str, name: Option<&str>) -> Result<&'static LangProfile, String> {
-            LangProfile::find_by_filename_or_name(filename, name, None)
+            LangProfile::find(filename, name, None)
         }
         assert_eq!(find("file.json", None).unwrap().name, "JSON");
         assert_eq!(find("file.java", Some("JSON")).unwrap().name, "JSON");
@@ -671,7 +671,7 @@ mod tests {
             name: Option<&str>,
             repo_dir: &Path,
         ) -> Result<&'static LangProfile, String> {
-            LangProfile::find_by_filename_or_name(filename, name, Some(repo_dir))
+            LangProfile::find(filename, name, Some(repo_dir))
         }
         let find = |filename, name| find_impl(filename, name, tempdir.path());
         assert_eq!(
