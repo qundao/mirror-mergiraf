@@ -241,6 +241,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
 
             let fname_base = path_name.unwrap_or(fname_base);
 
+            let working_dir = env::current_dir().expect("Invalid current directory");
             let merge_result = line_merge_and_structured_resolution(
                 contents_base,
                 contents_left,
@@ -252,6 +253,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 debug_dir,
                 Duration::from_millis(timeout.unwrap_or(if fast { 5000 } else { 10000 })),
                 language.as_deref(),
+                Some(&working_dir),
             );
             if let Some(fname_out) = output {
                 write_string_to_file(&fname_out, &merge_result.contents)?;

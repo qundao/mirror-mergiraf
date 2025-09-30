@@ -24,7 +24,7 @@ pub fn resolve_merge_cascading<'a>(
 ) -> Result<MergeResult, String> {
     let mut solves = Vec::with_capacity(4);
 
-    let lang_profile = LangProfile::find_by_filename_or_name(fname_base, language)?;
+    let lang_profile = LangProfile::find(fname_base, language, Some(working_dir))?;
 
     let parsed = match ParsedMerge::parse(merge_contents, &settings) {
         Err(err) => {

@@ -36,8 +36,9 @@ pub fn line_merge_and_structured_resolution(
     debug_dir: Option<&'static Path>,
     timeout: Duration,
     language: Option<&str>,
+    repo_dir: Option<&Path>,
 ) -> MergeResult {
-    let Ok(lang_profile) = LangProfile::find_by_filename_or_name(fname_base, language) else {
+    let Ok(lang_profile) = LangProfile::find(fname_base, language, repo_dir) else {
         return line_based_merge(&contents_base, contents_left, &contents_right, &settings);
     };
 
