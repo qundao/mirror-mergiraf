@@ -1,6 +1,7 @@
 use core::str;
 use itertools::Itertools as _;
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -95,34 +96,58 @@ pub(crate) fn read_content_from_commits(
     ))
 }
 
-pub(crate) fn read_attribute_for_file(
+pub(crate) fn read_attributes_for_file(
     repo_dir: &Path,
     file_name: &Path,
-    attr: &str,
-) -> Option<String> {
+    attrs: &[&'static str],
+) -> HashMap<&'static str, String> {
+    let mut result_map = HashMap::with_capacity(attrs.len());
+
     // We use null bytes as separators to avoid having to deal
     // with the encoding of spaces in filenames.
-    let output = Command::new("git")
-        .args(["check-attr", "-z", attr, "--"])
+    if let Some(output) = Command::new("git")
+        .args(["check-attr", "-z"])
+        .args(attrs)
+        .arg("--")
         .arg(file_name)
         .current_dir(repo_dir)
         .output()
         .ok()
-        .filter(|output| output.status.success())?;
-    // Parse the output of git-check-attr, which looks like with the `-z` flag:
-    // <path> NUL <attribute> NUL <info> NUL
-    let bytes_value = output.stdout.split(|b| *b == b'\0').nth(2)?;
-    String::from_utf8(bytes_value.to_vec()).ok()
+        .filter(|output| output.status.success())
+    {
+        // Parse the output of git-check-attr, which looks like with the `-z` flag:
+        // ( <path> NUL <attribute> NUL <info> NUL ) *
+        for mut line_parts in &output.stdout.split(|b| *b == b'\0').chunks(3) {
+            // consume the first chunk, which contains the path
+            line_parts.next();
+            if let Some(attribute) = line_parts.next()
+                && let Some(info) = line_parts.next()
+                && let Ok(attribute) = str::from_utf8(attribute)
+                && let Ok(info) = String::from_utf8(info.to_vec())
+                && let Some(attribute) = attrs.iter().find(|orig_attr| **orig_attr == attribute)
+            {
+                result_map.insert(*attribute, info);
+            }
+        }
+    }
+    result_map
 }
 
 pub(crate) fn read_lang_attribute(repo_dir: &Path, file_name: &Path) -> Option<String> {
-    // TODO: potentially the `read_attribute_for_file` could expose attribute values
-    // in a more structured way, for instance with an enum which picks out those specific variants
-    // to be excluded.
-    let read_attr = |attr| {
-        read_attribute_for_file(repo_dir, file_name, attr)
-            .filter(|value| value != "unspecified" && value != "set" && value != "unset")
-    };
+    // The following attributes are looked up to determine the language, in this order
+    // (if the first attribute is set, it overrides the second one)
+    let attr_names = &["mergiraf.language", "linguist-language"];
+    let attributes = read_attributes_for_file(repo_dir, file_name, attr_names);
 
-    read_attr("mergiraf.language").or_else(|| read_attr("linguist-language"))
+    attr_names
+        .iter()
+        .find_map(|attr| {
+            // TODO: potentially the `read_attributes_for_file` could expose attribute values
+            // in a more structured way, for instance with an enum which picks out those specific variants
+            // to be excluded.
+            attributes
+                .get(attr)
+                .filter(|value| *value != "unspecified" && *value != "set" && *value != "unset")
+        })
+        .cloned()
 }
