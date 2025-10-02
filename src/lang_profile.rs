@@ -142,25 +142,6 @@ impl LangProfile {
         }
     }
 
-    fn _detect_from_filename(path: &Path) -> Option<&'static Self> {
-        // TODO make something more advanced like in difftastic
-        // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
-        let extension = path.extension()?;
-        let name = path.file_name()?;
-        SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
-            lang_profile
-                .extensions
-                .iter()
-                // NOTE: the comparison should be case-insensitive, see
-                // https://rust-lang.github.io/rust-clippy/master/index.html#case_sensitive_file_extension_comparisons
-                .any(|ext| extension.eq_ignore_ascii_case(OsStr::new(ext)))
-                || lang_profile
-                    .file_names
-                    .iter()
-                    .any(|file_name| name == OsStr::new(file_name))
-        })
-    }
-
     /// Do all the children of this parent commute?
     /// This will return any CommutativeParent defined on this node kind.
     /// CommutativeParents defined by queries are ignored.
