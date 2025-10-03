@@ -46,6 +46,7 @@ pub(crate) mod test_utils;
 pub(crate) mod tree_builder;
 pub(crate) mod tree_matcher;
 pub mod util;
+pub(crate) mod utils;
 pub(crate) mod visualizer;
 
 use core::fmt::Write;
