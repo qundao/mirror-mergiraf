@@ -781,7 +781,6 @@ mod test {
         let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
             create_files_for_merge(repo_path, true);
 
-        // then try with a language specified on the CLI
         let return_code = real_main(CliArgs::parse_from([
             "mergiraf",
             "merge",
