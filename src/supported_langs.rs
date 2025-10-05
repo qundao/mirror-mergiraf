@@ -684,7 +684,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::without_delimiters("table", "\n"),
                 CommutativeParent::new("inline_table", "{", ", ", "}"),
             ],
-            signatures: vec![signature("pair", vec![vec![ChildKind("bare_key")]])],
+            signatures: vec![signature(
+                "pair",
+                vec![vec![ChildKind("bare_key")], vec![ChildKind("dotted_key")]],
+            )],
             injections: None,
             flattened_nodes: &[],
             comment_nodes: &[],

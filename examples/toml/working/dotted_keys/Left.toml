@@ -1,0 +1,3 @@
+[dependencies]
+foo.workspace = true
+bar.workspace = true
