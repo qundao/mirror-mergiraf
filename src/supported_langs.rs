@@ -340,6 +340,15 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 CommutativeParent::without_delimiters("function_modifiers", " "),
                 CommutativeParent::with_left_delimiter("where_clause", "where", ",\n")
                     .restricted_to_groups(&[&["where_predicate"]]),
+                CommutativeParent::from_query(
+                    r#"(attribute
+                        (identifier) @attr_name (#eq? @attr_name "derive")
+                        arguments: (token_tree) @commutative
+                    )"#,
+                    "(",
+                    ", ",
+                    ")",
+                ),
             ],
             signatures: vec![
                 // as module member, impls…
