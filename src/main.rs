@@ -17,7 +17,7 @@ use mergiraf::{
     newline::{imitate_cr_lf_from_input, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
-    util::{read_file_to_string, write_string_to_file},
+    utils::{read_file_to_string, write_string_to_file},
 };
 
 /// Syntax-aware merge driver for Git.

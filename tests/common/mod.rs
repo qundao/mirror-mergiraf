@@ -45,7 +45,7 @@ pub(crate) fn write_file_from_rev(
 /// a separate `language` file and just use bare `Base`, `Left` and `Right`
 /// revision files (and similarly for expected outputs).
 pub(crate) fn detect_test_suffix(test_dir: &Path) -> String {
-    mergiraf::util::detect_suffix(test_dir)
+    mergiraf::utils::detect_suffix(test_dir)
 }
 
 /// Returns the language name specified in a test case (if any).
