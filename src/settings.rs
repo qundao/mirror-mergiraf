@@ -173,12 +173,15 @@ mod tests {
         let mut settings = DisplaySettings::default();
         settings.adjust_conflict_marker_size("<<<<<\na\nb", "", "");
         // the existing conflict marker is shorter than the default, so we don't change the marker size
-        assert_eq!(settings.conflict_marker_size, None);
+        assert_eq!(
+            settings.conflict_marker_size_or_default(),
+            DEFAULT_CONFLICT_MARKER_SIZE
+        );
         settings.adjust_conflict_marker_size("", "=======\na\nb", "");
         // the existing conflict marker matches the default, so we bump the marker length
-        assert_eq!(settings.conflict_marker_size, Some(9));
+        assert_eq!(settings.conflict_marker_size_or_default(), 9);
         settings.adjust_conflict_marker_size("", "", ">>>>>>>>> a\nb\nc\n");
         // the marker size gets adjusted even though it has been set explicitly before
-        assert_eq!(settings.conflict_marker_size, Some(11));
+        assert_eq!(settings.conflict_marker_size_or_default(), 11);
     }
 }
