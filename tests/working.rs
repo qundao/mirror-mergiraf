@@ -23,10 +23,12 @@ fn compare_against_merge(
     contents_expected: &str,
     compact: bool,
 ) {
-    let settings = DisplaySettings {
+    let mut settings = DisplaySettings {
         compact: Some(compact),
         ..Default::default()
     };
+
+    settings.adjust_conflict_marker_size(contents_base, contents_left, contents_right);
 
     let merge_result = line_merge_and_structured_resolution(
         Arc::new(Cow::Borrowed(contents_base)),

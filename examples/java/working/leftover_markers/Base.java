@@ -1,0 +1,5 @@
+/**
+ * Doc comment
+ */
+class MyClass {
+}

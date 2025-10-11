@@ -66,12 +66,15 @@ fn integration_failing(
     let contents_expected_ideally =
         fs::read_to_string(fname_expected_ideally).expect("Unable to read expected-ideally file");
 
+    let mut settings = DisplaySettings::default();
+    settings.adjust_conflict_marker_size(&contents_base, contents_left, &contents_right);
+
     let merge_result = line_merge_and_structured_resolution(
         Arc::clone(&contents_base),
         contents_left,
         Arc::clone(&contents_right),
         fname_base,
-        DisplaySettings::default(),
+        settings,
         true,
         None,
         None,
