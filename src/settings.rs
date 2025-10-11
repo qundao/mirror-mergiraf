@@ -59,9 +59,9 @@ impl<'a> DisplaySettings<'a> {
         contents_left: &str,
         contents_right: &str,
     ) {
-        let max_marker_size = [&contents_base, &contents_left, &contents_right]
-            .iter()
-            .map(|contents| max_conflict_marker_length(contents))
+        let max_marker_size = [contents_base, contents_left, contents_right]
+            .into_iter()
+            .map(max_conflict_marker_length)
             .max()
             .unwrap_or(0);
         if max_marker_size == self.conflict_marker_size_or_default() {
