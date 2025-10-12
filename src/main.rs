@@ -17,7 +17,7 @@ use mergiraf::{
     newline::{imitate_cr_lf_from_input, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
-    util::{read_file_to_string, write_string_to_file},
+    utils::{read_file_to_string, write_string_to_file},
 };
 
 /// Syntax-aware merge driver for Git.
@@ -187,7 +187,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let path_name = path_name.map(|s| &*s.leak());
             let debug_dir = debug_dir.map(|s| &*s.leak());
 
-            let settings: DisplaySettings<'static> = DisplaySettings {
+            let mut settings: DisplaySettings<'static> = DisplaySettings {
                 compact,
                 conflict_marker_size,
                 base_revision_name: match base_name {
@@ -225,16 +225,19 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let fname_base = &*base;
             let original_contents_base = read_file_to_string(fname_base)?;
             let contents_base = normalize_to_lf(original_contents_base);
-            let contents_base = Arc::new(contents_base);
 
             let fname_left = &left;
             let original_contents_left = read_file_to_string(fname_left)?;
             let contents_left = normalize_to_lf(&original_contents_left);
-            let contents_left = contents_left.into_owned().leak();
 
             let fname_right = &right;
             let original_contents_right = read_file_to_string(fname_right)?;
             let contents_right = normalize_to_lf(original_contents_right);
+
+            settings.adjust_conflict_marker_size(&contents_base, &contents_left, &contents_right);
+
+            let contents_base = Arc::new(contents_base);
+            let contents_left = contents_left.into_owned().leak();
             let contents_right = Arc::new(contents_right);
 
             let attempts_cache = AttemptsCache::new(None, None).ok();

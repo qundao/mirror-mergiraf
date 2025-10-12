@@ -16,7 +16,7 @@ use crate::{
     pcs::Revision,
     settings::DisplaySettings,
     tree_matcher::TreeMatcher,
-    util::{detect_suffix, read_file_to_string},
+    utils::{detect_suffix, read_file_to_string},
 };
 
 use log::{info, warn};

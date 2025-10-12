@@ -1,6 +1,11 @@
 use std::borrow::Cow;
 
-use crate::parsed_merge::{MergedChunk, ParsedMerge};
+use crate::{
+    parsed_merge::{MergedChunk, ParsedMerge},
+    utils::max_conflict_marker_length,
+};
+
+pub const DEFAULT_CONFLICT_MARKER_SIZE: usize = 7;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 /// Parameters controlling how the merged tree should be output.
@@ -42,7 +47,26 @@ impl<'a> DisplaySettings<'a> {
 
     /// The value of `conflict_marker_size` if set, the default value otherwise
     pub fn conflict_marker_size_or_default(&self) -> usize {
-        self.conflict_marker_size.unwrap_or(7)
+        self.conflict_marker_size
+            .unwrap_or(DEFAULT_CONFLICT_MARKER_SIZE)
+    }
+
+    /// Bumps the conflict marker size if there are already conflict markers
+    /// of the desired size.
+    pub fn adjust_conflict_marker_size(
+        &mut self,
+        contents_base: &str,
+        contents_left: &str,
+        contents_right: &str,
+    ) {
+        let max_marker_size = [contents_base, contents_left, contents_right]
+            .into_iter()
+            .map(max_conflict_marker_length)
+            .max()
+            .unwrap_or(0);
+        if max_marker_size == self.conflict_marker_size_or_default() {
+            self.conflict_marker_size = Some(max_marker_size + 2)
+        }
     }
 
     /// The value of `left_revision_name` if set, the default value otherwise
@@ -137,5 +161,27 @@ impl Default for DisplaySettings<'_> {
             base_revision_name: None,
             right_revision_name: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adjust_marker_size() {
+        let mut settings = DisplaySettings::default();
+        settings.adjust_conflict_marker_size("<<<<<\na\nb", "", "");
+        // the existing conflict marker is shorter than the default, so we don't change the marker size
+        assert_eq!(
+            settings.conflict_marker_size_or_default(),
+            DEFAULT_CONFLICT_MARKER_SIZE
+        );
+        settings.adjust_conflict_marker_size("", "=======\na\nb", "");
+        // the existing conflict marker matches the default, so we bump the marker length
+        assert_eq!(settings.conflict_marker_size_or_default(), 9);
+        settings.adjust_conflict_marker_size("", "", ">>>>>>>>> a\nb\nc\n");
+        // the marker size gets adjusted even though it has been set explicitly before
+        assert_eq!(settings.conflict_marker_size_or_default(), 11);
     }
 }
