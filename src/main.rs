@@ -212,7 +212,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 let mergiraf_disabled = env::var(DISABLING_ENV_VAR).as_deref() == Ok("0");
 
                 if mergiraf_disabled {
-                    return fallback_to_git_merge_file(base, left, right, git, &settings)
+                    return fallback_to_git_merge_file(base, left, right, git, &output, &settings)
                         .map_err(|e| format!("error when calling git-merge-file: {e}"));
                 }
             }
@@ -236,7 +236,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 read_file_to_string(fname_right),
             )
             else {
-                return fallback_to_git_merge_file(base, left, right, git, &settings)
+                return fallback_to_git_merge_file(base, left, right, git, &output, &settings)
                     .map_err(|e| format!("error when calling git-merge-file: {e}"));
             };
 
@@ -387,6 +387,7 @@ fn fallback_to_git_merge_file(
     left: &Path,
     right: &Path,
     git: bool,
+    output: &Option<PathBuf>,
     settings: &DisplaySettings,
 ) -> io::Result<i32> {
     let mut command = Command::new("git");
@@ -406,16 +407,19 @@ fn fallback_to_git_merge_file(
         }
     }
 
-    let exit_code = command
+    let command = command
         .arg("--marker-size")
         .arg(settings.conflict_marker_size_or_default().to_string())
-        .args([left, base, right])
-        .spawn()?
-        .wait()?
-        .code()
-        .unwrap_or(0);
+        .args([left, base, right]);
 
-    Ok(exit_code)
+    let code = if let Some(output_path) = output {
+        let command_output = command.output()?;
+        fs::write(output_path, &command_output.stdout)?;
+        command_output.status
+    } else {
+        command.spawn()?.wait()?
+    };
+    Ok(code.code().unwrap_or(0))
 }
 
 /// Check if user is using Jujutsu instead of Git, which can lead to issues when running
@@ -815,14 +819,11 @@ mod test {
         assert_eq!(merge_result, "[0, 1, 2, 3, 4]\r\n");
     }
 
-    #[test]
-    fn merging_non_utf8_files_line_based() {
-        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
-        let repo_path = repo_dir.path();
-
+    fn create_iso8859_input_files(repo_path: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
         let base_file_name = "base.txt";
         let left_file_name = "left.txt";
         let right_file_name = "right.txt";
+        let output_file_name = "output.txt";
 
         let base_file_abs_path = repo_path.join(base_file_name);
         fs::write(&base_file_abs_path, b"\x68\xe9\x0a\x6c\xe0\x0a")
@@ -839,6 +840,23 @@ mod test {
             b"\x79\x6f\x0a\x68\xe9\x0a\x6c\xe0\x0a",
         )
         .expect("failed to write test right file to git repository");
+        let output_file_abs_path = repo_path.join(output_file_name);
+
+        (
+            base_file_abs_path,
+            left_file_abs_path,
+            right_file_abs_path,
+            output_file_abs_path,
+        )
+    }
+
+    #[test]
+    fn merging_non_utf8_files_line_based_git_mode() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) =
+            create_iso8859_input_files(repo_path);
 
         let return_code = real_main(CliArgs::parse_from([
             "mergiraf",
@@ -856,6 +874,37 @@ mod test {
             "`mergiraf merge` should do line-based merges via git for files in ISO-8859-1"
         );
         let merge_result = fs::read(left_file_abs_path).expect("couldn't read the merge result");
+        assert_eq!(
+            merge_result,
+            b"\x79\x6f\x0a\x68\xe9\x0a\x6c\xe0\x0a\x74\x6f\x69\x0a"
+        );
+    }
+
+    #[test]
+    fn merging_non_utf8_files_line_based_with_output_file() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
+            create_iso8859_input_files(repo_path);
+
+        let return_code = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "merge",
+            "--language=json", // pretend those are JSON files so that we attempt to read them
+            base_file_abs_path.to_str().unwrap(),
+            left_file_abs_path.to_str().unwrap(),
+            right_file_abs_path.to_str().unwrap(),
+            "--output",
+            output_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf merge`");
+
+        assert_eq!(
+            return_code, 0,
+            "`mergiraf merge` should do line-based merges via git for files in ISO-8859-1"
+        );
+        let merge_result = fs::read(output_file_abs_path).expect("couldn't read the merge result");
         assert_eq!(
             merge_result,
             b"\x79\x6f\x0a\x68\xe9\x0a\x6c\xe0\x0a\x74\x6f\x69\x0a"
