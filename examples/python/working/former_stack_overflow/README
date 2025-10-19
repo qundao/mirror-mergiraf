@@ -1,0 +1,6 @@
+This case is taken from:
+https://github.com/ansible/awx/blob/c1abc56753/awx/main/tasks.py
+Apache License 2.0.
+
+It used to yield a stack overflow:
+https://codeberg.org/mergiraf/mergiraf/issues/609

@@ -258,7 +258,6 @@ impl<'a> MergedTree<'a> {
             // no nodes to force line-based fallback on
             return self;
         }
-
         match self {
             Self::ExactTree { node, .. } | Self::MixedTree { node, .. }
                 if nodes.contains(&node) =>
@@ -268,29 +267,19 @@ impl<'a> MergedTree<'a> {
             Self::ExactTree {
                 node, revisions, ..
             } => {
-                let picked_revision = revisions.any();
-                let children = class_mapping
-                    .children_at_revision(&node, picked_revision)
-                    .expect("non-existent children for revision in revset of ExactTree");
-                let cloned_children: Vec<MergedTree<'a>> = children
-                    .into_iter()
-                    .map(|c| {
-                        Self::new_exact(c, revisions, class_mapping)
-                            .force_line_based_fallback_on_specific_nodes(
-                                nodes,
-                                class_mapping,
-                                settings,
-                            )
-                    })
-                    .collect();
-                if cloned_children
-                    .iter()
-                    .all(|child| matches!(child, Self::ExactTree { .. }))
-                {
-                    self
-                } else {
-                    Self::new_mixed(node, cloned_children)
-                }
+                let revision = revisions.any();
+                let revnode = RevNode::new(
+                    revision,
+                    class_mapping
+                        .node_at_rev(&node, revision)
+                        .expect("Inconsistent class mapping and Exact MergedTree"),
+                );
+                Self::force_line_based_fallback_on_specific_nodes_in_astnode(
+                    revnode,
+                    nodes,
+                    class_mapping,
+                    settings,
+                )
             }
             Self::MixedTree { node, children, .. } => {
                 let cloned_children = children
@@ -306,6 +295,46 @@ impl<'a> MergedTree<'a> {
                 Self::new_mixed(node, cloned_children)
             }
             _ => self,
+        }
+    }
+
+    /// Recurse on a [RevNode] to create a corresponding `MergedTree`
+    /// where any descendant node included in the supplied set has been
+    /// replaced by a line-based merge.
+    /// This is a counterpart to [Self::force_line_based_fallback_on_specific_nodes]
+    /// to recurse into an [MergedTree::ExactTree].
+    fn force_line_based_fallback_on_specific_nodes_in_astnode(
+        rev_node: RevNode<'a>,
+        nodes: &HashSet<Leader<'a>>,
+        class_mapping: &ClassMapping<'a>,
+        settings: &DisplaySettings,
+    ) -> MergedTree<'a> {
+        let leader = class_mapping.map_to_leader(rev_node);
+        let revision = rev_node.rev;
+        if nodes.contains(&leader) {
+            MergedTree::line_based_local_fallback_for_revnode(leader, class_mapping, settings)
+        } else {
+            let cloned_children: Vec<MergedTree<'a>> = rev_node
+                .node
+                .children
+                .iter()
+                .map(|c| {
+                    Self::force_line_based_fallback_on_specific_nodes_in_astnode(
+                        RevNode::new(revision, c),
+                        nodes,
+                        class_mapping,
+                        settings,
+                    )
+                })
+                .collect();
+            if cloned_children
+                .iter()
+                .all(|child| matches!(child, MergedTree::ExactTree { .. }))
+            {
+                MergedTree::new_exact(leader, RevisionNESet::singleton(revision), class_mapping)
+            } else {
+                MergedTree::new_mixed(leader, cloned_children)
+            }
         }
     }
 
