@@ -1,0 +1,2 @@
+Because the grammar doesn't parse the arguments of the derive attribute as paths, we currently don't support this case.
+See https://codeberg.org/mergiraf/mergiraf/issues/616

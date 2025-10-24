@@ -348,7 +348,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     "(",
                     ", ",
                     ")",
-                ),
+                )
+                .restricted_to_groups(&[&["identifier"]]),
             ],
             signatures: vec![
                 // as module member, impls…
