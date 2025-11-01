@@ -566,12 +566,10 @@ mod test {
         assert!(test_file_orig_file_path.exists());
     }
 
-    fn create_file_for_solve(repo_path: &Path, cr_lf: bool) -> PathBuf {
+    const DEFAULT_FILE_FOR_SOLVE: &str = "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n";
+
+    fn create_file_for_solve(repo_path: &Path, contents: impl AsRef<[u8]>) -> PathBuf {
         let test_file_name = "test.txt";
-        let mut contents = "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n".to_string();
-        if cr_lf {
-            contents = contents.replace("\n", "\r\n");
-        }
         let test_file_abs_path = repo_path.join(test_file_name);
         fs::write(&test_file_abs_path, contents)
             .expect("failed to write test file to git repository");
@@ -581,7 +579,9 @@ mod test {
 
     fn create_files_for_merge(
         repo_path: &Path,
-        cr_lf: bool,
+        base_contents: impl AsRef<[u8]>,
+        left_contents: impl AsRef<[u8]>,
+        right_contents: impl AsRef<[u8]>,
     ) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
         let base_file_name = "base.txt";
         let left_file_name = "left.txt";
@@ -589,35 +589,14 @@ mod test {
         let output_file_name = "output.txt";
 
         let base_file_abs_path = repo_path.join(base_file_name);
-        fs::write(
-            &base_file_abs_path,
-            if cr_lf {
-                "[1, 2, 3]\r\n"
-            } else {
-                "[1, 2, 3]\n"
-            },
-        )
-        .expect("failed to write test base file to git repository");
+        fs::write(&base_file_abs_path, base_contents)
+            .expect("failed to write test base file to git repository");
         let left_file_abs_path = repo_path.join(left_file_name);
-        fs::write(
-            &left_file_abs_path,
-            if cr_lf {
-                "[1, 2, 3, 4]\r\n"
-            } else {
-                "[1, 2, 3, 4]\n"
-            },
-        )
-        .expect("failed to write test left file to git repository");
+        fs::write(&left_file_abs_path, left_contents)
+            .expect("failed to write test left file to git repository");
         let right_file_abs_path = repo_path.join(right_file_name);
-        fs::write(
-            &right_file_abs_path,
-            if cr_lf {
-                "[0, 1, 2, 3]\r\n"
-            } else {
-                "[0, 1, 2, 3]\n"
-            },
-        )
-        .expect("failed to write test right file to git repository");
+        fs::write(&right_file_abs_path, right_contents)
+            .expect("failed to write test right file to git repository");
         let output_file_abs_path = repo_path.join(output_file_name);
 
         (
@@ -633,7 +612,7 @@ mod test {
         let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
         let repo_path = repo_dir.path();
 
-        let test_file_abs_path = create_file_for_solve(repo_path, false);
+        let test_file_abs_path = create_file_for_solve(repo_path, DEFAULT_FILE_FOR_SOLVE);
 
         // first try without specifying a language
         let return_code = real_main(CliArgs::parse_from([
@@ -671,7 +650,7 @@ mod test {
         let repo_path = repo_dir.path();
 
         let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
-            create_files_for_merge(repo_path, false);
+            create_files_for_merge(repo_path, "[1, 2, 3]\n", "[1, 2, 3, 4]\n", "[0, 1, 2, 3]\n");
 
         // first try without specifying a language
         let return_code = real_main(CliArgs::parse_from([
@@ -716,7 +695,7 @@ mod test {
         let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
         let repo_path = repo_dir.path();
 
-        let test_file_abs_path = create_file_for_solve(repo_path, false);
+        let test_file_abs_path = create_file_for_solve(repo_path, DEFAULT_FILE_FOR_SOLVE);
 
         let debug_dir = tempfile::tempdir().unwrap();
         let debug_dir_path = debug_dir.path().to_path_buf();
@@ -741,7 +720,7 @@ mod test {
         let repo_path = repo_dir.path();
 
         let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) =
-            create_files_for_merge(repo_path, false);
+            create_files_for_merge(repo_path, "[1, 2, 3]", "[1, 2, 3, 4]", "[0, 1, 2, 3]");
 
         let debug_dir = tempfile::tempdir().unwrap();
         let debug_dir_path = debug_dir.path().to_path_buf();
@@ -767,7 +746,10 @@ mod test {
         let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
         let repo_path = repo_dir.path();
 
-        let test_file_abs_path = create_file_for_solve(repo_path, true);
+        let test_file_abs_path = create_file_for_solve(
+            repo_path,
+            "<<<<<<< LEFT\r\n[1, 2, 3, 4]\r\n||||||| BASE\r\n[1, 2, 3]\r\n=======\r\n[0, 1, 2, 3]\r\n>>>>>>> RIGHT\r\n",
+        );
 
         let return_code = real_main(CliArgs::parse_from([
             "mergiraf",
@@ -796,7 +778,12 @@ mod test {
         let repo_path = repo_dir.path();
 
         let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
-            create_files_for_merge(repo_path, true);
+            create_files_for_merge(
+                repo_path,
+                "[1, 2, 3]\r\n",
+                "[1, 2, 3, 4]\r\n",
+                "[0, 1, 2, 3]\r\n",
+            );
 
         let return_code = real_main(CliArgs::parse_from([
             "mergiraf",
@@ -820,33 +807,11 @@ mod test {
     }
 
     fn create_iso8859_input_files(repo_path: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
-        let base_file_name = "base.txt";
-        let left_file_name = "left.txt";
-        let right_file_name = "right.txt";
-        let output_file_name = "output.txt";
-
-        let base_file_abs_path = repo_path.join(base_file_name);
-        fs::write(&base_file_abs_path, b"\x68\xe9\x0a\x6c\xe0\x0a")
-            .expect("failed to write test base file to git repository");
-        let left_file_abs_path = repo_path.join(left_file_name);
-        fs::write(
-            &left_file_abs_path,
+        create_files_for_merge(
+            repo_path,
+            b"\x68\xe9\x0a\x6c\xe0\x0a",
             b"\x68\xe9\x0a\x6c\xe0\x0a\x74\x6f\x69\x0a",
-        )
-        .expect("failed to write test left file to git repository");
-        let right_file_abs_path = repo_path.join(right_file_name);
-        fs::write(
-            &right_file_abs_path,
             b"\x79\x6f\x0a\x68\xe9\x0a\x6c\xe0\x0a",
-        )
-        .expect("failed to write test right file to git repository");
-        let output_file_abs_path = repo_path.join(output_file_name);
-
-        (
-            base_file_abs_path,
-            left_file_abs_path,
-            right_file_abs_path,
-            output_file_abs_path,
         )
     }
 
