@@ -1,6 +1,10 @@
 on:
   push:
     tags: 'v*'
+
+env:
+  CROSS_DOCKER_IN_DOCKER: true # for cross-compilation via the 'cross' tool
+
 jobs:
   release:
     runs-on: ubuntu-with-rust-1.89 # uses Docker image https://hub.docker.com/r/pintoch/ubuntu-act-with-rust
@@ -20,18 +24,39 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}} lock ${{ hashFiles('**/Cargo.lock') }}"
+      - name: Install cross
+        run: cargo binstall cross
       - name: Run tests
         run: cargo test --workspace --locked
-      - name: Create release_artifacts dir and generate release notes
+      - name: Create release artifacts dir and generate release notes
         run: |
           mkdir target/release_artifacts
-          touch target/release_artifacts/empty.txt
           # store the release notes into $RELEASE_NOTES
           {
             echo 'RELEASE_NOTES<<EOF'
             git-cliff --latest
             echo EOF
           } >> "$GITHUB_ENV"
+      - name: Fix the hostname to reflect the docker container id
+        # This is necessary for 'cross' to work in Forgejo Actions.
+        # See https://github.com/cross-rs/cross/issues/1351#issuecomment-3476670997
+        # and https://code.forgejo.org/forgejo/forgejo-actions-feature-requests/issues/66
+        run: echo HOSTNAME=$(docker container ls -q) >> "$GITHUB_ENV"
+      - name: Build for all architectures
+        run: |
+          for arch in $(cat .forgejo/workflows/targets.txt); do
+            echo "Building for ${arch}"
+            cross build --target ${arch} --release
+            cd target/${arch}/release
+            if [[ ${arch} == "x86_64-pc-windows-gnu" ]]; then
+              zip -r ../../release_artifacts/mergiraf_${arch}.zip mergiraf.exe
+            else
+              tar -zcv mergiraf -f ../../release_artifacts/mergiraf_${arch}.tar.gz
+            fi
+            cd ../../..
+          done
+        env:
+          CROSS_CONFIG: .forgejo/workflows/Cross.toml
       - name: Create release
         uses: https://code.forgejo.org/actions/forgejo-release@v2.6.0
         with:

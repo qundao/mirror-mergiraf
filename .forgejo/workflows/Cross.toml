@@ -1,0 +1,10 @@
+# Those images can unfortunately not be freely distributed for licence reasons.
+# They were built following this tutorial:
+# https://blog.crafteo.io/2024/02/29/my-rust-cross-compilation-journey/
+# They have been loaded into the runners' image registry manually.
+
+[target.x86_64-apple-darwin]
+image = "x86_64-apple-darwin-cross:local"
+
+[target.aarch64-apple-darwin]
+image = "aarch64-apple-darwin-cross:local"
