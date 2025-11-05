@@ -738,11 +738,47 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             comment_nodes: &[],
         },
         LangProfile {
-            name: "C/C++",
-            alternate_names: &["C", "C++"],
+            name: "C",
+            alternate_names: &["C"],
+            extensions: vec!["c"],
+            file_names: vec![],
+            language: tree_sitter_c::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::new("initializer_list", "{", ",", "}")
+                    .restricted_to_groups(&[&["initializer_pair"]]),
+                CommutativeParent::new("field_declaration_list", "{\n", "\n", "\n}\n")
+                    .restricted_to(vec![
+                        ChildrenGroup::new(&["field_declaration"]),
+                        ChildrenGroup::with_separator(&["function_definition"], "\n\n"),
+                    ]),
+            ],
+            signatures: vec![
+                signature("initializer_pair", vec![vec![Field("designator")]]),
+                signature(
+                    "function_definition",
+                    vec![
+                        vec![Field("declarator"), Field("declarator")],
+                        vec![
+                            Field("declarator"),
+                            Field("parameters"),
+                            ChildKind("parameter_declaration"),
+                            Field("type"),
+                        ],
+                    ],
+                ),
+                signature("field_declaration", vec![vec![Field("declarator")]]), // TODO this isn't quite right, as the "*" of a pointer type will end up in the signature
+            ],
+            injections: None,
+            flattened_nodes: &[],
+            comment_nodes: &[],
+        },
+        LangProfile {
+            name: "C++",
+            alternate_names: &["C++"],
             extensions: vec![
-                "c", "h", "cc", "hh", "cpp", "hpp", "cxx", "hxx", "c++", "h++", "mpp", "cppm",
-                "ixx", "tcc",
+                "h", "cc", "hh", "cpp", "hpp", "cxx", "hxx", "c++", "h++", "mpp", "cppm", "ixx",
+                "tcc",
             ],
             file_names: vec![],
             language: tree_sitter_cpp::LANGUAGE.into(),
