@@ -58,7 +58,7 @@ jobs:
         env:
           CROSS_CONFIG: .forgejo/workflows/Cross.toml
       - name: Create release
-        uses: https://code.forgejo.org/actions/forgejo-release@v2.6.0
+        uses: https://code.forgejo.org/actions/forgejo-release@v2.7.3
         with:
           direction: upload
           url: https://codeberg.org
