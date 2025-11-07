@@ -80,21 +80,20 @@ impl LangProfile {
         fn inner(filename: &Path) -> Option<&'static LangProfile> {
             // TODO make something more advanced like in difftastic
             // https://github.com/Wilfred/difftastic/blob/master/src/parse/tree_sitter_parser.rs
-            let extension = filename.extension()?;
+            let extension = filename.extension();
             let name = filename.file_name()?;
             SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
-                lang_profile
-                    .extensions
+                lang_profile.extensions.iter().copied().any(|ext| {
+                    extension.is_some_and(|extension| {
+                        // NOTE: the comparison should be case-insensitive, see
+                        // https://rust-lang.github.io/rust-clippy/master/index.html#case_sensitive_file_extension_comparisons
+                        extension.eq_ignore_ascii_case(OsStr::new(ext))
+                    })
+                }) || lang_profile
+                    .file_names
                     .iter()
                     .copied()
-                    // NOTE: the comparison should be case-insensitive, see
-                    // https://rust-lang.github.io/rust-clippy/master/index.html#case_sensitive_file_extension_comparisons
-                    .any(|ext| extension.eq_ignore_ascii_case(OsStr::new(ext)))
-                    || lang_profile
-                        .file_names
-                        .iter()
-                        .copied()
-                        .any(|ref_name| name == ref_name)
+                    .any(|ref_name| name == ref_name)
             })
         }
         inner(filename.as_ref())
@@ -526,6 +525,7 @@ mod tests {
         assert_eq!(find("file.java", Some("JSON")).unwrap().name, "JSON");
         assert!(find("java", None).is_err());
         assert_eq!(find("go.mod", None).unwrap().name, "go.mod");
+        assert_eq!(find("Makefile", None).unwrap().name, "GNU Make");
         assert_eq!(find("file", Some("go.mod")).unwrap().name, "go.mod");
         assert!(find("test.go.mod", None).is_err());
         assert!(
