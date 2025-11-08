@@ -1,9 +1,22 @@
-We welcome your contributions. Feel invited to open an issue to discuss your plans.
-If you are looking into adding support for a new language, check out [the tutorial](https://mergiraf.org/adding-a-language.html). 
+We welcome your contributions.
+
+You are welcome to ask for help or reach out about any topic in the [issue tracker](https://codeberg.org/mergiraf/mergiraf/issues).
 
 We try to invite recurring contributors to join the team following our [governance model](./GOVERNANCE.md). You can also apply on your own.
 
-### Helpers for testing
+## Documentation contributions
+
+Documentation is stored in the `doc` folder, and rendered by the [`mdbook`](https://rust-lang.github.io/mdBook/) tool.
+It is deployed to [mergiraf.org](https://mergiraf.org/) at each release.
+
+To preview the effect of your changes, run `mdbook serve`.
+
+## Code contributions
+
+Feel invited to open an issue to discuss your plans.
+If you are looking into adding support for a new language, check out [the tutorial](https://mergiraf.org/adding-a-language.html). 
+
+### Testing your changes
 
 The `examples/` directory collects end-to-end test cases. Each test case is defined by a directory containing the inputs and expected output as separate files.
 Running `cargo test` executes this test suite, as well as other Rust tests.
@@ -19,6 +32,13 @@ To run mergiraf on a set of test cases, you can run:
 helpers/suite.sh my_test_suite
 ```
 where `my_test_suite` is the path to a directory containing test cases (such as `examples/java/working`).
+
+#### Inspecting the parse tree
+
+To inspect how Mergiraf parses a file, you can run:
+```
+cargo parse my_file.java
+```
 
 #### Inspecting the tree matchings
 
