@@ -50,7 +50,7 @@ fn compare_against_merge(
         let patch = create_patch(expected, actual);
         let f = PatchFormatter::new().with_color();
         print!("{}", f.fmt_patch(&patch));
-        eprintln!("test failed: outputs differ for {}", test_dir.display());
+        eprintln!("test failed: outputs differ for '{}'", test_dir.display());
         panic!();
     }
 }

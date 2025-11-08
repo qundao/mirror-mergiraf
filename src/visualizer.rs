@@ -24,7 +24,7 @@ pub fn write_matching_to_dotty_file<'a>(
     let path = path.as_ref();
     if let Err(err) = matching_to_graph(path, left, right, mapping) {
         error!(
-            "Mergiraf: Could not write matching to {}: {err}",
+            "Mergiraf: Could not write matching to '{}': {err}",
             path.display()
         );
     }

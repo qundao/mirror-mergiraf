@@ -37,19 +37,23 @@ impl Attempt<'_> {
     pub(crate) fn write(&self, file_name: &str, contents: &str) -> Result<(), String> {
         let path = self.path(file_name);
         fs::write(&path, contents)
-            .map_err(|err| format!("Could not write {}: {err}", &path.display()))
+            .map_err(|err| format!("Could not write '{}': {err}", path.display()))
     }
 
     pub(crate) fn write_best_merge_id(&self, method: &str) -> Result<(), String> {
         let path = self.dir.join(BEST_MERGE_FILENAME);
         fs::write(&path, method)
-            .map_err(|err| format!("Could not write {}: {err}", &path.display()))
+            .map_err(|err| format!("Could not write '{}': {err}", path.display()))
     }
 
     pub(crate) fn best_merge_id(&self) -> Result<String, String> {
         let path = self.dir.join(BEST_MERGE_FILENAME);
-        fs::read_to_string(&path)
-            .map_err(|err| format!("Could not read best merge id at {}: {err}", &path.display()))
+        fs::read_to_string(&path).map_err(|err| {
+            format!(
+                "Could not read best merge id at '{}': {err}",
+                path.display()
+            )
+        })
     }
 
     pub(crate) fn path(&self, file_name: &str) -> PathBuf {
@@ -90,7 +94,7 @@ impl AttemptsCache {
             })?;
         fs::create_dir_all(&cache_dir).map_err(|err| {
             format!(
-                "Error while creating merge attempts directory {}: {err}",
+                "Error while creating merge attempts directory '{}': {err}",
                 cache_dir.display()
             )
         })?;
@@ -122,7 +126,7 @@ impl AttemptsCache {
         let dir = self.base_dir.join(dir_name);
         fs::create_dir_all(&dir).map_err(|err| {
             format!(
-                "Error while creating merge attempt directory {}: {err}",
+                "Error while creating merge attempt directory '{}': {err}",
                 dir.display()
             )
         })?;
@@ -173,7 +177,7 @@ impl AttemptsCache {
         let best_merge_id = fs::read_to_string(&best_merge_file_path)
             .map_err(|err| {
                 format!(
-                    "Failed to read best merge method in {}: {}",
+                    "Failed to read best merge method in '{}': {}",
                     best_merge_file_path.display(),
                     err
                 )
@@ -181,7 +185,7 @@ impl AttemptsCache {
             .expect("Failed to read best merge id");
         let path_best_merge = attempt.path(best_merge_id.trim());
         if !path_best_merge.exists() {
-            return Err(format!("Could not read {}", path_best_merge.display()));
+            return Err(format!("Could not read '{}'", path_best_merge.display()));
         }
         Command::new("git")
             .arg("diff")

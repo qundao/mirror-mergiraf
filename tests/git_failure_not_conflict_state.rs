@@ -120,6 +120,9 @@ fn committed_conflict() {
         result.is_ok(),
         "Structured resolution errors are not terminal."
     );
-    assert!(handle.any_msg_contains("conflicted.py is not in a conflicted state."));
+    assert!(handle.any_msg_contains(&format!(
+        "'{}' is not in a conflicted state.",
+        file_path.display()
+    )));
     assert!(handle.any_msg_contains("Couldn't retrieve the original revisions from Git. This limits Mergiraf's ability to solve certain types of conflicts."));
 }

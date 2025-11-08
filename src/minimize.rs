@@ -69,7 +69,7 @@ pub fn minimize(
                 &mut rng,
             ) {
                 Ok(()) => {
-                    info!("New minimized case at {}", new_test_case.display());
+                    info!("New minimized case at '{}'", new_test_case.display());
                     current_best = new_test_case;
                     true
                 }

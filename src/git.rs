@@ -45,7 +45,7 @@ pub(crate) fn extract_all_revisions_from_git(
     if !output.status.success() {
         let error_str = str::from_utf8(&output.stderr).map_err(|err| err.to_string())?;
         return Err(format!(
-            "error while retrieving all revisions for {}:\n{}",
+            "error while retrieving all revisions for '{}':\n{}",
             path.display(),
             error_str
         ));
@@ -53,7 +53,10 @@ pub(crate) fn extract_all_revisions_from_git(
     let output_str = str::from_utf8(&output.stdout).map_err(|err| err.to_string())?;
     // No entries are returned for files in stage 0 (in index but not conflicted)
     if output_str.is_empty() {
-        return Err(format!("{} is not in a conflicted state.", path.display()));
+        return Err(format!(
+            "'{}' is not in a conflicted state.",
+            path.display()
+        ));
     }
     // The format when using `--stage=all` is `stage1temp SP stage2temp SP stage3tmp TAB path RS`
     let lines = output_str

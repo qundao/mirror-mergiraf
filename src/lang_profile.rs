@@ -134,7 +134,7 @@ impl LangProfile {
         } else {
             Self::detect_from_filename(filename).ok_or_else(|| {
                 format!(
-                    "Could not find a supported language for {}",
+                    "Could not find a supported language for '{}'",
                     filename.display()
                 )
             })
@@ -676,7 +676,7 @@ mod tests {
         );
         assert_eq!(
             find("file.noattr", None).unwrap_err(),
-            "Could not find a supported language for file.noattr",
+            "Could not find a supported language for 'file.noattr'",
         );
         assert_eq!(find("file.js", None).unwrap().name, "Javascript");
         assert_eq!(find("file.myjs", None).unwrap().name, "Javascript");

@@ -113,7 +113,7 @@ fn integration_failing(
                 // 2. rename `ExpectedIdeally.<extension>` to `Expected.<extension>`
                 // 3. delete `ExpectedCurrently.<extension>`
                 panic!(
-                    "test for {} failed to fail -- it works now!",
+                    "test for '{}' failed to fail -- it works now!",
                     test_dir.display()
                 );
             }
@@ -123,7 +123,7 @@ fn integration_failing(
                 print!("{}", f.fmt_patch(&patch));
                 eprintln!(
                     "\
-non-compact test for {} failed, but output differs from what we currently expect
+non-compact test for '{}' failed, but output differs from what we currently expect
 please examine the new output and update ExpectedCurrently{suffix} if it looks okay",
                     test_dir.display(),
                 );

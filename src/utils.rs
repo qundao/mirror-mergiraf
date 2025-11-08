@@ -4,12 +4,12 @@ use std::{fs, path::Path};
 use regex::RegexBuilder;
 
 pub fn read_file_to_string(path: &Path) -> Result<String, String> {
-    fs::read_to_string(path).map_err(|err| format!("Could not read {}: {err}", path.display()))
+    fs::read_to_string(path).map_err(|err| format!("Could not read '{}': {err}", path.display()))
 }
 
 pub fn write_string_to_file(path: impl AsRef<Path>, contents: &str) -> Result<(), String> {
     let path = path.as_ref();
-    fs::write(path, contents).map_err(|err| format!("Could not write {}: {err}", path.display()))
+    fs::write(path, contents).map_err(|err| format!("Could not write '{}': {err}", path.display()))
 }
 
 pub fn detect_suffix(test_dir: &Path) -> String {

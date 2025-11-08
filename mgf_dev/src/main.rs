@@ -97,7 +97,7 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
 
     let contents = |path: &Path| -> Result<Cow<str>, String> {
         let original_contents = fs::read_to_string(path)
-            .map_err(|err| format!("Could not read {}: {err}", path.display()))?;
+            .map_err(|err| format!("Could not read '{}': {err}", path.display()))?;
         let contents = normalize_to_lf(original_contents);
 
         Ok(contents)
