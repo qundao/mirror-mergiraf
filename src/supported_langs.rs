@@ -1398,4 +1398,39 @@ mod test {
             })
         }
     }
+
+    #[test]
+    fn children_of_commutative_parents_have_sigs() {
+        let mut actual = vec![];
+        for lang_profile in &*SUPPORTED_LANGUAGES {
+            for comm_parent in &lang_profile.commutative_parents {
+                // TODO: use NODE_TYPES to get _all_ the children of a given node type
+                for child_type in comm_parent
+                    .children_groups
+                    .iter()
+                    .flat_map(|cg| &cg.node_types)
+                {
+                    if !lang_profile
+                        .signatures
+                        .iter()
+                        .any(|sigdef| sigdef.node_type == *child_type)
+                    {
+                        actual.push(format!(
+                            "{lang_profile}: '{comm_parent}': `{child_type}`",
+                            // "{lang_profile}: Child `{child_type}` of commutative parent '{comm_parent}' doesn't have a signature defined",
+                            comm_parent = comm_parent.parent_type()
+                        ));
+                    }
+                }
+            }
+        }
+        actual.sort_unstable();
+
+        assert!(
+            !actual.is_empty(),
+            "There are no more children without signatures left! This test can be deleted:)"
+        );
+
+        insta::assert_debug_snapshot!(actual);
+    }
 }

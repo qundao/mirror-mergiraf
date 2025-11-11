@@ -1,0 +1,30 @@
+---
+source: src/supported_langs.rs
+expression: actual
+---
+[
+    "C#: 'declaration_list': `conversion_operator_declaration`",
+    "C#: 'declaration_list': `event_field_declaration`",
+    "C#: 'declaration_list': `indexer_declaration`",
+    "C#: 'declaration_list': `namespace_declaration`",
+    "C#: 'declaration_list': `property_declaration`",
+    "Go: 'literal_value': `literal_element`",
+    "Java: 'throws': `type_identifier`",
+    "Kotlin: 'modifiers': `inheritance_modifier`",
+    "Kotlin: 'modifiers': `member_modifier`",
+    "Kotlin: 'modifiers': `visibility_modifier`",
+    "Markdown: 'section': `link_reference_definition`",
+    "PHP: 'declaration_list': `use_declaration`",
+    "Python: 'module': `import_statement`",
+    "Starlark: 'module': `expression_statement`",
+    "Typescript (TSX): 'class_body': `abstract_method_signature`",
+    "Typescript (TSX): 'class_body': `class_static_block`",
+    "Typescript (TSX): 'class_body': `index_signature`",
+    "Typescript (TSX): 'class_body': `method_signature`",
+    "Typescript (TSX): 'program': `import_statement`",
+    "Typescript: 'class_body': `abstract_method_signature`",
+    "Typescript: 'class_body': `class_static_block`",
+    "Typescript: 'class_body': `index_signature`",
+    "Typescript: 'class_body': `method_signature`",
+    "Typescript: 'program': `import_statement`",
+]

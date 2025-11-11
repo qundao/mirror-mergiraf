@@ -91,6 +91,7 @@ cc = { version = ">=1.2.12", default-features = false, optional = true } # requi
 caplog = "0.3"
 rstest = {version = "0.26", default-features = false}
 tempfile = "3"
+insta = { version = "1.43", default-features = false, features = ["colors"] }
 
 [features]
 dev = ["dep:tempfile"]
@@ -99,6 +100,11 @@ dev = ["dep:tempfile"]
 # to conform to Git's protocol for merge drivers, which requires
 # a return code > 128 when an error occurs. This sets return code 134.
 panic = "abort"
+
+# https://docs.rs/insta/1.43.2/insta/index.html#optional-faster-runs
+[profile.dev.package]
+insta = { opt-level = 3 }
+similar = { opt-level = 3 }
 
 [profile.release]
 panic = "abort"
