@@ -38,6 +38,7 @@
           (craneLib.fileset.commonCargoSources unfilteredRoot)
           ./examples
           ./helpers
+          ./src/snapshots
         ];
       };
 
