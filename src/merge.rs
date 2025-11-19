@@ -27,7 +27,7 @@ use crate::{
 #[allow(clippy::too_many_arguments)]
 pub fn line_merge_and_structured_resolution(
     contents_base: Arc<Cow<'static, str>>,
-    contents_left: &'static str,
+    contents_left: Arc<Cow<'static, str>>,
     contents_right: Arc<Cow<'static, str>>,
     fname_base: &'static Path,
     settings: DisplaySettings<'static>,
@@ -39,12 +39,12 @@ pub fn line_merge_and_structured_resolution(
     repo_dir: Option<&Path>,
 ) -> MergeResult {
     let Ok(lang_profile) = LangProfile::find(fname_base, language, repo_dir) else {
-        return line_based_merge(&contents_base, contents_left, &contents_right, &settings);
+        return line_based_merge(&contents_base, &contents_left, &contents_right, &settings);
     };
 
     let merges = cascading_merge(
         Arc::clone(&contents_base),
-        contents_left,
+        Arc::clone(&contents_left),
         Arc::clone(&contents_right),
         lang_profile,
         settings,
@@ -63,7 +63,7 @@ pub fn line_merge_and_structured_resolution(
                     match cache.new_attempt(
                         fname_base,
                         &contents_base,
-                        contents_left,
+                        &contents_left,
                         &contents_right,
                     ) {
                         Ok(attempt) => {
@@ -89,7 +89,7 @@ pub fn line_merge_and_structured_resolution(
 #[allow(clippy::too_many_arguments)]
 pub fn cascading_merge(
     contents_base: Arc<Cow<'static, str>>,
-    contents_left: &'static str,
+    contents_left: Arc<Cow<'static, str>>,
     contents_right: Arc<Cow<'static, str>>,
     lang_profile: &'static LangProfile,
     settings: DisplaySettings<'static>,
@@ -101,7 +101,7 @@ pub fn cascading_merge(
     let start = Instant::now();
     let (parsed_conflicts, line_based_merge) = line_based_merge_with_duplicate_signature_detection(
         &contents_base,
-        contents_left,
+        &contents_left,
         &contents_right,
         &settings,
         lang_profile,
@@ -139,7 +139,7 @@ pub fn cascading_merge(
             // third attempt: full-blown structured merge
             let structured_merge = structured_merge(
                 &contents_base,
-                contents_left,
+                &contents_left,
                 &contents_right,
                 None,
                 &settings,

@@ -17,9 +17,9 @@ use crate::common::language_override_for_test;
 fn compare_against_merge(
     test_dir: &Path,
     fname_base: &'static Path,
-    contents_base: &'static str,
-    contents_left: &'static str,
-    contents_right: &'static str,
+    contents_base: Arc<Cow<'static, str>>,
+    contents_left: Arc<Cow<'static, str>>,
+    contents_right: Arc<Cow<'static, str>>,
     contents_expected: &str,
     compact: bool,
 ) {
@@ -28,12 +28,12 @@ fn compare_against_merge(
         ..Default::default()
     };
 
-    settings.adjust_conflict_marker_size(contents_base, contents_left, contents_right);
+    settings.adjust_conflict_marker_size(&contents_base, &contents_left, &contents_right);
 
     let merge_result = line_merge_and_structured_resolution(
-        Arc::new(Cow::Borrowed(contents_base)),
+        contents_base,
         contents_left,
-        Arc::new(Cow::Borrowed(contents_right)),
+        contents_right,
         fname_base,
         settings,
         true,
@@ -58,17 +58,14 @@ fn compare_against_merge(
 fn run_test_from_dir(test_dir: &Path) {
     let suffix = detect_test_suffix(test_dir);
     let fname_base = test_dir.join(format!("Base{suffix}")).leak();
-    let contents_base = fs::read_to_string(&fname_base)
-        .expect("Unable to read left file")
-        .leak();
+    let contents_base = fs::read_to_string(&fname_base).expect("Unable to read left file");
+    let contents_base = Arc::new(Cow::Owned(contents_base));
     let fname_left = test_dir.join(format!("Left{suffix}"));
-    let contents_left = fs::read_to_string(fname_left)
-        .expect("Unable to read left file")
-        .leak();
+    let contents_left = fs::read_to_string(fname_left).expect("Unable to read left file");
+    let contents_left = Arc::new(Cow::Owned(contents_left));
     let fname_right = test_dir.join(format!("Right{suffix}"));
-    let contents_right = fs::read_to_string(fname_right)
-        .expect("Unable to read right file")
-        .leak();
+    let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
+    let contents_right = Arc::new(Cow::Owned(contents_right));
 
     {
         let fname_expected = test_dir.join(format!("Expected{suffix}"));
@@ -78,9 +75,9 @@ fn run_test_from_dir(test_dir: &Path) {
         compare_against_merge(
             test_dir,
             fname_base,
-            contents_base,
-            contents_left,
-            contents_right,
+            Arc::clone(&contents_base),
+            Arc::clone(&contents_left),
+            Arc::clone(&contents_right),
             &contents_expected,
             false,
         );

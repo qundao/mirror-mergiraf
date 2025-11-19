@@ -14,7 +14,7 @@ use mergiraf::{
     attempts::AttemptsCache,
     bug_reporter::report_bug,
     languages, line_merge_and_structured_resolution,
-    newline::{imitate_cr_lf_from_input, normalize_to_lf},
+    newline::{imitate_newline_style, infer_newline_style, normalize_to_lf},
     resolve_merge_cascading,
     settings::DisplaySettings,
     utils::{read_file_to_string, write_string_to_file},
@@ -240,14 +240,16 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     .map_err(|e| format!("error when calling git-merge-file: {e}"));
             };
 
+            let original_newline_style = infer_newline_style(&original_contents_left);
+
             let contents_base = normalize_to_lf(original_contents_base);
-            let contents_left = normalize_to_lf(&original_contents_left);
+            let contents_left = normalize_to_lf(original_contents_left);
             let contents_right = normalize_to_lf(original_contents_right);
 
             settings.adjust_conflict_marker_size(&contents_base, &contents_left, &contents_right);
 
             let contents_base = Arc::new(contents_base);
-            let contents_left = contents_left.into_owned().leak();
+            let contents_left = Arc::new(contents_left);
             let contents_right = Arc::new(contents_right);
 
             let attempts_cache = AttemptsCache::new(None, None).ok();
@@ -269,7 +271,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 Some(&working_dir),
             );
             let result_with_imitated_newlines =
-                imitate_cr_lf_from_input(&original_contents_left, &merge_result.contents);
+                imitate_newline_style(&merge_result.contents, original_newline_style);
             if let Some(fname_out) = output {
                 write_string_to_file(&fname_out, &result_with_imitated_newlines)?;
             } else if git {
@@ -330,6 +332,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             }
 
             let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
+            let original_newline_style = infer_newline_style(&original_conflict_contents);
             let conflict_contents = normalize_to_lf(&original_conflict_contents);
             let working_dir = env::current_dir().expect("Invalid current directory");
 
@@ -344,7 +347,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             match postprocessed {
                 Ok(merged) => {
                     let result_with_imitated_newlines =
-                        imitate_cr_lf_from_input(&original_conflict_contents, &merged.contents);
+                        imitate_newline_style(&merged.contents, original_newline_style);
                     if stdout {
                         print!("{}", result_with_imitated_newlines);
                     } else {

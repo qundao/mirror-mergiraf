@@ -1,33 +1,33 @@
 use std::borrow::Cow;
 
-#[allow(clippy::upper_case_acronyms)]
-enum LineFeedStyle {
-    LF,
-    CRLF,
-    CR,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NewlineStyle {
+    Lf,
+    CrLf,
+    Cr,
 }
 
-/// Guess if we should use CRLF or just LF from an example file
-fn infer_cr_lf_from_file(contents: &str) -> LineFeedStyle {
+/// Guess if we should use CRLF or just LF from an example string
+pub fn infer_newline_style(contents: &str) -> NewlineStyle {
     let lf_count = contents.split('\n').count();
     let cr_lf_count = contents.split("\r\n").count();
     let cr_count = contents.split('\r').count();
     if cr_lf_count > lf_count / 2 {
-        LineFeedStyle::CRLF
+        NewlineStyle::CrLf
     } else if cr_count > lf_count {
-        LineFeedStyle::CR
+        NewlineStyle::Cr
     } else {
-        LineFeedStyle::LF
+        NewlineStyle::Lf
     }
 }
 
-/// Renormalize an output file to contain CRLF or just LF by imitating an input file
-pub fn imitate_cr_lf_from_input(input_contents: &str, output_contents: &str) -> String {
-    let without_crlf = output_contents.replace("\r\n", "\n");
-    match infer_cr_lf_from_file(input_contents) {
-        LineFeedStyle::LF => without_crlf.replace('\r', "\n"),
-        LineFeedStyle::CRLF => without_crlf.replace('\r', "\n").replace('\n', "\r\n"),
-        LineFeedStyle::CR => without_crlf.replace('\n', "\r"),
+/// Renormalize a string to contain CRLF or just LF
+pub fn imitate_newline_style(contents: &str, style: NewlineStyle) -> String {
+    let without_crlf = contents.replace("\r\n", "\n");
+    match style {
+        NewlineStyle::Lf => without_crlf.replace('\r', "\n"),
+        NewlineStyle::CrLf => without_crlf.replace('\r', "\n").replace('\n', "\r\n"),
+        NewlineStyle::Cr => without_crlf.replace('\n', "\r"),
     }
 }
 
@@ -46,32 +46,25 @@ mod tests {
     use super::*;
 
     #[test]
-    fn normalize_cr_lf_to_lf() {
-        let input_contents = "a\nb\nc\nd";
-        let output_contents = "A\nB\r\nC\rD";
+    fn infer_newline_style() {
+        let infer = super::infer_newline_style;
 
-        let result = imitate_cr_lf_from_input(input_contents, output_contents);
+        assert_eq!(infer("a\nb\nc\nd"), NewlineStyle::Lf);
+        assert_eq!(infer("a\r\nb\r\nc\nd"), NewlineStyle::CrLf);
+        assert_eq!(infer("a\rb\rc\nd"), NewlineStyle::Cr);
+    }
 
+    #[test]
+    fn imitate_newline_style() {
+        let imitate = super::imitate_newline_style;
+
+        let result = imitate("A\nB\r\nC\rD", NewlineStyle::Lf);
         assert_eq!(result, "A\nB\nC\nD");
-    }
 
-    #[test]
-    fn normalize_lf_to_cr_lf() {
-        let input_contents = "a\r\nb\r\nc\nd";
-        let output_contents = "A\nB\r\nC\rD";
-
-        let result = imitate_cr_lf_from_input(input_contents, output_contents);
-
+        let result = imitate("A\nB\r\nC\rD", NewlineStyle::CrLf);
         assert_eq!(result, "A\r\nB\r\nC\r\nD");
-    }
 
-    #[test]
-    fn normalize_lf_to_cr() {
-        let input_contents = "a\rb\rc\nd";
-        let output_contents = "A\rB\r\nC\nD";
-
-        let result = imitate_cr_lf_from_input(input_contents, output_contents);
-
+        let result = imitate("A\rB\r\nC\nD", NewlineStyle::Cr);
         assert_eq!(result, "A\rB\rC\rD");
     }
 }

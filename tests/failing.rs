@@ -52,9 +52,8 @@ fn integration_failing(
     let contents_base = fs::read_to_string(&fname_base).expect("Unable to read base file");
     let contents_base = Arc::new(Cow::Owned(contents_base));
     let fname_left = test_dir.join(format!("Left{suffix}"));
-    let contents_left = fs::read_to_string(fname_left)
-        .expect("Unable to read left file")
-        .leak();
+    let contents_left = fs::read_to_string(fname_left).expect("Unable to read left file");
+    let contents_left = Arc::new(Cow::Owned(contents_left));
     let fname_right = test_dir.join(format!("Right{suffix}"));
     let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
     let contents_right = Arc::new(Cow::Owned(contents_right));
@@ -67,11 +66,11 @@ fn integration_failing(
         fs::read_to_string(fname_expected_ideally).expect("Unable to read expected-ideally file");
 
     let mut settings = DisplaySettings::default();
-    settings.adjust_conflict_marker_size(&contents_base, contents_left, &contents_right);
+    settings.adjust_conflict_marker_size(&contents_base, &contents_left, &contents_right);
 
     let merge_result = line_merge_and_structured_resolution(
         Arc::clone(&contents_base),
-        contents_left,
+        Arc::clone(&contents_left),
         Arc::clone(&contents_right),
         fname_base,
         settings,
