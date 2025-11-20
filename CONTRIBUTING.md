@@ -52,7 +52,7 @@ The `diff_left.sh`, `diff_right.sh` and `diff_between.sh` scripts in the helpers
 
 ### Minimizing test cases
 
-When mergiraf shows a default on a particular merge scenario, it can be useful to obtain a minimal example where the problem occurs.
+When mergiraf behaves incorrectly on a particular merge scenario, it can be useful to obtain a minimal example where the problem occurs.
 The `cargo minimize` command can be used to compute such a minimal example from a real-world one.
 
 It requires:
