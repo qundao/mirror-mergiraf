@@ -45,9 +45,9 @@ That's all you need to get basic support for this language in Mergiraf. It alrea
 ## Next steps
 
 The `commutative_parents` and `signature` fields of the language profile can be used to 
-[enable commutative merging](./enabling-commutative-merging.md) for certain node types, which is recommended to improve the merge results. 
-The remaining fields are available for [advanced use cases](./advanced-language-configuration.md).
+[enable commutative merging](./adding-a-language/enabling-commutative-merging.md) for certain node types, which is recommended to improve the merge results. 
+The remaining fields are available for [advanced use cases](./adding-a-language/advanced-language-configuration.md).
 
-To submit your language configuration for inclusion in Mergiraf, we ask that you [add some tests](./language-testing.md) to validate the merge output. The list of supported languages should also be updated in `doc/src/languages.md`.
+To submit your language configuration for inclusion in Mergiraf, we ask that you [add some tests](./adding-a-language/language-testing.md) to validate the merge output. The list of supported languages should also be updated in `doc/src/languages.md`.
 
 Mergiraf excitedly awaits your pull request!
