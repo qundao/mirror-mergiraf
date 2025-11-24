@@ -237,6 +237,10 @@ This gives rise to the following signatures:
 
 Again, this can be checked with `cargo parse test_file.cs`, which shows the computed signatures in the tree.
 
+Note that the signature for `using_directive` is defined as `vec![vec![]]`, which leads to the entire element being treated as its own signature.
+If instead we had defined it as `vec![]`, then the element's signature would be empty. This would mean that any two `using_directive`s would be treated as conflicting
+(which wouldn't be appropriate in this case, but can be useful in other contexts).
+
 To understand the difference between `Field` and `ChildType` in the signature definition for `method_declaration`, consider the structure of a method declaration as parsed by tree-sitter:
 
 <pre><font color="#5E5C64"> └</font>method_declaration
