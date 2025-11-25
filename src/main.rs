@@ -257,7 +257,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let fname_base = path_name.unwrap_or(fname_base);
 
             let working_dir = env::current_dir().expect("Invalid current directory");
-            let merge_result = line_merge_and_structured_resolution(
+            let mut merge_result = line_merge_and_structured_resolution(
                 contents_base,
                 contents_left,
                 contents_right,
@@ -270,14 +270,14 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 language.as_deref(),
                 Some(&working_dir),
             );
-            let result_with_imitated_newlines =
+            merge_result.contents =
                 imitate_newline_style(&merge_result.contents, original_newline_style);
             if let Some(fname_out) = output {
-                write_string_to_file(&fname_out, &result_with_imitated_newlines)?;
+                write_string_to_file(&fname_out, &merge_result.contents)?;
             } else if git {
-                write_string_to_file(fname_left, &result_with_imitated_newlines)?;
+                write_string_to_file(fname_left, &merge_result.contents)?;
             } else {
-                print!("{}", result_with_imitated_newlines);
+                print!("{}", merge_result.contents);
             }
 
             if merge_result.conflict_count > 0 {
@@ -345,13 +345,13 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 language.as_deref(),
             );
             match postprocessed {
-                Ok(merged) => {
-                    let result_with_imitated_newlines =
+                Ok(mut merged) => {
+                    merged.contents =
                         imitate_newline_style(&merged.contents, original_newline_style);
                     if stdout {
-                        print!("{}", result_with_imitated_newlines);
+                        print!("{}", merged.contents);
                     } else {
-                        write_string_to_file(&fname_conflicts, &result_with_imitated_newlines)?;
+                        write_string_to_file(&fname_conflicts, &merged.contents)?;
                         if keep_backup {
                             write_string_to_file(
                                 fname_conflicts.with_added_extension("orig"),
