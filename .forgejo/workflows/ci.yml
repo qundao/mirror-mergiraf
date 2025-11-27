@@ -16,6 +16,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - id: get-rust-version
+        name: Get Rust version (for caching)
+        run: echo "rust-version='$(rustc -V)'" >> $FORGEJO_OUTPUT
       - name: Cache build dependencies
         uses: actions/cache@v4
         with:
@@ -25,7 +28,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: "${{runner.os}} Rust ${{steps.rust-toolchain.outputs.cachekey}} lock ${{ hashFiles('**/Cargo.lock') }}"
+          key: "${{runner.os}} Rust ${{ steps.get-rust-version.outputs.rust-version }} lock ${{ hashFiles('**/Cargo.lock') }}"
       - name: Format
         run: cargo fmt --all -- --check
       - name: Lint
