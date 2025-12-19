@@ -63,7 +63,11 @@ pub fn structured_merge(
         // Note: this might have false negatives, but "common changes" are braces most of
         // the time anyway
         (Err(_), Ok(_), Ok(_)) => return Err(ZDIFF3_DETECTED.into()),
-        (b, l, r) => (b?, l?, r?),
+        (b, l, r) => (
+            b.map_err(|e| e.to_string())?,
+            l.map_err(|e| e.to_string())?,
+            r.map_err(|e| e.to_string())?,
+        ),
     };
 
     let initial_matchings = parsed_merge.map(|parsed_merge| {

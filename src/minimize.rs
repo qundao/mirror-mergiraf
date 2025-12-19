@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    ast::AstNode,
+    ast::{AstNode, ParsingError},
     class_mapping::{ClassMapping, Leader, RevNode, RevisionNESet},
     lang_profile::LangProfile,
     merge_3dm::{create_class_mapping, generate_matchings},
@@ -22,6 +22,7 @@ use crate::{
 use log::{info, warn};
 use rand::{Rng, SeedableRng, rngs::StdRng, seq::IndexedRandom};
 use tempfile::tempdir;
+use thiserror::Error;
 use typed_arena::Arena;
 
 /// Incrementally minimize a test case by removing elements synchronously
@@ -106,6 +107,7 @@ pub fn minimize(
 
 /// All the possible reasons to fail a minimization attempt.
 /// Internal errors are expected to generate panics.
+#[derive(Error, Debug, Eq, PartialEq)]
 enum AttemptFailure {
     /// Getting lost in the tree looking for a node to delete.
     /// For instance, if the tree is just a root, well, we can't
@@ -113,7 +115,7 @@ enum AttemptFailure {
     LostInTree(String),
     /// Deleting some nodes from a tree made its rendered version
     /// syntactically invalid. That was a bad choice of nodes.
-    SyntaxError(String),
+    SyntaxError(#[from] ParsingError),
     /// Deleting the nodes from a tree still kept it syntactically valid,
     /// but re-parsing it gave us a tree that's not isomorphic to what
     /// we meant. The grammar is likely overly accepting.

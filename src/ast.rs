@@ -12,13 +12,15 @@ use std::{
 };
 #[cfg(test)]
 use std::{ops::Index, slice::SliceIndex};
+use thiserror::Error;
 
 use either::Either;
 use itertools::Itertools;
 use nu_ansi_term::Color;
 use rustc_hash::FxHashMap;
 use tree_sitter::{
-    Parser, Query, QueryCursor, Range as TSRange, StreamingIterator, Tree, TreeCursor,
+    IncludedRangesError, LanguageError, Parser, Query, QueryCursor, Range as TSRange,
+    StreamingIterator, Tree, TreeCursor,
 };
 use typed_arena::Arena;
 
@@ -27,6 +29,36 @@ use crate::{
     lang_profile::{CommutativeParent, LangProfile, ParentType},
     signature::{Signature, SignatureDefinition},
 };
+
+#[derive(Error, Debug, PartialEq, Eq)]
+pub enum ParsingError {
+    // Errors that are expected to happen in certain cases.
+    #[error(
+        "parse error at {start_row}:{start_column}..{end_row}:{end_column}, starting with: `{fragment}`"
+    )]
+    InvalidSyntax {
+        start_row: usize,
+        start_column: usize,
+        end_row: usize,
+        end_column: usize,
+        fragment: String,
+    },
+    #[error("parse error at {start_row}:{start_column}, expected `{kind}`")]
+    MissingToken {
+        start_row: usize,
+        start_column: usize,
+        kind: String,
+    },
+
+    // Internal errors
+    #[error("could not load grammar for language {language_name}: {cause}")]
+    GrammarLoadingError {
+        cause: LanguageError,
+        language_name: String,
+    },
+    #[error("could not restrict the parser to the range")]
+    RangeRestrictionError(#[from] IncludedRangesError),
+}
 
 /// A node in a syntax tree.
 ///
@@ -78,7 +110,7 @@ impl<'a> AstNode<'a> {
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         ref_arena: &'a Arena<&'a Self>,
-    ) -> Result<&'a Self, String> {
+    ) -> Result<&'a Self, ParsingError> {
         let mut next_node_id = 1;
         let root = Self::parse_root(source, None, lang_profile, arena, &mut next_node_id)?;
         root.internal_precompute_root_dfs(ref_arena);
@@ -94,15 +126,16 @@ impl<'a> AstNode<'a> {
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
-    ) -> Result<&'a Self, String> {
+    ) -> Result<&'a Self, ParsingError> {
         let mut parser = Parser::new();
         parser
             .set_language(&lang_profile.language)
-            .map_err(|err| format!("Error loading {lang_profile} grammar: {err}"))?;
+            .map_err(|cause| ParsingError::GrammarLoadingError {
+                cause,
+                language_name: lang_profile.name.to_string(),
+            })?;
         if let Some(range) = range {
-            parser
-                .set_included_ranges(&[range])
-                .map_err(|err| format!("Error while restricting the parser to a range: {err}"))?;
+            parser.set_included_ranges(&[range])?;
         }
         let tree = parser
             .parse(source, None)
@@ -218,7 +251,7 @@ impl<'a> AstNode<'a> {
         node_id_to_injection_lang: &FxHashMap<usize, &'static LangProfile>,
         node_id_to_commutative_parent: &FxHashMap<usize, &'a CommutativeParent>,
         range_for_root: Option<Range<usize>>,
-    ) -> Result<&'a Self, String> {
+    ) -> Result<&'a Self, ParsingError> {
         let field_name = cursor.field_name();
         let node = cursor.node();
         let atomic = lang_profile.is_atomic_node_type(node.kind());
@@ -318,23 +351,21 @@ impl<'a> AstNode<'a> {
             #[expect(unstable_name_collisions)]
             let idx = local_source.ceil_char_boundary(32);
 
-            return Err(format!(
-                "parse error at {}:{}..{}:{}, starting with: `{}`",
-                full_range.start_point.row,
-                full_range.start_point.column,
-                full_range.end_point.row,
-                full_range.end_point.column,
-                &local_source[..idx]
-            ));
+            return Err(ParsingError::InvalidSyntax {
+                start_row: full_range.start_point.row,
+                start_column: full_range.start_point.column,
+                end_row: full_range.end_point.row,
+                end_column: full_range.end_point.column,
+                fragment: local_source[..idx].to_string(),
+            });
         } else if node.is_missing() {
             let full_range = node.range();
 
-            return Err(format!(
-                "parse error at {}:{}, expected `{}`",
-                full_range.start_point.row,
-                full_range.start_point.column,
-                node.kind(),
-            ));
+            return Err(ParsingError::MissingToken {
+                start_row: full_range.start_point.row,
+                start_column: full_range.start_point.column,
+                kind: node.kind().to_string(),
+            });
         }
 
         // if this is a leaf that spans multiple lines, create one child per line,
@@ -1247,7 +1278,13 @@ mod tests {
 
         assert_eq!(
             parse,
-            Err("parse error at 1:1..1:3, starting with: `{,`".to_string())
+            Err(ParsingError::InvalidSyntax {
+                start_row: 1,
+                start_column: 1,
+                end_row: 1,
+                end_column: 3,
+                fragment: "{,".to_string()
+            })
         );
 
         let parse = AstNode::parse(
@@ -1259,7 +1296,13 @@ mod tests {
 
         assert_eq!(
             parse,
-            Err("parse error at 0:0..0:39, starting with: `属于个人的非赢利性开源`".to_string())
+            Err(ParsingError::InvalidSyntax {
+                start_row: 0,
+                start_column: 0,
+                end_row: 0,
+                end_column: 39,
+                fragment: "属于个人的非赢利性开源".to_string()
+            })
         );
     }
 
@@ -1270,7 +1313,14 @@ mod tests {
             .expect("Could not load the Java lang profile");
         let parse = AstNode::parse("class Test {", lang_profile, &ctx.arena, &ctx.ref_arena);
 
-        assert_eq!(parse, Err("parse error at 0:12, expected `}`".to_string()));
+        assert_eq!(
+            parse,
+            Err(ParsingError::MissingToken {
+                start_row: 0,
+                start_column: 12,
+                kind: "}".to_string()
+            })
+        );
     }
 
     #[test]
