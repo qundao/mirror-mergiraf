@@ -16,7 +16,7 @@ use mergiraf::{
     languages, line_merge_and_structured_resolution,
     newline::{imitate_newline_style, infer_newline_style, normalize_to_lf},
     resolve_merge_cascading,
-    settings::DisplaySettings,
+    settings::{ConflictRegexes, DisplaySettings},
     utils::{read_file_to_string, write_string_to_file},
 };
 
@@ -187,7 +187,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let path_name = path_name.map(|s| &*s.leak());
             let debug_dir = debug_dir.map(|s| &*s.leak());
 
-            let mut settings: DisplaySettings<'static> = DisplaySettings::new(
+            let settings: DisplaySettings<'static> = DisplaySettings::new(
                 compact,
                 conflict_marker_size,
                 match base_name {
@@ -222,8 +222,8 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             }
 
             let fname_base = &*base;
-            let fname_left = &left;
-            let fname_right = &right;
+            let fname_left = &*left;
+            let fname_right = &*right;
 
             let (
                 Ok(original_contents_base),
@@ -239,13 +239,36 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     .map_err(|e| format!("error when calling git-merge-file: {e}"));
             };
 
+            {
+                let ConflictRegexes {
+                    diff2: re_diff2,
+                    diff3: re_diff3,
+                    diff3_no_newline: re_diff3_no_newline,
+                    ..
+                } = settings.conflict_regexes();
+                for (side, contents) in [
+                    ("base", &original_contents_base),
+                    ("left", &original_contents_left),
+                    ("right", &original_contents_right),
+                ] {
+                    if re_diff3.is_match(contents)
+                        || re_diff2.is_match(contents)
+                        || re_diff3_no_newline.is_match(contents)
+                    {
+                        warn!("{side} side contains conflict markers, falling back to Git");
+                        return fallback_to_git_merge_file(
+                            base, left, right, git, &output, &settings,
+                        )
+                        .map_err(|e| format!("error when calling git-merge-file: {e}"));
+                    }
+                }
+            }
+
             let original_newline_style = infer_newline_style(&original_contents_left);
 
             let contents_base = normalize_to_lf(original_contents_base);
             let contents_left = normalize_to_lf(original_contents_left);
             let contents_right = normalize_to_lf(original_contents_right);
-
-            settings.adjust_conflict_marker_size(&contents_base, &contents_left, &contents_right);
 
             let contents_base = Arc::new(contents_base);
             let contents_left = Arc::new(contents_left);
@@ -458,6 +481,7 @@ fn conflict_location_looks_like_jj_repo(fname_conflicts: &Path) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
+    use itertools::Itertools;
 
     #[test]
     fn verify_cli() {
@@ -899,6 +923,82 @@ mod test {
         assert_eq!(
             return_code, 255,
             "`mergiraf merge` should return exit code 255 when passed non-existing files"
+        );
+    }
+
+    #[test]
+    fn merging_files_with_conflict_markers_cause_fallback_to_git_merge_file() {
+        let contents_base = "\
+/**
+ * Doc comment
+ */
+class MyClass {
+}";
+        let contents_left = "\
+/**
+<<<<<<< HEAD
+ * Doc comment
+=======
+ * Better docs
+>>>>>>> origin/main
+ */
+class MyClass {
+}";
+        let contents_right = "\
+/**
+ * Doc comment
+ */
+class MyClass {
+}
+
+class OtherClass {
+}";
+        let contents_expected = "\
+/**
+<<<<<<< HEAD
+ * Doc comment
+=======
+ * Better docs
+>>>>>>> origin/main
+ */
+class MyClass {
+}
+
+class OtherClass {
+}";
+
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
+            create_files_for_merge(repo_path, contents_base, contents_left, contents_right);
+
+        let mut handle = caplog::get_handle();
+        let return_code = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "merge",
+            "--language=java",
+            base_file_abs_path.to_str().unwrap(),
+            left_file_abs_path.to_str().unwrap(),
+            right_file_abs_path.to_str().unwrap(),
+            "--output",
+            output_file_abs_path.to_str().unwrap(),
+        ]))
+        .expect("failed to execute `mergiraf merge`");
+        handle.stop_recording();
+        assert_eq!(
+            return_code, 0,
+            "`mergiraf merge` should execute successfully with a specified language"
+        );
+
+        let merge_result =
+            fs::read_to_string(output_file_abs_path).expect("couldn't read the merge result");
+        assert_eq!(merge_result, contents_expected);
+
+        assert!(
+            handle.any_msg_contains("left side contains conflict markers, falling back to Git"),
+            "found the following messages:\n{}",
+            handle.iter().map(|(_, record)| &*record.msg).format("\n")
         );
     }
 }

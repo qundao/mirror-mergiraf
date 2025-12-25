@@ -1,5 +1,0 @@
-/**
- * Doc comment
- */
-class MyClass {
-}
