@@ -727,10 +727,7 @@ fn baz() {
             use_rted: false,
         };
 
-        let settings = DisplaySettings {
-            conflict_marker_size: Some(9),
-            ..DisplaySettings::default_compact()
-        };
+        let settings = DisplaySettings::new(Some(true), Some(9), None, None, None);
 
         let (merged_tree, class_mapping) = three_way_merge(
             base,

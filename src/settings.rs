@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use regex::Regex;
+
 use crate::{
     parsed_merge::{MergedChunk, ParsedMerge},
     utils::max_conflict_marker_length,
@@ -7,7 +9,51 @@ use crate::{
 
 pub const DEFAULT_CONFLICT_MARKER_SIZE: usize = 7;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// The regexes for conflicts in diff2 and diff3 format.
+///
+/// The diff3 format[^1] allows representing conflicts where some (or all) sides may have no final
+/// newline. In that case, there will be no newline at the end of the conflict, i.e. after the
+/// right marker -- instead, a newline will be added to each side to ensure that the markers
+/// coming after them are still placed at the beginning of a line. But the newline that
+/// might've been a part of a conflict side is preserved as well.
+///
+/// [^1]: probably the diff2 format does so as well, but we don't care to parse it thoroughly,
+/// as Mergiraf doesn't support it
+#[derive(Clone, Debug)]
+pub struct ConflictRegexes {
+    /// The conflict marker size used in the regexes. Used in debug mode to ensure that the `size`
+    /// field of `DisplaySettings` wasn't updated without updating these regexes as well.
+    #[cfg(debug_assertions)]
+    marker_size: usize,
+
+    /// The regex for diff2 conflict format:
+    /// ```txt
+    /// <<<<<<< LEFT
+    /// left content
+    /// ======= BASE
+    /// right content
+    /// >>>>>>> RIGHT
+    /// ```
+    pub diff2: Regex,
+
+    /// The regex for diff3 conflict format:
+    /// ```txt
+    /// <<<<<<< LEFT
+    /// left content
+    /// |||||||
+    /// base content
+    /// ======= BASE
+    /// right content
+    /// >>>>>>> RIGHT
+    /// ```
+    pub diff3: Regex,
+
+    /// The regex for diff3 conflict format, where the final newline is not present.
+    /// See struct's docs for more info
+    pub diff3_no_newline: Regex,
+}
+
+#[derive(Clone, Debug, derive_more::PartialEq, derive_more::Eq)]
 /// Parameters controlling how the merged tree should be output.
 pub struct DisplaySettings<'a> {
     /// Whether to show the base revision in the conflicts (true by default)
@@ -15,7 +61,14 @@ pub struct DisplaySettings<'a> {
     /// Whether to show compact conflicts or to expand them to fill an entire line
     pub compact: Option<bool>,
     /// The number of characters for conflict markers (7 by default)
-    pub conflict_marker_size: Option<usize>,
+    conflict_marker_size: Option<usize>,
+    /// The regexes for conflicts with marker lengths of size `conflict_marker_size`
+    ///
+    /// INVARIANT: the conflict marker size of regexes = `conflict_marker_size`
+
+    // the regexes of two `DisplaySettings` are going to be "equal" iff their `conflict_marker_size`s are equal
+    #[eq(skip)]
+    conflict_regexes: Box<ConflictRegexes>,
     /// The string that identifies the left revision in conflict markers
     ///
     /// It can either:
@@ -40,6 +93,25 @@ pub struct DisplaySettings<'a> {
 }
 
 impl<'a> DisplaySettings<'a> {
+    pub fn new(
+        compact: Option<bool>,
+        conflict_marker_size: Option<usize>,
+        base_revision_name: Option<Cow<'a, str>>,
+        left_revision_name: Option<Cow<'a, str>>,
+        right_revision_name: Option<Cow<'a, str>>,
+    ) -> Self {
+        let size = conflict_marker_size.unwrap_or(DEFAULT_CONFLICT_MARKER_SIZE);
+        Self {
+            compact,
+            conflict_marker_size,
+            conflict_regexes: calculate_regexes(size),
+            base_revision_name,
+            left_revision_name,
+            right_revision_name,
+            diff3: true,
+        }
+    }
+
     /// The value of `compact` if set, the default value otherwise
     pub fn compact_or_default(&self) -> bool {
         self.compact.unwrap_or(false)
@@ -49,6 +121,21 @@ impl<'a> DisplaySettings<'a> {
     pub fn conflict_marker_size_or_default(&self) -> usize {
         self.conflict_marker_size
             .unwrap_or(DEFAULT_CONFLICT_MARKER_SIZE)
+    }
+
+    pub fn set_conflict_marker_size(&mut self, new_size: usize) {
+        if self.conflict_marker_size_or_default() != new_size {
+            self.conflict_regexes = calculate_regexes(new_size);
+        }
+        self.conflict_marker_size = Some(new_size);
+    }
+
+    pub fn conflict_regexes(&self) -> &ConflictRegexes {
+        debug_assert_eq!(
+            self.conflict_marker_size_or_default(),
+            self.conflict_regexes.marker_size
+        );
+        &self.conflict_regexes
     }
 
     /// Bumps the conflict marker size if there are already conflict markers
@@ -65,7 +152,7 @@ impl<'a> DisplaySettings<'a> {
             .max()
             .unwrap_or(0);
         if max_marker_size == self.conflict_marker_size_or_default() {
-            self.conflict_marker_size = Some(max_marker_size + 2)
+            self.set_conflict_marker_size(max_marker_size + 2);
         }
     }
 
@@ -153,15 +240,58 @@ impl<'a> DisplaySettings<'a> {
 
 impl Default for DisplaySettings<'_> {
     fn default() -> Self {
-        Self {
-            diff3: true,
-            compact: Some(false),
-            conflict_marker_size: None,
-            left_revision_name: None,
-            base_revision_name: None,
-            right_revision_name: None,
-        }
+        Self::new(Some(false), None, None, None, None)
     }
+}
+
+fn calculate_regexes(marker_size: usize) -> Box<ConflictRegexes> {
+    let diff2_conflict = Regex::new(&format!(
+        r"(?mx)
+            ^
+            <{{{marker_size}}} (?:\ (.*))? \r?\n
+            ((?s:.)*? \r?\n)??
+            ={{{marker_size}}}             \r?\n
+            ((?s:.)*? \r?\n)??
+            >{{{marker_size}}} (?:\ (.*))? \r?\n
+            "
+    ))
+    .unwrap();
+
+    let diff3_conflict = Regex::new(&format!(
+        r"(?mx)
+            ^
+            <{{{marker_size}}}  (?:\ (.*))? \r?\n
+            ((?s:.)*? \r?\n)??
+            \|{{{marker_size}}} (?:\ (.*))? \r?\n
+            ((?s:.)*? \r?\n)??
+            ={{{marker_size}}}              \r?\n
+            ((?s:.)*? \r?\n)??
+            >{{{marker_size}}}  (?:\ (.*))? \r?\n
+            "
+    ))
+    .unwrap();
+
+    let diff3_conflict_no_newline = Regex::new(&format!(
+        r"(?mx)
+            ^
+            <{{{marker_size}}}  (?:\ (.*))? \r?\n
+            (?: ( (?s:.)*? )                \r?\n)?? # the newlines before the markers are
+            \|{{{marker_size}}} (?:\ (.*))? \r?\n    # no longer part of conflicts sides themselves
+            (?: ( (?s:.)*? )                \r?\n)??
+            ={{{marker_size}}}              \r?\n
+            (?: ( (?s:.)*? )                \r?\n)??
+            >{{{marker_size}}}  (?:\ (.*))?     $    # no newline at the end
+            "
+    ))
+    .unwrap();
+
+    Box::new(ConflictRegexes {
+        #[cfg(debug_assertions)]
+        marker_size,
+        diff2: diff2_conflict,
+        diff3: diff3_conflict,
+        diff3_no_newline: diff3_conflict_no_newline,
+    })
 }
 
 #[cfg(test)]

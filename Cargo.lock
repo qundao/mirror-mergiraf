@@ -251,6 +251,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_more"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d751e9e49156b02b44f9c1815bcb94b984cdcc4396ecc32521c739452808b134"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "799a97264921d8623a957f6c3b9011f3b5492f557bbb7a5a19b7fa6d06ba8dcb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "rustc_version",
+ "syn",
+]
+
+[[package]]
 name = "diffy-imara"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -564,6 +585,7 @@ dependencies = [
  "caplog",
  "cc",
  "clap",
+ "derive_more 2.1.1",
  "diffy-imara",
  "either",
  "etcetera",
@@ -1052,7 +1074,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c71cf959f76103341744494caf1ace7f105244b980b1a3b848d5b1a070c42c16"
 dependencies = [
  "arrayvec",
- "derive_more",
+ "derive_more 0.99.20",
  "itertools 0.10.5",
  "pathfinding",
 ]

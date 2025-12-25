@@ -82,6 +82,7 @@ tree-sitter-starlark = "1.3"
 nonempty-collections = "1.1"
 tempfile = {version = "3", optional = true}
 thiserror = "2"
+derive_more = { version = "2.1.1", features = ["eq"] }
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]

@@ -1,10 +1,12 @@
-use std::{collections::HashMap, ops::Range};
-
-use regex::Regex;
+use std::{cell::LazyCell, collections::HashMap, ops::Range};
 
 use crate::{
-    ast::AstNode, line_based::LINE_BASED_METHOD, matching::Matching, merge_result::MergeResult,
-    pcs::Revision, settings::DisplaySettings,
+    ast::AstNode,
+    line_based::LINE_BASED_METHOD,
+    matching::Matching,
+    merge_result::MergeResult,
+    pcs::Revision,
+    settings::{ConflictRegexes, DisplaySettings},
 };
 
 pub(crate) const PARSED_MERGE_DIFF2_DETECTED: &str =
@@ -36,12 +38,7 @@ pub enum MergedChunk<'a> {
     /// A diff3-style conflict
     ///
     /// The diff3 format allows representing conflicts where some (or all) sides may have no final
-    /// newline. In that case, there will be no newline at the end of the conflict, i.e. after the
-    /// right marker -- instead, a newline will be added to each side to ensure that the markers
-    /// coming after them are still placed at the beginning of a line. But the newline that
-    /// might've been a part of a conflict side is preserved as well.
-    ///
-    /// We recognize this property, and preserve whatever newline was present in the original sides.
+    /// newline. We recognize this property, and preserve whatever newline was present in the original sides.
     Conflict {
         /// The left part of the conflict, with the final newline preserved (if present)
         left: Option<&'a str>,
@@ -73,54 +70,20 @@ impl<'a> ParsedMerge<'a> {
     /// Parse a file into a series of chunks.
     /// Fails if the conflict markers do not appear in a consistent order.
     pub(crate) fn parse(source: &'a str, settings: &DisplaySettings) -> Result<Self, String> {
-        let marker_size = settings.conflict_marker_size_or_default();
-
         let mut chunks = Vec::new();
 
-        let diff2conflict = Regex::new(&format!(
-            r"(?mx)
-            ^
-            <{{{marker_size}}} (?:\ (.*))? \r?\n
-            ((?s:.)*? \r?\n)??
-            ={{{marker_size}}}             \r?\n
-            ((?s:.)*? \r?\n)??
-            >{{{marker_size}}} (?:\ (.*))? \r?\n
-            "
-        ))
-        .unwrap();
-
-        let diff3conflict = Regex::new(&format!(
-            r"(?mx)
-            ^
-            <{{{marker_size}}}  (?:\ (.*))? \r?\n
-            ((?s:.)*? \r?\n)??
-            \|{{{marker_size}}} (?:\ (.*))? \r?\n
-            ((?s:.)*? \r?\n)??
-            ={{{marker_size}}}              \r?\n
-            ((?s:.)*? \r?\n)??
-            >{{{marker_size}}}  (?:\ (.*))? \r?\n
-            "
-        ))
-        .unwrap();
-
-        let diff3conflict_no_newline = Regex::new(&format!(
-            r"(?mx)
-            ^
-            <{{{marker_size}}}  (?:\ (.*))? \r?\n
-            (?: ( (?s:.)*? )                \r?\n)?? # the newlines before the markers are
-            \|{{{marker_size}}} (?:\ (.*))? \r?\n    # no longer part of conflicts sides themselves
-            (?: ( (?s:.)*? )                \r?\n)??
-            ={{{marker_size}}}              \r?\n
-            (?: ( (?s:.)*? )                \r?\n)??
-            >{{{marker_size}}}  (?:\ (.*))?     $    # no newline at the end
-            "
-        ))
-        .unwrap();
+        let ConflictRegexes {
+            diff2: diff2conflict,
+            diff3: diff3conflict,
+            diff3_no_newline: diff3conflict_no_newline,
+            ..
+        } = settings.conflict_regexes();
 
         let mut remaining_source = source;
         while !remaining_source.is_empty() {
-            let diff3_captures = diff3conflict.captures(remaining_source);
-            let diff3_no_newline_captures = diff3conflict_no_newline.captures(remaining_source);
+            let diff3_captures = LazyCell::new(|| diff3conflict.captures(remaining_source));
+            let diff3_no_newline_captures =
+                LazyCell::new(|| diff3conflict_no_newline.captures(remaining_source));
 
             // the 3 regexes each match more things than the last in this order:
             // 1) diff2            -- by ignoring the base marker and base rev text
@@ -753,10 +716,7 @@ right line
 ";
             let parsed_with_4 = ParsedMerge::parse(
                 conflict_with_4,
-                &DisplaySettings {
-                    conflict_marker_size: Some(4),
-                    ..Default::default()
-                },
+                &DisplaySettings::new(None, Some(4), None, None, None),
             )
             .expect("could not parse a conflict with `conflict_marker_size=4`");
             assert_eq!(parsed_with_4, parsed_expected);
@@ -773,10 +733,7 @@ right line
 ";
             let parsed_with_9 = ParsedMerge::parse(
                 conflict_with_9,
-                &DisplaySettings {
-                    conflict_marker_size: Some(9),
-                    ..Default::default()
-                },
+                &DisplaySettings::new(None, Some(9), None, None, None),
             )
             .expect("could not parse a conflict with `conflict_marker_size=9`");
             assert_eq!(parsed_with_9, parsed_expected);
@@ -1025,10 +982,8 @@ turn right please!
                 },
             ]);
 
-            let rendered_with_4 = merge.render(&DisplaySettings {
-                conflict_marker_size: Some(4),
-                ..Default::default()
-            });
+            let rendered_with_4 =
+                merge.render(&DisplaySettings::new(None, Some(4), None, None, None));
             let expected_with_4 = "\
 resolved line
 <<<< LEFT
@@ -1041,10 +996,8 @@ right line
 ";
             assert_eq!(rendered_with_4, expected_with_4);
 
-            let rendered_with_9 = merge.render(&DisplaySettings {
-                conflict_marker_size: Some(9),
-                ..Default::default()
-            });
+            let rendered_with_9 =
+                merge.render(&DisplaySettings::new(None, Some(9), None, None, None));
             let expected_with_9 = "\
 resolved line
 <<<<<<<<< LEFT
@@ -1307,15 +1260,15 @@ rest of file
             let mut enriched_settings = initial_settings.clone();
             enriched_settings.add_revision_names(&parsed);
 
-            assert_eq!(
-                enriched_settings,
-                DisplaySettings {
-                    left_revision_name: Some(Cow::Borrowed("my_left")),
-                    base_revision_name: Some(Cow::Borrowed("my_base")),
-                    right_revision_name: Some(Cow::Borrowed("my_right")),
-                    ..initial_settings
-                }
-            );
+            let manually_enriched_settings = {
+                let mut settings = initial_settings;
+                settings.left_revision_name = Some(Cow::Borrowed("my_left"));
+                settings.base_revision_name = Some(Cow::Borrowed("my_base"));
+                settings.right_revision_name = Some(Cow::Borrowed("my_right"));
+                settings
+            };
+
+            assert_eq!(enriched_settings, manually_enriched_settings);
         }
 
         #[test]

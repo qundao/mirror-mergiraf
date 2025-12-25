@@ -187,26 +187,25 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let path_name = path_name.map(|s| &*s.leak());
             let debug_dir = debug_dir.map(|s| &*s.leak());
 
-            let mut settings: DisplaySettings<'static> = DisplaySettings {
+            let mut settings: DisplaySettings<'static> = DisplaySettings::new(
                 compact,
                 conflict_marker_size,
-                base_revision_name: match base_name {
+                match base_name {
                     Some(name) if name == "%S" => None,
                     Some(name) => Some(Cow::Owned(name)),
                     None => Some(base.to_string_lossy()),
                 },
-                left_revision_name: match left_name {
+                match left_name {
                     Some(name) if name == "%X" => None,
                     Some(name) => Some(Cow::Owned(name)),
                     None => Some(left.to_string_lossy()),
                 },
-                right_revision_name: match right_name {
+                match right_name {
                     Some(name) if name == "%Y" => None,
                     Some(name) => Some(Cow::Owned(name)),
                     None => Some(right.to_string_lossy()),
                 },
-                ..Default::default()
-            };
+            );
 
             {
                 let mergiraf_disabled = env::var(DISABLING_ENV_VAR).as_deref() == Ok("0");
@@ -316,15 +315,14 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 );
             }
 
-            let settings = DisplaySettings {
+            let settings = DisplaySettings::new(
                 compact,
-                // NOTE: the names will be recognized in `resolve_merge_cascading` (if possible)
-                base_revision_name: None,
-                left_revision_name: None,
-                right_revision_name: None,
                 conflict_marker_size,
-                ..Default::default()
-            };
+                // NOTE: the names will be recognized in `resolve_merge_cascading` (if possible)
+                None,
+                None,
+                None,
+            );
 
             if let Some(debug_dir) = &debug_dir {
                 fs::create_dir_all(debug_dir)

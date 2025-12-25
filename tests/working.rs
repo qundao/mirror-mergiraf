@@ -23,11 +23,7 @@ fn compare_against_merge(
     contents_expected: &str,
     compact: bool,
 ) {
-    let mut settings = DisplaySettings {
-        compact: Some(compact),
-        ..Default::default()
-    };
-
+    let mut settings = DisplaySettings::new(Some(compact), None, None, None, None);
     settings.adjust_conflict_marker_size(&contents_base, &contents_left, &contents_right);
 
     let merge_result = line_merge_and_structured_resolution(
