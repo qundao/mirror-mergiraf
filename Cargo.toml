@@ -142,3 +142,9 @@ archive-suffix = ".tar.gz"
 pkg-fmt = "zip"
 archive-suffix = ".zip"
 
+# used for "deb" packaging with "cargo deb" (https://crates.io/crates/cargo-deb)
+[package.metadata.deb]
+assets = [
+    "$auto",
+    { source = "doc/book/*", dest = "usr/share/doc/mergiraf/book", mode = "644"},
+]
