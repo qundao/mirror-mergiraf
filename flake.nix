@@ -107,6 +107,7 @@
           nativeBuildInputs
           ++ nativeCheckInputs
           ++ (with pkgs; [
+            rust-analyzer
             graphviz
             mdbook # for building `mergiraf.org`
           ]);
