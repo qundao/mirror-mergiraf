@@ -128,10 +128,16 @@ impl<'a> DisplaySettings<'a> {
     }
 
     pub fn conflict_regexes(&self) -> &ConflictRegexes {
-        debug_assert_eq!(
-            self.conflict_marker_size_or_default(),
-            self.conflict_regexes.marker_size
-        );
+        // `debug_assert_eq!` will unfortunately not work here, as it uses merely
+        // `if cfg!(debug_assertions)`, which doesn't stop the compilation error
+        // "no field `marker_size` on type `Box<ConflictRegexes>`" from happening
+        #[cfg(debug_assertions)]
+        {
+            assert_eq!(
+                self.conflict_marker_size_or_default(),
+                self.conflict_regexes.marker_size
+            );
+        }
         &self.conflict_regexes
     }
 

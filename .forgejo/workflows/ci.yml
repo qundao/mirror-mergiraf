@@ -31,6 +31,11 @@ jobs:
           key: "${{runner.os}} Rust ${{ steps.get-rust-version.outputs.rust-version }} lock ${{ hashFiles('**/Cargo.lock') }}"
       - name: Format
         run: cargo fmt --all -- --check
+      - name: Check
+        run: cargo check --workspace --all-features --all-targets --locked
+        # For https://codeberg.org/mergiraf/mergiraf/pulls/666
+      - name: Check without debug-assertions
+        run: cargo check --config profile.debug.debug-assertions=false --workspace --all-features --all-targets --locked
       - name: Lint
         run: cargo clippy --workspace --all-features --all-targets --locked -- -Dwarnings
       - name: Run tests
