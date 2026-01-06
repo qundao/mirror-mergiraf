@@ -1,0 +1,4 @@
+[tools]
+repomix = "1.5.0"
+mergiraf = "0.16.1"
+rust = "1.90.0"

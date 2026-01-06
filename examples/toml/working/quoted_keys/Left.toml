@@ -1,0 +1,4 @@
+[tools]
+"npm:repomix" = "1.5.0"
+"cargo:mergiraf" = "0.16.1"
+rust = "1.89.0"

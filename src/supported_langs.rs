@@ -688,7 +688,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extensions: vec!["toml"],
             file_names: vec![],
             language: tree_sitter_toml_ng::LANGUAGE.into(),
-            atomic_nodes: vec!["string"],
+            atomic_nodes: vec!["string", "quoted_key"],
             commutative_parents: vec![
                 CommutativeParent::without_delimiters("document", "\n"),
                 CommutativeParent::without_delimiters("table", "\n"),
@@ -696,7 +696,11 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             ],
             signatures: vec![signature(
                 "pair",
-                vec![vec![ChildKind("bare_key")], vec![ChildKind("dotted_key")]],
+                vec![
+                    vec![ChildKind("bare_key")],
+                    vec![ChildKind("quoted_key")],
+                    vec![ChildKind("dotted_key")],
+                ],
             )],
             injections: None,
             flattened_nodes: &[],
