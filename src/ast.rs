@@ -1177,7 +1177,7 @@ impl PartialEq for AstNode<'_> {
 impl Eq for AstNode<'_> {}
 
 // AstNode fails to be Sync by default because it contains
-// an UnsafeCell. But this cell is only mutated during initialization and only
+// a Cell. But this cell is only mutated during initialization and only
 // ever refers to something that lives as long as the node itself (thanks to the
 // use of arenas) so it's fine to share it across threads.
 unsafe impl Sync for AstNode<'_> {}

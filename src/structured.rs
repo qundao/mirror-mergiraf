@@ -18,10 +18,11 @@ pub(crate) const ZDIFF3_DETECTED: &str =
 /// Performs a fully structured merge, parsing the contents of all three revisions,
 /// creating tree matchings between all pairs, and merging them.
 ///
-/// The language to use is detected from the extension of `fname_base`.
 /// If a debug dir is provided, various intermediate stages of the matching will be
 /// written as files in that directory.
-/// Fails if the language cannot be detected or loaded.
+///
+/// After the merge, checks that the resulting tree is isomorphic to the input trees,
+/// and rejects the merge if it isn't.
 pub fn structured_merge(
     contents_base: &str,
     contents_left: &str,
