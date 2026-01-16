@@ -155,6 +155,15 @@ fn main() {
     }
 }
 
+const EXIT_SUCCESS: i32 = 0;
+
+// Exit code for merge sub command
+const EXIT_MERGE_HAS_CONFLICTS: i32 = 1;
+
+//Exit code for solve sub command
+const EXIT_SOLVE_FAILED: i32 = 1;
+const EXIT_SOLVE_HAS_CONFLICTS: i32 = 2;
+
 fn real_main(args: CliArgs) -> Result<i32, String> {
     let return_code = match args.command {
         CliCommand::Merge {
@@ -308,9 +317,9 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                         "Using Git v2.44.0 or above is recommended to get meaningful revision names on conflict markers when using Mergiraf."
                     );
                 }
-                1
+                EXIT_MERGE_HAS_CONFLICTS
             } else {
-                0
+                EXIT_SUCCESS
             }
         }
         CliCommand::Solve {
@@ -380,27 +389,31 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                             )?;
                         }
                     };
-                    0
+                    if merged.conflict_count > 0 {
+                        EXIT_SOLVE_HAS_CONFLICTS
+                    } else {
+                        EXIT_SUCCESS
+                    }
                 }
                 Err(e) => {
                     warn!("Mergiraf: {e}");
-                    1
+                    EXIT_SOLVE_FAILED
                 }
             }
         }
         CliCommand::Review { merge_id } => {
             let attempts_cache = AttemptsCache::new(None, None)?;
             attempts_cache.review_merge(&merge_id)?;
-            0
+            EXIT_SUCCESS
         }
         CliCommand::Languages { gitattributes } => {
             let res = languages(gitattributes);
             println!("{res}");
-            0
+            EXIT_SUCCESS
         }
         CliCommand::Report { merge_id_or_file } => {
             report_bug(&merge_id_or_file)?;
-            0
+            EXIT_SUCCESS
         }
     };
     Ok(return_code)
@@ -1000,5 +1013,55 @@ class OtherClass {
             "found the following messages:\n{}",
             handle.iter().map(|(_, record)| &*record.msg).format("\n")
         );
+    }
+
+    fn create_file(repo_path: &Path, file_name: &str, contents: impl AsRef<[u8]>) -> PathBuf {
+        let test_file_abs_path = repo_path.join(file_name);
+        fs::write(&test_file_abs_path, contents)
+            .expect("failed to write test file to git repository");
+
+        test_file_abs_path
+    }
+
+    #[test]
+    fn verify_cli_solve_has_conflicts() {
+        let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+        let repo_path = repo_dir.path();
+
+        let content = r#"
+<html>
+   <body>
+       <foo
+<<<<<<< LEFT
+          iota="i"
+||||||| BASE
+=======
+          iota="i2"
+>>>>>>> RIGHT
+          alpha="a"
+          beta="b"
+          gamma="c"
+          delta="d"
+       />
+       <bar />
+   </body>
+</html>
+         "#;
+        let test_file_abs_path = create_file(repo_path, "test.html", content);
+        let return_code_result = real_main(CliArgs::parse_from([
+            "mergiraf",
+            "solve",
+            test_file_abs_path.to_str().unwrap(),
+        ]));
+
+        assert_eq!(
+            return_code_result,
+            Ok(EXIT_SOLVE_HAS_CONFLICTS),
+            "`mergiraf solve` should return exit code indicating unresolved conflicts"
+        );
+
+        let merged_content =
+            fs::read_to_string(&test_file_abs_path).expect("couldn't read the merged file");
+        assert_eq!(merged_content, content);
     }
 }
