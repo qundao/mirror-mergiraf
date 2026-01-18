@@ -4,10 +4,11 @@
 publishers: # this corresponds to the "Owners" team: https://codeberg.org/org/mergiraf/teams/owners
   - wetneb
   - ada4a
+  - mathstuf
 
 developers: # this corresponds to the "Developers" team: https://codeberg.org/org/mergiraf/teams/developers
   - zivarah
   - funkeleinhorn
   - bobvanderlinden
   - senekor
-  - mathstuf
+
