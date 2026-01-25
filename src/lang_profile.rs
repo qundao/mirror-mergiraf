@@ -483,7 +483,7 @@ impl ChildrenGroup {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, fs::File, io::Write, process::Command};
+    use std::{env, fs, process::Command};
 
     use super::*;
 
@@ -502,31 +502,32 @@ mod tests {
 
     #[test]
     fn find_by_name() {
-        fn find(filename: &str) -> Option<&'static LangProfile> {
-            LangProfile::find_by_name(filename)
+        fn find(filename: &str) -> Option<&'static str> {
+            LangProfile::find_by_name(filename).map(|lang_profile| lang_profile.name)
         }
-        assert_eq!(find("JSON").unwrap().name, "JSON");
-        assert_eq!(find("Json").unwrap().name, "JSON");
-        assert_eq!(find("python").unwrap().name, "Python");
-        assert_eq!(find("py").unwrap().name, "Python");
-        assert_eq!(find("Java properties").unwrap().name, "Java properties");
-        assert!(
-            find("unknown language").is_none(),
+        assert_eq!(find("JSON"), Some("JSON"));
+        assert_eq!(find("Json"), Some("JSON"));
+        assert_eq!(find("python"), Some("Python"));
+        assert_eq!(find("py"), Some("Python"));
+        assert_eq!(find("Java properties"), Some("Java properties"));
+        assert_eq!(
+            find("unknown language"),
+            None,
             "Language shouldn't be found"
         );
     }
 
     #[test]
-    fn find_by_filename_or_name() {
-        fn find(filename: &str, name: Option<&str>) -> Result<&'static LangProfile, String> {
-            LangProfile::find(filename, name, None)
+    fn find_no_vcs() {
+        fn find(filename: &str, name: Option<&str>) -> Result<&'static str, String> {
+            LangProfile::find(filename, name, None).map(|lang_profile| lang_profile.name)
         }
-        assert_eq!(find("file.json", None).unwrap().name, "JSON");
-        assert_eq!(find("file.java", Some("JSON")).unwrap().name, "JSON");
+        assert_eq!(find("file.json", None), Ok("JSON"));
+        assert_eq!(find("file.java", Some("JSON")), Ok("JSON"));
         assert!(find("java", None).is_err());
-        assert_eq!(find("go.mod", None).unwrap().name, "go.mod");
-        assert_eq!(find("Makefile", None).unwrap().name, "GNU Make");
-        assert_eq!(find("file", Some("go.mod")).unwrap().name, "go.mod");
+        assert_eq!(find("go.mod", None), Ok("go.mod"));
+        assert_eq!(find("Makefile", None), Ok("GNU Make"));
+        assert_eq!(find("file", Some("go.mod")), Ok("go.mod"));
         assert!(find("test.go.mod", None).is_err());
         assert!(
             find("file.json", Some("non-existent language")).is_err(),
@@ -536,6 +537,83 @@ mod tests {
             find("file.unknown_extension", None).is_err(),
             "Looking up language by unknown extension should fail"
         );
+    }
+
+    #[test]
+    fn find_vcs() {
+        let mut working_dir = env::current_exe().unwrap();
+        working_dir.pop();
+        let tempdir = tempfile::tempdir_in(working_dir).unwrap();
+
+        Command::new("git")
+            .arg("init")
+            .current_dir(&tempdir)
+            .output()
+            .expect("failed to init git repository");
+        {
+            let attrpath = tempdir.path().join(".gitattributes");
+            fs::write(
+                attrpath,
+                concat!(
+                    "*.bogus.mgf    mergiraf.language=bogus\n",
+                    "*.js.mgf       mergiraf.language=javascript\n",
+                    "*.myjs.mgf     mergiraf.language=javascript\n",
+                    // Test that fallback to `linguist-language` works.
+                    "unspecified.bogus.mgf  !mergiraf.language\n",
+                    "unset.bogus.mgf        -mergiraf.language\n",
+                    "*.bogus        linguist-language=bogus\n",
+                    "*.js           linguist-language=javascript\n",
+                    "*.myjs         linguist-language=javascript\n",
+                    "*.bogus.mgf    linguist-language=python\n",
+                ),
+            )
+            .unwrap();
+        }
+        Command::new("git")
+            .args([
+                "-c",
+                "user.email=mergiraf@example.com",
+                "-c",
+                "user.name=Mergiraf Testing",
+                "commit",
+                "-a",
+                "-m",
+                "add gitattributes",
+            ])
+            .current_dir(&tempdir)
+            .output()
+            .expect("failed to commit attribute file");
+
+        let find = |filename, name| {
+            LangProfile::find(filename, name, Some(tempdir.path()))
+                .map(|lang_profile| lang_profile.name)
+        };
+        assert_eq!(
+            find("file.bogus.mgf", None).unwrap_err(),
+            "Attribute-specified language 'bogus' could not be found",
+        );
+        assert_eq!(find("file.js.mgf", None), Ok("Javascript"));
+        assert_eq!(find("file.myjs.mgf", None), Ok("Javascript"));
+        assert_eq!(find("unset.bogus.mgf", None), Ok("Python"));
+        assert_eq!(find("unspecified.bogus.mgf", None), Ok("Python"));
+        assert_eq!(
+            find("file.bogus", None).unwrap_err(),
+            "Attribute-specified language 'bogus' could not be found",
+        );
+        assert_eq!(
+            find("file.noattr", None).unwrap_err(),
+            "Could not find a supported language for 'file.noattr'",
+        );
+        assert_eq!(find("file.js", None), Ok("Javascript"));
+        assert_eq!(find("file.myjs", None), Ok("Javascript"));
+        assert_eq!(find("file.bogus.mgf", Some("python")), Ok("Python"));
+        assert_eq!(find("file.noattr.mgf", Some("python")), Ok("Python"));
+        assert_eq!(find("file.js.mgf", Some("python")), Ok("Python"));
+        assert_eq!(find("file.myjs.mgf", Some("python")), Ok("Python"));
+        assert_eq!(find("file.bogus", Some("python")), Ok("Python"));
+        assert_eq!(find("file.noattr", Some("python")), Ok("Python"));
+        assert_eq!(find("file.js", Some("python")), Ok("Python"));
+        assert_eq!(find("file.myjs", Some("python")), Ok("Python"));
     }
 
     #[test]
@@ -613,89 +691,5 @@ mod tests {
             wrong_flattened_nodes.check_kinds(),
             Err("invalid flattened node type: \"foo_bar\"".to_string())
         );
-    }
-
-    #[test]
-    fn find_by_filename_or_name_vcs() {
-        let mut working_dir = env::current_exe().unwrap();
-        working_dir.pop();
-        let tempdir = tempfile::tempdir_in(working_dir).unwrap();
-
-        Command::new("git")
-            .arg("init")
-            .current_dir(&tempdir)
-            .output()
-            .expect("failed to init git repository");
-        {
-            let attrpath = tempdir.path().join(".gitattributes");
-            let mut attrfile = File::create(attrpath).unwrap();
-            write!(
-                &mut attrfile,
-                concat!(
-                    "*.bogus.mgf    mergiraf.language=bogus\n",
-                    "*.js.mgf       mergiraf.language=javascript\n",
-                    "*.myjs.mgf     mergiraf.language=javascript\n",
-                    // Test that fallback to `linguist-language` works.
-                    "unspecified.bogus.mgf  !mergiraf.language\n",
-                    "unset.bogus.mgf        -mergiraf.language\n",
-                    "*.bogus        linguist-language=bogus\n",
-                    "*.js           linguist-language=javascript\n",
-                    "*.myjs         linguist-language=javascript\n",
-                    "*.bogus.mgf    linguist-language=python\n",
-                ),
-            )
-            .unwrap();
-        }
-        Command::new("git")
-            .args([
-                "-c",
-                "user.email=mergiraf@example.com",
-                "-c",
-                "user.name=Mergiraf Testing",
-                "commit",
-                "-a",
-                "-m",
-                "add gitattributes",
-            ])
-            .current_dir(&tempdir)
-            .output()
-            .expect("failed to commit attribute file");
-
-        let find = |filename, name| LangProfile::find(filename, name, Some(tempdir.path()));
-        assert_eq!(
-            find("file.bogus.mgf", None).unwrap_err(),
-            "Attribute-specified language 'bogus' could not be found",
-        );
-        assert_eq!(find("file.js.mgf", None).unwrap().name, "Javascript");
-        assert_eq!(find("file.myjs.mgf", None).unwrap().name, "Javascript");
-        assert_eq!(find("unset.bogus.mgf", None).unwrap().name, "Python");
-        assert_eq!(find("unspecified.bogus.mgf", None).unwrap().name, "Python");
-        assert_eq!(
-            find("file.bogus", None).unwrap_err(),
-            "Attribute-specified language 'bogus' could not be found",
-        );
-        assert_eq!(
-            find("file.noattr", None).unwrap_err(),
-            "Could not find a supported language for 'file.noattr'",
-        );
-        assert_eq!(find("file.js", None).unwrap().name, "Javascript");
-        assert_eq!(find("file.myjs", None).unwrap().name, "Javascript");
-        assert_eq!(
-            find("file.bogus.mgf", Some("python")).unwrap().name,
-            "Python"
-        );
-        assert_eq!(
-            find("file.noattr.mgf", Some("python")).unwrap().name,
-            "Python"
-        );
-        assert_eq!(find("file.js.mgf", Some("python")).unwrap().name, "Python");
-        assert_eq!(
-            find("file.myjs.mgf", Some("python")).unwrap().name,
-            "Python"
-        );
-        assert_eq!(find("file.bogus", Some("python")).unwrap().name, "Python");
-        assert_eq!(find("file.noattr", Some("python")).unwrap().name, "Python");
-        assert_eq!(find("file.js", Some("python")).unwrap().name, "Python");
-        assert_eq!(find("file.myjs", Some("python")).unwrap().name, "Python");
     }
 }
