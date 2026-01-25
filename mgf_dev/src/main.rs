@@ -103,14 +103,16 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
         Ok(contents)
     };
 
+    let parse = |contents, lang_profile| -> Result<&AstNode, String> {
+        AstNode::parse(contents, lang_profile, &arena, &ref_arena)
+            .map_err(|err| format!("File has parse errors: {err}"))
+    };
+
     let exit_code = match &args.command {
         Command::Parse { path, max_depth } => {
             let lang_profile = lang_profile(path)?;
-
             let contents = contents(path)?;
-
-            let tree = AstNode::parse(&contents, lang_profile, &arena, &ref_arena)
-                .map_err(|err| format!("File has parse errors: {err}"))?;
+            let tree = parse(&contents, lang_profile)?;
 
             print!("{}", tree.ascii_tree(*max_depth, true));
             0
@@ -123,14 +125,10 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             let lang_profile = lang_profile(first)?;
 
             let contents_first = contents(first)?;
-
-            let tree_first = AstNode::parse(&contents_first, lang_profile, &arena, &ref_arena)
-                .map_err(|err| format!("File has parse errors: {err}"))?;
+            let tree_first = parse(&contents_first, lang_profile)?;
 
             let contents_second = contents(second)?;
-
-            let tree_second = AstNode::parse(&contents_second, lang_profile, &arena, &ref_arena)
-                .map_err(|err| format!("File has parse errors: {err}"))?;
+            let tree_second = parse(&contents_second, lang_profile)?;
 
             let first_root = tree_first;
             let second_root = tree_second;
