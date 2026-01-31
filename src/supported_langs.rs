@@ -565,7 +565,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "Javascript",
             alternate_names: &[],
-            extensions: vec!["js", "jsx", "mjs"],
+            extensions: vec!["js", "jsx", "mjs", "cjs"],
             file_names: vec![],
             language: tree_sitter_javascript::LANGUAGE.into(),
             atomic_nodes: vec![],
@@ -944,7 +944,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "Typescript",
             alternate_names: &[],
-            extensions: vec!["ts"],
+            extensions: vec!["ts", "mts", "cts"],
             file_names: vec![],
             language: tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
             atomic_nodes: vec![],
