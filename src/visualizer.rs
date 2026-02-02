@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::fs::OpenOptions;
+use std::fs::File;
 use std::io::{self, BufWriter, Write};
 use std::path::Path;
 
@@ -14,15 +14,15 @@ const COLOR_EXACT_MATCHING: &str = "red";
 const COLOR_CONTAINER_MATCHING: &str = "blue";
 const COLOR_RECOVERY_MATCHING: &str = "green";
 
-/// Renders a mapping between two trees as a dotty graph
+/// Renders a matching between two trees as a dotty graph
 pub fn write_matching_to_dotty_file<'a>(
     path: impl AsRef<Path>,
     left: &'a AstNode<'a>,
     right: &'a AstNode<'a>,
-    mapping: &DetailedMatching<'a>,
+    matching: &DetailedMatching<'a>,
 ) {
     let path = path.as_ref();
-    if let Err(err) = matching_to_graph(path, left, right, mapping) {
+    if let Err(err) = matching_to_graph(path, left, right, matching) {
         error!(
             "Mergiraf: Could not write matching to '{}': {err}",
             path.display()
@@ -30,19 +30,13 @@ pub fn write_matching_to_dotty_file<'a>(
     }
 }
 
-pub fn matching_to_graph<'a>(
+fn matching_to_graph<'a>(
     path: &Path,
     left: &'a AstNode<'a>,
     right: &'a AstNode<'a>,
-    mapping: &DetailedMatching<'a>,
+    matching: &DetailedMatching<'a>,
 ) -> io::Result<()> {
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(path)?;
-
-    let mut writer = BufWriter::new(file);
+    let mut writer = BufWriter::new(File::create(path)?);
 
     writeln!(writer, "graph matching {{")?;
     let left_prefix = "l";
@@ -51,18 +45,18 @@ pub fn matching_to_graph<'a>(
         &mut writer,
         left,
         left_prefix,
-        &mapping.full.left_matched(),
-        &mapping.exact.left_matched(),
+        &matching.full.left_matched(),
+        &matching.exact.left_matched(),
     )?;
     let visited_right = tree_to_graph(
         &mut writer,
         right,
         right_prefix,
-        &mapping.full.right_matched(),
-        &mapping.exact.right_matched(),
+        &matching.full.right_matched(),
+        &matching.exact.right_matched(),
     )?;
 
-    for (source_id, target_id) in mapping.exact.as_ids() {
+    for (source_id, target_id) in matching.exact.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
             writeln!(
                 writer,
@@ -71,7 +65,7 @@ pub fn matching_to_graph<'a>(
         }
     }
 
-    for (source_id, target_id) in mapping.container.as_ids() {
+    for (source_id, target_id) in matching.container.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
             writeln!(
                 writer,
@@ -80,7 +74,7 @@ pub fn matching_to_graph<'a>(
         }
     }
 
-    for (source_id, target_id) in mapping.recovery.as_ids() {
+    for (source_id, target_id) in matching.recovery.as_ids() {
         if visited_left.contains(&source_id) && visited_right.contains(&target_id) {
             writeln!(
                 writer,
@@ -96,9 +90,9 @@ pub fn matching_to_graph<'a>(
 }
 
 /// Renders a tree as a dotty graph
-pub fn tree_to_graph<'a, W: Write>(
+fn tree_to_graph<W: Write>(
     writer: &mut W,
-    node: &'a AstNode<'a>,
+    node: &AstNode<'_>,
     prefix: &str,
     matched: &HashSet<usize>,
     exactly_matched: &HashSet<usize>,
@@ -187,56 +181,6 @@ mod tests {
 
         let contents =
             fs::read_to_string(&target_path).expect("Could not read the generated graph.dot file");
-
-        let expected_contents = r##"graph matching {
-  subgraph l {
-    l11[label="document:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
-    l10[label="object:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
-    l1[label="{:0_1",shape="box",style="filled",fillcolor="#40e0d0"]
-    l10 -- l1
-    l8[label="pair:1_9",shape="oval",style="filled",fillcolor="#40e0d0"]
-    l5[label="string:1_6",shape="oval",style="filled",fillcolor="#40e0d0"]
-    l2[label="\":1_2",shape="box",style="filled",fillcolor="#40e0d0"]
-    l5 -- l2
-    l3[label="foo:2_5",shape="box",style="filled",fillcolor="#40e0d0"]
-    l5 -- l3
-    l4[label="\":5_6",shape="box",style="filled",fillcolor="#40e0d0"]
-    l5 -- l4
-    l8 -- l5
-    l6[label="::6_7",shape="box",style="filled",fillcolor="#40e0d0"]
-    l8 -- l6
-    l7[label="3:8_9",shape="box",style="filled",fillcolor="#40e0d0"]
-    l8 -- l7
-    l10 -- l8
-    l9[label="}:9_10",shape="box",style="filled",fillcolor="#40e0d0"]
-    l10 -- l9
-    l11 -- l10
-  }
-  subgraph r {
-    r11[label="document:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
-    r10[label="object:0_10",shape="oval",style="filled",fillcolor="#40e0d0"]
-    r1[label="{:0_1",shape="box",style="filled",fillcolor="#40e0d0"]
-    r10 -- r1
-    r8[label="pair:1_9",shape="oval",style="filled",fillcolor="#40e0d0"]
-    r5[label="string:1_6",shape="oval",style="filled",fillcolor="#40e0d0"]
-    r2[label="\":1_2",shape="box",style="filled",fillcolor="#40e0d0"]
-    r5 -- r2
-    r3[label="foo:2_5",shape="box",style="filled",fillcolor="#40e0d0"]
-    r5 -- r3
-    r4[label="\":5_6",shape="box",style="filled",fillcolor="#40e0d0"]
-    r5 -- r4
-    r8 -- r5
-    r6[label="::6_7",shape="box",style="filled",fillcolor="#40e0d0"]
-    r8 -- r6
-    r7[label="4:8_9",shape="box",style="filled",fillcolor="#40e0d0"]
-    r8 -- r7
-    r10 -- r8
-    r9[label="}:9_10",shape="box",style="filled",fillcolor="#40e0d0"]
-    r10 -- r9
-    r11 -- r10
-  }
-}
-"##;
-        assert_eq!(contents, expected_contents);
+        insta::assert_snapshot!("matching.dot", contents);
     }
 }
