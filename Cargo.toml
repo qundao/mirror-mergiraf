@@ -68,6 +68,7 @@ log.workspace = true
 rand.workspace = true
 tree-edit-distance = "0.4"
 etcetera = "0.10"
+# TODO: update to 7.* after https://github.com/zip-rs/zip2/issues/556 is resolved
 zip = { version = "6.0", features = ["deflate"], default-features = false }
 tree-sitter-scala = "0.24"
 either = "1.15"
