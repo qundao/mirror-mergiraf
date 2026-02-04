@@ -15,7 +15,7 @@ use crate::{
 
 /// A set of [PCS] triples, with indices on all three components
 /// for easier retrieval.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ChangeSet<'a> {
     successors: MultiMap<PCSNode<'a>, PCS<'a>>,
     predecessors: MultiMap<PCSNode<'a>, PCS<'a>>,

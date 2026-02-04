@@ -228,19 +228,18 @@ fn generate_pcs_triples<'a>(
     debug!("generating PCS triples");
     let mut changeset = ChangeSet::new();
     changeset.add_tree(base, Revision::Base, class_mapping);
+
+    // save this intermediate state as the base changeset
+    let base_changeset = changeset.clone();
+
     changeset.add_tree(left, Revision::Left, class_mapping);
     changeset.add_tree(right, Revision::Right, class_mapping);
 
     if let Some(debug_dir) = debug_dir {
-        changeset.save(debug_dir.join("changeset.txt"));
-    }
-
-    // also generate a base changeset
-    let mut base_changeset = ChangeSet::new();
-    base_changeset.add_tree(base, Revision::Base, class_mapping);
-
-    if let Some(debug_dir) = debug_dir {
-        base_changeset.save(debug_dir.join("base_changeset.txt"));
+        thread::scope(|s| {
+            s.spawn(|| changeset.save(debug_dir.join("changeset.txt")));
+            s.spawn(|| base_changeset.save(debug_dir.join("base_changeset.txt")));
+        })
     }
     debug!("generating PCS triples took {:?}", start.elapsed());
 

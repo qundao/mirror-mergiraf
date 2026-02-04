@@ -5,7 +5,7 @@ use std::{
 };
 
 /// A map which associates a set of values to each key.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MultiMap<K, V> {
     map: FxHashMap<K, FxHashSet<V>>,
     empty: FxHashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
