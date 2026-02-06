@@ -533,6 +533,27 @@ impl<'a> AstNode<'a> {
 
     /// Pull in all the grandchildren whose parent is of the given kind as children,
     /// to flatten binary operators which are associative.
+    ///
+    /// For instance, the children of this node
+    /// ```text
+    /// sum
+    ///  ├ node1
+    ///  ├ +
+    ///  └ sum
+    ///    ├ node2
+    ///    ├ +
+    ///    └ node3
+    /// ```
+    ///
+    /// are transformed to:
+    /// ```text
+    /// sum
+    ///  ├ node1
+    ///  ├ +
+    ///  ├ node2
+    ///  ├ +
+    ///  └ node3
+    /// ```
     fn flatten_children(
         children: Vec<&'a AstNode<'a>>,
         children_added_by_flattening: usize,

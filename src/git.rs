@@ -7,6 +7,9 @@ use std::{
     process::Command,
 };
 
+/// File produced by a call to a `git` command, which
+/// we want to remove when we no longer need it.
+/// This wrapper implements [Drop] to ensure that.
 pub(crate) struct GitTempFile {
     path: PathBuf,
 }
@@ -23,6 +26,7 @@ impl Drop for GitTempFile {
     }
 }
 
+/// Versions of a file in all three revisions, extracted from git.
 pub(crate) struct GitTempFiles {
     pub base: Option<GitTempFile>,
     pub left: Option<GitTempFile>,
@@ -99,6 +103,8 @@ pub(crate) fn read_content_from_commits(
     ))
 }
 
+/// Calls `git check-attr` to read the git attributes defined for a file,
+/// as represented by its path in the repository.
 pub(crate) fn read_attributes_for_file(
     repo_dir: &Path,
     file_name: &Path,
@@ -136,6 +142,8 @@ pub(crate) fn read_attributes_for_file(
     result_map
 }
 
+/// Determine the language in which a file should be parsed as specified
+/// by the git attributes defined for that file.
 pub(crate) fn read_lang_attribute(repo_dir: &Path, file_name: &Path) -> Option<String> {
     // The following attributes are looked up to determine the language, in this order
     // (if the first attribute is set, it overrides the second one)

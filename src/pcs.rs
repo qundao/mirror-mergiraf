@@ -42,8 +42,11 @@ pub enum PCSNode<'a> {
 pub struct PCS<'a> {
     /// The common parent of both the predecessor and successor
     pub parent: PCSNode<'a>,
+    /// One of the children of the parent
     pub predecessor: PCSNode<'a>,
+    /// The node immediately following the predecessor
     pub successor: PCSNode<'a>,
+    /// The revision in which this relationship between (parent, predecessor, successor) holds
     pub revision: Revision,
 }
 

@@ -16,9 +16,14 @@ use crate::line_based::LINE_BASED_METHOD;
 /// An identifier of an attempt to merge a file
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Attempt<'a> {
+    /// The name of the file that was merged (as supplied by the VCS)
     pub(crate) file_name: &'a str,
+    /// A random string generated to distinguish different attempts to merge the same file
     pub(crate) uid: Cow<'a, str>,
+    /// The extension we'll use to store the different versions of the files in the store
+    /// (which doesn't necessarily match that of the file in the VCS)
     extension: &'a str,
+    /// The directory in which the versions of the file to merge are stored
     dir: PathBuf,
 }
 

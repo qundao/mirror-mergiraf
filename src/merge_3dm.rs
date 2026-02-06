@@ -82,6 +82,15 @@ pub fn three_way_merge<'a>(
     (postprocessed_tree, class_mapping)
 }
 
+/// Computes tree matchings between each pair of revisions.
+///
+/// Initial "base <-> left" and "base <-> right" matchings
+/// can be provided to guide the matching. Those initial matchings
+/// are available when the revisions were obtained from a line-based
+/// merge.
+///
+/// When a `debug_dir` is provided, the matchings are dumped in this
+/// directory to ease their analysis.
 pub(crate) fn generate_matchings<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
@@ -167,6 +176,12 @@ pub(crate) fn generate_matchings<'a>(
     (base_left_matching, base_right_matching, left_right_matching)
 }
 
+/// Compute equivalence classes between nodes from all three revisions,
+/// using matchings between each pair of revisions.
+///
+/// Those equivalence classes are represented by a [ClassMapping] which
+/// provides correspondences between elements of the classes and the
+/// classes themselves.
 pub(crate) fn create_class_mapping<'a>(
     base_left_matching: &DetailedMatching<'a>,
     base_right_matching: &DetailedMatching<'a>,
@@ -217,6 +232,12 @@ pub(crate) fn create_class_mapping<'a>(
     class_mapping
 }
 
+/// Transform the trees for all three revisions into two sets of PCS triples:
+/// - the set of all PCS triples generated from all revisions
+/// - the set of PCS triples generated from the base revision only
+///
+/// Those sets of trees encode the structures of those trees and form the basis
+/// for the construction of the merged tree, following the 3DMerge algorithm.
 fn generate_pcs_triples<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
@@ -246,6 +267,13 @@ fn generate_pcs_triples<'a>(
     (changeset, base_changeset)
 }
 
+/// Scan the set of PCS triples provided and remove the ones which come from
+/// the base revision and are overridden by other triples from the left or right
+/// revisions.
+///
+/// After this preliminary clean-up, the set of PCS triples might still not
+/// correspond to a tree, which might get materialized into conflicts when
+/// constructing the merged tree.
 fn fix_pcs_inconsistencies<'a>(
     changeset: &ChangeSet<'a>,
     debug_dir: Option<&Path>,
@@ -281,6 +309,8 @@ fn fix_pcs_inconsistencies<'a>(
     cleaned_changeset
 }
 
+/// Construct the merged tree out of the sets of PCS triples obtained
+/// from the previous step.
 #[allow(clippy::too_many_arguments)]
 fn build_tree<'a>(
     base: &'a AstNode<'a>,

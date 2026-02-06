@@ -3,6 +3,10 @@ use std::{cmp::Ordering, collections::BinaryHeap};
 use crate::ast::AstNode;
 
 /// A priority queue which indexes trees by their height.
+///
+/// Taller trees have priority over smaller trees to leave the queue,
+/// regardless of when they joined it.
+///
 /// This follows the "indexed priority list" of
 /// [Fine-grained and accurate source code differencing](https://hal.science/hal-01054552), Falleri et al. 2014.
 #[derive(Debug, Default)]

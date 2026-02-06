@@ -5,6 +5,11 @@ use typed_arena::Arena;
 use crate::{lang_profile::LangProfile, parsed_merge::ParsedMerge, settings::DisplaySettings};
 pub const LINE_BASED_METHOD: &str = "line_based";
 
+/// Returns a line-based merge in the form of a [ParsedMerge] object,
+/// representing the merged parts and conflicting parts in a structured way.
+///
+/// TODO: ideally, [diffy_imara] would already expose such an interface,
+/// to avoid rendering the merge to a large string and parsing it back
 pub fn line_based_merge_parsed(
     contents_base: &str,
     contents_left: &str,

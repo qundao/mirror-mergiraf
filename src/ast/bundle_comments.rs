@@ -7,6 +7,9 @@ use crate::lang_profile::CommutativeParent;
 
 use super::AstNode;
 
+/// Internal state of the comment bundling state machine,
+/// which gets updated as we scan the list of children of
+/// a node and reflects the types of nodes recently scanned.
 enum BundlingState<'a> {
     Start,
     /// ```
@@ -48,6 +51,12 @@ enum BundlingState<'a> {
 }
 
 impl<'a> AstNode<'a> {
+    /// Given a list of children of a commutative node, groups any comments
+    /// in this list with the neighbouring nodes they document, so that they
+    /// become children of those nodes.
+    ///
+    /// This is useful for the purposes of commutative merging of those children,
+    /// making sure that the comments stay attached to the nodes they document.
     pub(super) fn bundle_comments(
         children: Vec<&'a Self>,
         global_source: &'a str,

@@ -1,9 +1,13 @@
 use std::borrow::Cow;
 
+/// Type of newlines present in a file
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NewlineStyle {
+    /// Only a line-feed character: `\n`
     Lf,
+    /// Carriage return followed by line-feed: `\r\n`
     CrLf,
+    /// Only carriage return: `\r`
     Cr,
 }
 
@@ -31,6 +35,7 @@ pub fn imitate_newline_style(contents: &str, style: NewlineStyle) -> String {
     }
 }
 
+/// Normalize a string to only contain newline characters `\n`, no carriage return `\r`
 pub fn normalize_to_lf<'a>(contents: impl Into<Cow<'a, str>>) -> Cow<'a, str> {
     let contents = contents.into();
     if !contents.contains('\r') {

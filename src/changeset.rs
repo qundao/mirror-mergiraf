@@ -15,11 +15,17 @@ use crate::{
 
 /// A set of [PCS] triples, with indices on all three components
 /// for easier retrieval.
+///
+/// Such triples are obtained by browsing one or more trees and
+/// representing their structures in the form of triples.
 #[derive(Debug, Default, Clone)]
 pub struct ChangeSet<'a> {
-    successors: MultiMap<PCSNode<'a>, PCS<'a>>,
+    /// All [`PCS`] triples where this [`PCSNode`] node is marked as the successor
     predecessors: MultiMap<PCSNode<'a>, PCS<'a>>,
-    parents: MultiMap<PCSNode<'a>, PCS<'a>>,
+    /// All [`PCS`] triples where this [`PCSNode`] node is marked as the predecessor
+    successors: MultiMap<PCSNode<'a>, PCS<'a>>,
+    /// All [`PCS`] triples where this [`PCSNode`] node is marked as the parent
+    children: MultiMap<PCSNode<'a>, PCS<'a>>,
 }
 
 impl<'a> ChangeSet<'a> {
@@ -28,7 +34,7 @@ impl<'a> ChangeSet<'a> {
         Self::default()
     }
 
-    /// Adds PCS triples that encodes a tree
+    /// Adds PCS triples that encode a tree
     pub fn add_tree(
         &mut self,
         tree: &'a AstNode<'a>,
@@ -103,9 +109,9 @@ impl<'a> ChangeSet<'a> {
 
     /// Adds a new PCS to the set
     pub fn add(&mut self, pcs: PCS<'a>) {
-        self.successors.insert(pcs.successor, pcs);
-        self.predecessors.insert(pcs.predecessor, pcs);
-        self.parents.insert(pcs.parent, pcs);
+        self.predecessors.insert(pcs.successor, pcs);
+        self.successors.insert(pcs.predecessor, pcs);
+        self.children.insert(pcs.parent, pcs);
     }
 
     /// Finds all the PCS which contain either the successor or predecessor of this PCS as successor or predecessor,
@@ -114,15 +120,15 @@ impl<'a> ChangeSet<'a> {
         let mut results = Vec::new();
         if let PCSNode::Node { .. } = pcs.predecessor {
             results.extend(
-                (self.predecessors.get(&pcs.predecessor).iter())
-                    .chain(self.successors.get(&pcs.predecessor).iter())
+                (self.successors.get(&pcs.predecessor).iter())
+                    .chain(self.predecessors.get(&pcs.predecessor).iter())
                     .filter(|other| other.parent != pcs.parent),
             );
         }
         if let PCSNode::Node { .. } = pcs.successor {
             results.extend(
-                (self.predecessors.get(&pcs.successor).iter())
-                    .chain(self.successors.get(&pcs.successor).iter())
+                (self.successors.get(&pcs.successor).iter())
+                    .chain(self.predecessors.get(&pcs.successor).iter())
                     .filter(|other| other.parent != pcs.parent),
             );
         }
@@ -135,7 +141,7 @@ impl<'a> ChangeSet<'a> {
         &'s self,
         pcs: &'b PCS<'a>,
     ) -> impl Iterator<Item = &'s PCS<'a>> {
-        self.parents.get(&pcs.parent).iter().filter(move |other| {
+        self.children.get(&pcs.parent).iter().filter(move |other| {
             other.successor != pcs.successor && other.predecessor == pcs.predecessor
         })
     }
@@ -145,7 +151,7 @@ impl<'a> ChangeSet<'a> {
         &'s self,
         pcs: &'b PCS<'a>,
     ) -> impl Iterator<Item = &'s PCS<'a>> {
-        self.parents
+        self.children
             .get(&pcs.parent)
             .iter()
             .filter(move |other| {
@@ -156,12 +162,12 @@ impl<'a> ChangeSet<'a> {
 
     /// Iterate over the PCS triples contained in this `ChangeSet`
     pub fn iter(&self) -> impl Iterator<Item = &PCS<'a>> {
-        self.predecessors.values()
+        self.successors.values()
     }
 
     /// Number of PCS triples
     pub fn len(&self) -> usize {
-        self.predecessors.len()
+        self.successors.len()
     }
 
     /// Save to file, for debugging purposes

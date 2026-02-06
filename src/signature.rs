@@ -104,6 +104,7 @@ impl<'b> AstNodeEquiv<'_, 'b> {
         }
     }
 
+    /// Checks for isomorphism between two [AstNodeEquiv]s
     fn isomorphic(&self, other: &Self, class_mapping: Option<&ClassMapping<'b>>) -> bool {
         match (self, other) {
             (Self::Original(a), Self::Original(b)) => a.isomorphic_to(b),

@@ -14,7 +14,9 @@ use crate::{
 /// A node together with a marker of which revision it came from.
 #[derive(Debug, Copy, Clone, Eq)]
 pub struct RevNode<'a> {
+    /// The revision in which the node is found
     pub rev: Revision,
+    /// The node, guaranteed to belong to the tree parsed from that revision.
     pub node: &'a AstNode<'a>,
 }
 
@@ -99,12 +101,30 @@ impl Hash for RevNode<'_> {
 
 /// Creates classes of nodes across multiple revisions so that
 /// they can be equated when converting the corresponding trees
-/// to PCS, following the 3DM-Merge algorithm from Spork
+/// to PCS, following the 3DM-Merge algorithm from Spork.
+///
+/// Each class contains at most one node from each revision,
+/// and all nodes in the same class are related via tree matchings.
+///
+/// Each class is represented by a single [Leader], a particular element
+/// of the class that stands for the others.
+///
+/// This object keeps track of the correspondence between class elements
+/// and their leader, and vice versa.
 #[derive(Debug, Default)]
 pub struct ClassMapping<'a> {
-    map: FxHashMap<RevNode<'a>, Leader<'a>>,
-    representatives: FxHashMap<Leader<'a>, FxHashMap<Revision, RevNode<'a>>>,
-    exact_matchings: FxHashMap<Leader<'a>, i8>,
+    /// Maps a node to the leader of its equivalence class
+    representative2leader: FxHashMap<RevNode<'a>, Leader<'a>>,
+    /// Maps a leader to the set of nodes it represents (indexed by revision)
+    leader2representatives: FxHashMap<Leader<'a>, FxHashMap<Revision, RevNode<'a>>>,
+    /// Maps a leader to the number of exact matchings between the elements its classes contain.
+    ///
+    /// Nodes between two revisions can be matched as either approximate or exact matches,
+    /// and in the latter case, the nodes are guaranteed to be isomorphic across the revisions.
+    /// By keeping track of how many pairs of nodes in the class are known to be isomorphic, we
+    /// make it easier to determine if all nodes in the class are isomorphic, which is useful
+    /// to detect reformattings and for performance optimizations.
+    exact_matchings: FxHashMap<Leader<'a>, u8>,
     empty_repr: FxHashMap<Revision, RevNode<'a>>, // stays empty (only there for ownership purposes)
 }
 
@@ -133,11 +153,11 @@ impl<'a> ClassMapping<'a> {
                 && let Some(Leader(RevNode {
                     rev: Revision::Base,
                     node: left_leader,
-                })) = self.map.get(&left_rev_node)
+                })) = self.representative2leader.get(&left_rev_node)
                 && let Some(Leader(RevNode {
                     rev: Revision::Base,
                     node: right_leader,
-                })) = self.map.get(&right_rev_node)
+                })) = self.representative2leader.get(&right_rev_node)
                 && left_leader != right_leader
             {
                 // Adding this matching would render the class mapping inconsistent, as the nodes are
@@ -147,11 +167,11 @@ impl<'a> ClassMapping<'a> {
                 continue;
             }
             let leader_left = self
-                .map
+                .representative2leader
                 .get(&right_rev_node)
                 .map_or(&right_rev_node, |leader| &leader.0);
             let leader_right = self
-                .map
+                .representative2leader
                 .get(&left_rev_node)
                 .map_or(&left_rev_node, |leader| &leader.0);
             let leader = Leader(if leader_left.rev < leader_right.rev {
@@ -159,9 +179,9 @@ impl<'a> ClassMapping<'a> {
             } else {
                 *leader_right
             });
-            self.map.insert(left_rev_node, leader);
-            self.map.insert(right_rev_node, leader);
-            let repr = self.representatives.entry(leader).or_default();
+            self.representative2leader.insert(left_rev_node, leader);
+            self.representative2leader.insert(right_rev_node, leader);
+            let repr = self.leader2representatives.entry(leader).or_default();
             // keep track of exact matchings
             if is_exact && !repr.contains_key(&to_rev) {
                 let exacts = self.exact_matchings.entry(leader).or_default();
@@ -182,13 +202,18 @@ impl<'a> ClassMapping<'a> {
 
     /// Maps a node from some revision to its class representative
     pub fn map_to_leader(&self, rev_node: RevNode<'a>) -> Leader<'a> {
-        self.map.get(&rev_node).copied().unwrap_or(Leader(rev_node))
+        self.representative2leader
+            .get(&rev_node)
+            .copied()
+            .unwrap_or(Leader(rev_node))
     }
 
     /// Finds all the representatives in a cluster designated by its leader.
     /// This can return an empty map if the cluster only contains this node!
     fn internal_representatives(&self, leader: &Leader<'a>) -> &FxHashMap<Revision, RevNode<'a>> {
-        self.representatives.get(leader).unwrap_or(&self.empty_repr)
+        self.leader2representatives
+            .get(leader)
+            .unwrap_or(&self.empty_repr)
     }
 
     /// The set of revisions for which we have a representative for this leader
@@ -355,6 +380,7 @@ impl RevisionSet {
         }
     }
 
+    /// Whether it contains all three revisions
     pub fn is_full(self) -> bool {
         self.base && self.left && self.right
     }
