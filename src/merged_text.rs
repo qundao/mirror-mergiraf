@@ -221,10 +221,9 @@ impl<'a> MergedText<'a> {
                         continue;
                     }
 
-                    if let Some(newline_idx) = contents.find('\n') {
+                    if let Some((to_append, rest)) = contents.split_once('\n') {
                         // `contents` spans across multiple lines -- pull the first one into the
                         // current conflict and finish it up, then push the rest onto `output` as normal
-                        let (to_append, rest) = contents.split_at(newline_idx + 1);
                         left_buffer.push_str(to_append);
                         base_buffer.push_str(to_append);
                         right_buffer.push_str(to_append);
