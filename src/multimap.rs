@@ -1,5 +1,6 @@
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use std::{
+    collections::HashSet,
     hash::Hash,
     iter::{FromIterator, FusedIterator},
 };
@@ -8,7 +9,6 @@ use std::{
 #[derive(Debug, Clone)]
 pub struct MultiMap<K, V> {
     map: FxHashMap<K, FxHashSet<V>>,
-    empty: FxHashSet<V>, // stays empty over the entire life of the struct (for convenience in the get method)
 }
 
 impl<K, V> MultiMap<K, V> {
@@ -57,7 +57,9 @@ where
         K: std::borrow::Borrow<Q>,
         Q: Eq + Hash,
     {
-        self.map.get(key).unwrap_or(&self.empty)
+        self.map
+            .get(key)
+            .unwrap_or(const { &HashSet::with_hasher(FxBuildHasher) })
     }
 
     /// Adds a mapping from a key to a value.
@@ -102,7 +104,6 @@ impl<K, V> Default for MultiMap<K, V> {
     fn default() -> Self {
         Self {
             map: FxHashMap::default(),
-            empty: FxHashSet::default(),
         }
     }
 }

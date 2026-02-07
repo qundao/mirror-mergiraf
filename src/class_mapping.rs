@@ -1,7 +1,7 @@
-use std::{fmt::Display, hash::Hash, iter, ops::Deref};
+use std::{collections::HashMap, fmt::Display, hash::Hash, iter, ops::Deref};
 
 use itertools::Itertools;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::{
     ast::AstNode,
@@ -125,7 +125,6 @@ pub struct ClassMapping<'a> {
     /// make it easier to determine if all nodes in the class are isomorphic, which is useful
     /// to detect reformattings and for performance optimizations.
     exact_matchings: FxHashMap<Leader<'a>, u8>,
-    empty_repr: FxHashMap<Revision, RevNode<'a>>, // stays empty (only there for ownership purposes)
 }
 
 impl<'a> ClassMapping<'a> {
@@ -213,7 +212,7 @@ impl<'a> ClassMapping<'a> {
     fn internal_representatives(&self, leader: &Leader<'a>) -> &FxHashMap<Revision, RevNode<'a>> {
         self.leader2representatives
             .get(leader)
-            .unwrap_or(&self.empty_repr)
+            .unwrap_or(const { &HashMap::with_hasher(FxBuildHasher) })
     }
 
     /// The set of revisions for which we have a representative for this leader
