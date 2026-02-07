@@ -37,10 +37,16 @@ pub fn line_merge_and_structured_resolution(
     timeout: Duration,
     language: Option<&str>,
     repo_dir: Option<&Path>,
+    allow_parse_errors: Option<bool>,
 ) -> MergeResult {
     let Ok(lang_profile) = LangProfile::find(fname_base, language, repo_dir) else {
         return line_based_merge(&contents_base, &contents_left, &contents_right, &settings);
     };
+    let mut lang_profile = Cow::Borrowed(lang_profile);
+    if let Some(allow_parse_errors) = allow_parse_errors {
+        lang_profile.to_mut().allow_parse_errors = allow_parse_errors;
+    }
+    let lang_profile = Arc::new(lang_profile);
 
     let merges = cascading_merge(
         Arc::clone(&contents_base),
@@ -91,7 +97,7 @@ pub fn cascading_merge(
     contents_base: Arc<Cow<'static, str>>,
     contents_left: Arc<Cow<'static, str>>,
     contents_right: Arc<Cow<'static, str>>,
-    lang_profile: &'static LangProfile,
+    lang_profile: Arc<Cow<'static, LangProfile>>,
     settings: DisplaySettings<'static>,
     full_merge: bool,
     debug_dir: Option<&'static Path>,
@@ -104,7 +110,7 @@ pub fn cascading_merge(
         &contents_left,
         &contents_right,
         &settings,
-        lang_profile,
+        &lang_profile,
     );
     debug!("line-based merge took {:?}", start.elapsed());
     if line_based_merge.conflict_count == 0 && !line_based_merge.has_additional_issues {
@@ -118,7 +124,8 @@ pub fn cascading_merge(
 
         // second attempt: to solve the conflicts from the line-based merge
         if !line_based_merge.has_additional_issues {
-            let solved_merge = resolve_merge(&parsed_conflicts, &settings, lang_profile, debug_dir);
+            let solved_merge =
+                resolve_merge(&parsed_conflicts, &settings, &lang_profile, debug_dir);
 
             match solved_merge {
                 Ok(recovered_merge) => {
@@ -143,7 +150,7 @@ pub fn cascading_merge(
                 &contents_right,
                 None,
                 &settings,
-                lang_profile,
+                &lang_profile,
                 debug_dir,
             );
             match structured_merge {

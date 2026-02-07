@@ -37,6 +37,7 @@ fn compare_against_merge(
         Duration::from_millis(0),
         language_override_for_test(test_dir),
         None,
+        Some(true),
     );
 
     let expected = contents_expected;

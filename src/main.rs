@@ -53,6 +53,9 @@ struct MergeOrSolveArgs {
     /// Override automatic language detection.
     #[arg(short = 'L', long)]
     language: Option<String>,
+    /// Enable syntax-aware merging despite the presence of syntax errors
+    #[arg(long)]
+    allow_parse_errors: Option<bool>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -183,6 +186,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     compact,
                     conflict_marker_size,
                     language,
+                    allow_parse_errors,
                 },
             timeout,
         } => {
@@ -300,6 +304,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 Duration::from_millis(timeout.unwrap_or(if fast { 5000 } else { 10000 })),
                 language.as_deref(),
                 Some(&working_dir),
+                allow_parse_errors,
             );
             merge_result.contents =
                 imitate_newline_style(&merge_result.contents, original_newline_style);
@@ -330,6 +335,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     compact,
                     conflict_marker_size,
                     language,
+                    allow_parse_errors,
                 },
             stdout,
             keep_backup,
@@ -373,6 +379,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 debug_dir.as_deref(),
                 &working_dir,
                 language.as_deref(),
+                allow_parse_errors,
             );
             match postprocessed {
                 Ok(mut merged) => {

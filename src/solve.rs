@@ -1,6 +1,6 @@
 //! Implementation of `mergiraf solve`
 
-use std::{fs, path::Path};
+use std::{borrow::Cow, fs, path::Path};
 
 use itertools::Itertools;
 use log::{debug, info, warn};
@@ -21,10 +21,15 @@ pub fn resolve_merge_cascading<'a>(
     debug_dir: Option<&Path>,
     working_dir: &Path,
     language: Option<&str>,
+    allow_parse_errors: Option<bool>,
 ) -> Result<MergeResult, String> {
     let mut solves = Vec::with_capacity(4);
 
-    let lang_profile = LangProfile::find(fname_base, language, Some(working_dir))?;
+    let mut lang_profile =
+        Cow::Borrowed(LangProfile::find(fname_base, language, Some(working_dir))?);
+    if let Some(allow_parse_errors) = allow_parse_errors {
+        lang_profile.to_mut().allow_parse_errors = allow_parse_errors;
+    }
 
     let parsed = match ParsedMerge::parse(merge_contents, &settings) {
         Err(err) => {
@@ -44,7 +49,7 @@ pub fn resolve_merge_cascading<'a>(
         Ok(parsed_merge) => {
             settings.add_revision_names(&parsed_merge);
 
-            match resolve_merge(&parsed_merge, &settings, lang_profile, debug_dir) {
+            match resolve_merge(&parsed_merge, &settings, &lang_profile, debug_dir) {
                 Ok(solve) if solve.conflict_count == 0 => {
                     info!("Solved all conflicts.");
                     debug!("Structured merge from reconstructed revisions.");
@@ -70,7 +75,7 @@ pub fn resolve_merge_cascading<'a>(
         &settings,
         debug_dir,
         working_dir,
-        lang_profile,
+        &lang_profile,
     ) {
         Ok(structured_merge) if structured_merge.conflict_count == 0 => {
             info!("Solved all conflicts.");
@@ -95,7 +100,7 @@ pub fn resolve_merge_cascading<'a>(
         &settings,
         debug_dir,
         working_dir,
-        lang_profile,
+        &lang_profile,
         parsed.as_ref(),
     ) {
         Some(Ok(merge)) if merge.conflict_count == 0 => {

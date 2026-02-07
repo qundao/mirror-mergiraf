@@ -276,7 +276,7 @@ impl<'a> AstNode<'a> {
                 children.push(injected_root);
                 last_child_end = injected_root.byte_range.end;
             } // if the parsing of the injection fails, keep the injection node as a leaf but don't abort the entire parsing
-        } else if !atomic && cursor.goto_first_child() {
+        } else if !atomic && !node.is_error() && !node.is_missing() && cursor.goto_first_child() {
             let mut child_available = true;
             while child_available {
                 let child = Self::internal_new(
@@ -343,29 +343,31 @@ impl<'a> AstNode<'a> {
             range
         };
         let local_source = &global_source[range.start..range.end];
-        if node.is_error() {
-            let full_range = node.range();
+        if !lang_profile.allow_parse_errors {
+            if node.is_error() {
+                let full_range = node.range();
 
-            // it can be that byte 32 doesn't lie on char boundary,
-            // so increase the index until it does
-            #[expect(unstable_name_collisions)]
-            let idx = local_source.ceil_char_boundary(32);
+                // it can be that byte 32 doesn't lie on char boundary,
+                // so increase the index until it does
+                #[expect(unstable_name_collisions)]
+                let idx = local_source.ceil_char_boundary(32);
 
-            return Err(ParsingError::InvalidSyntax {
-                start_row: full_range.start_point.row,
-                start_column: full_range.start_point.column,
-                end_row: full_range.end_point.row,
-                end_column: full_range.end_point.column,
-                fragment: local_source[..idx].to_string(),
-            });
-        } else if node.is_missing() {
-            let full_range = node.range();
+                return Err(ParsingError::InvalidSyntax {
+                    start_row: full_range.start_point.row,
+                    start_column: full_range.start_point.column,
+                    end_row: full_range.end_point.row,
+                    end_column: full_range.end_point.column,
+                    fragment: local_source[..idx].to_string(),
+                });
+            } else if node.is_missing() {
+                let full_range = node.range();
 
-            return Err(ParsingError::MissingToken {
-                start_row: full_range.start_point.row,
-                start_column: full_range.start_point.column,
-                kind: node.kind().to_string(),
-            });
+                return Err(ParsingError::MissingToken {
+                    start_row: full_range.start_point.row,
+                    start_column: full_range.start_point.column,
+                    kind: node.kind().to_string(),
+                });
+            }
         }
 
         // if this is a leaf that spans multiple lines, create one child per line,

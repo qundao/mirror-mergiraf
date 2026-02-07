@@ -111,8 +111,11 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
     let exit_code = match &args.command {
         Command::Parse { path, max_depth } => {
             let lang_profile = lang_profile(path)?;
+            let mut lang_profile = lang_profile.clone();
+            lang_profile.allow_parse_errors = true;
+
             let contents = contents(path)?;
-            let tree = parse(&contents, lang_profile)?;
+            let tree = parse(&contents, &lang_profile)?;
 
             print!("{}", tree.ascii_tree(*max_depth, true));
             0
@@ -123,12 +126,14 @@ fn real_main(args: &CliArgs) -> Result<i32, String> {
             commutative,
         } => {
             let lang_profile = lang_profile(first)?;
+            let mut lang_profile = lang_profile.clone();
+            lang_profile.allow_parse_errors = true;
 
             let contents_first = contents(first)?;
-            let tree_first = parse(&contents_first, lang_profile)?;
+            let tree_first = parse(&contents_first, &lang_profile)?;
 
             let contents_second = contents(second)?;
-            let tree_second = parse(&contents_second, lang_profile)?;
+            let tree_second = parse(&contents_second, &lang_profile)?;
 
             let first_root = tree_first;
             let second_root = tree_second;

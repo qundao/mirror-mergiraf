@@ -96,6 +96,7 @@ fn oid_fallback_extracts_revisions_and_solves() {
         None,
         not_repo.path(),
         None,
+        None,
     )
     .unwrap();
     assert_eq!(merge_result.conflict_count, 1);
@@ -107,6 +108,7 @@ fn oid_fallback_extracts_revisions_and_solves() {
         DisplaySettings::default(),
         None,
         repo_dir,
+        None,
         None,
     )
     .unwrap();

@@ -7,7 +7,7 @@ script_dir="$(dirname "${script_path}")"
 ext=`ls $1 | grep Base | sed -e 's/Base//'`
 
 mkdir -p debug
-extra_args="-v -d debug/"
+extra_args="-v -d debug/ --allow-parse-errors"
 if [ "$NO_DEBUG" == "true" ]; then
     extra_args=""
 fi
