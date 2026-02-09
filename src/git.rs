@@ -1,5 +1,6 @@
 use core::str;
 use itertools::Itertools as _;
+use log::warn;
 use std::{
     collections::HashMap,
     fs,
@@ -148,17 +149,69 @@ pub(crate) fn read_lang_attribute(repo_dir: &Path, file_name: &Path) -> Option<S
     // The following attributes are looked up to determine the language, in this order
     // (if the first attribute is set, it overrides the second one)
     let attr_names = &["mergiraf.language", "linguist-language"];
-    let attributes = read_attributes_for_file(repo_dir, file_name, attr_names);
+    let mut attributes = read_attributes_for_file(repo_dir, file_name, attr_names);
 
-    attr_names
-        .iter()
-        .find_map(|attr| {
-            // TODO: potentially the `read_attributes_for_file` could expose attribute values
-            // in a more structured way, for instance with an enum which picks out those specific variants
-            // to be excluded.
-            attributes
-                .get(attr)
-                .filter(|value| *value != "unspecified" && *value != "set" && *value != "unset")
+    attr_names.iter().find_map(|attr| {
+        // TODO: potentially the `read_attributes_for_file` could expose attribute values
+        // in a more structured way, for instance with an enum which picks out those specific variants
+        // to be excluded.
+        attributes
+            .remove(attr)
+            .filter(|value| *value != "unspecified" && *value != "set" && *value != "unset")
+    })
+}
+
+pub fn read_conflict_marker_size_attribute(
+    repo_dir: &Path,
+    file_name: impl AsRef<Path>,
+) -> Option<usize> {
+    let attr_name = "conflict-marker-size";
+    let mut attributes = read_attributes_for_file(repo_dir, file_name.as_ref(), &[attr_name]);
+
+    attributes
+        .remove(attr_name)
+        .filter(|value| *value != "unspecified" && *value != "set" && *value != "unset")
+        .and_then(|size| match size.parse() {
+            Ok(size) => Some(size),
+            Err(err) => {
+                warn!(
+                    "The value of the `conflict-marker-size` could not be parsed as a number: {err}"
+                );
+                None
+            }
         })
-        .cloned()
+}
+
+// FIXME: this should've been `#[cfg(test)]`, but for some reason, if I add that,
+// `solve_respects_conflict_marker_size_attr` stops compiling
+pub fn init(path: impl AsRef<Path>) {
+    Command::new("git")
+        .arg("init")
+        .current_dir(path.as_ref())
+        .output()
+        .expect("failed to initialize a Git repository");
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{git, utils::write_string_to_file};
+
+    #[test]
+    fn read_conflict_marker_size_attribute() {
+        let repo_dir = tempfile::tempdir().expect("failed to create tempdir");
+        let repo_path = repo_dir.path();
+        git::init(repo_path);
+
+        let size = || git::read_conflict_marker_size_attribute(repo_path, "foo.txt");
+
+        assert_eq!(size(), None);
+
+        write_string_to_file(
+            repo_path.join(".gitattributes"),
+            "* conflict-marker-size=10",
+        )
+        .unwrap();
+
+        assert_eq!(size(), Some(10));
+    }
 }

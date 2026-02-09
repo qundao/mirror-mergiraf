@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::{fs, path::Path};
 
-pub fn read_file_to_string(path: &Path) -> Result<String, String> {
+pub fn read_file_to_string(path: impl AsRef<Path>) -> Result<String, String> {
+    let path = path.as_ref();
     fs::read_to_string(path).map_err(|err| format!("Could not read '{}': {err}", path.display()))
 }
 
