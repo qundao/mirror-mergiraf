@@ -3,9 +3,7 @@ use std::{collections::HashSet, ffi::OsStr, fmt::Display, hash::Hash, path::Path
 use itertools::Itertools;
 use tree_sitter::Language;
 
-use crate::{
-    ast::AstNode, git, signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES,
-};
+use crate::{ast::AstNode, signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
 
 /// Language-dependent settings to influence how merging is done.
 /// All those settings are declarative (except for the tree-sitter parser, which is
@@ -104,36 +102,26 @@ impl LangProfile {
         inner(filename.as_ref())
     }
 
-    /// Detects the language of a file based on VCS attributes
-    pub fn detect_language_from_vcs_attr<P>(repo_dir: &Path, filename: P) -> Option<String>
-    where
-        P: AsRef<Path>,
-    {
-        git::read_lang_attribute(repo_dir, filename.as_ref())
-    }
-
     /// Loads a language, by:
-    /// - first, looking up the language using its name if provided
-    /// - failing that, by detecting it via configuration from the gitattributes file
+    /// - first, looking up the language using the name provided on CLI (if present)
+    /// - failing that, looking up the language using the name from gitattributes file (if present)
     /// - failing that, by detecting it from a filename
     pub fn find<P>(
         filename: P,
-        language_name: Option<&str>,
-        repo_dir: Option<&Path>,
+        lang_name_from_cli: Option<&str>,
+        lang_name_from_git: Option<&str>,
     ) -> Result<&'static Self, String>
     where
         P: AsRef<Path>,
     {
         let filename = filename.as_ref();
-        if let Some(lang_name) = language_name {
+        if let Some(lang_name) = lang_name_from_cli {
             Self::find_by_name(lang_name)
                 .ok_or_else(|| format!("Specified language '{lang_name}' could not be found"))
             // If lookup by name failed, we don't fall back on the other detection methods,
             // because don't want to silently ignore an invalid language name.
-        } else if let Some(repo_dir) = repo_dir
-            && let Some(lang_name) = Self::detect_language_from_vcs_attr(repo_dir, filename)
-        {
-            Self::find_by_name(&lang_name).ok_or_else(|| {
+        } else if let Some(lang_name) = lang_name_from_git {
+            Self::find_by_name(lang_name).ok_or_else(|| {
                 format!("Attribute-specified language '{lang_name}' could not be found")
             })
         } else {
@@ -488,8 +476,6 @@ impl ChildrenGroup {
 
 #[cfg(test)]
 mod tests {
-    use std::{env, fs, process::Command};
-
     use super::*;
 
     use crate::{signature::PathStep, test_utils::ctx};
@@ -546,79 +532,27 @@ mod tests {
 
     #[test]
     fn find_vcs() {
-        let mut working_dir = env::current_exe().unwrap();
-        working_dir.pop();
-        let tempdir = tempfile::tempdir_in(working_dir).unwrap();
-
-        Command::new("git")
-            .arg("init")
-            .current_dir(&tempdir)
-            .output()
-            .expect("failed to init git repository");
-        {
-            let attrpath = tempdir.path().join(".gitattributes");
-            fs::write(
-                attrpath,
-                concat!(
-                    "*.bogus.mgf    mergiraf.language=bogus\n",
-                    "*.js.mgf       mergiraf.language=javascript\n",
-                    "*.myjs.mgf     mergiraf.language=javascript\n",
-                    // Test that fallback to `linguist-language` works.
-                    "unspecified.bogus.mgf  !mergiraf.language\n",
-                    "unset.bogus.mgf        -mergiraf.language\n",
-                    "*.bogus        linguist-language=bogus\n",
-                    "*.js           linguist-language=javascript\n",
-                    "*.myjs         linguist-language=javascript\n",
-                    "*.bogus.mgf    linguist-language=python\n",
-                ),
-            )
-            .unwrap();
-        }
-        Command::new("git")
-            .args([
-                "-c",
-                "user.email=mergiraf@example.com",
-                "-c",
-                "user.name=Mergiraf Testing",
-                "commit",
-                "-a",
-                "-m",
-                "add gitattributes",
-            ])
-            .current_dir(&tempdir)
-            .output()
-            .expect("failed to commit attribute file");
-
-        let find = |filename, name| {
-            LangProfile::find(filename, name, Some(tempdir.path()))
+        let find = |filename, cli_name, git_name| {
+            LangProfile::find(filename, cli_name, Some(git_name))
                 .map(|lang_profile| lang_profile.name)
         };
+
+        assert_eq!(find("file.js", Some("python"), "rs"), Ok("Python"));
+        assert_eq!(find("file.js", Some("python"), "bogus"), Ok("Python"));
+        assert_eq!(find("file.js", None, "js"), Ok("Javascript"));
+        assert_eq!(find("file.js", None, "py"), Ok("Python"));
         assert_eq!(
-            find("file.bogus.mgf", None).unwrap_err(),
+            find("file.js", None, "bogus").unwrap_err(),
+            "Attribute-specified language 'bogus' could not be found"
+        );
+
+        assert_eq!(find("file.bogus", Some("python"), "js"), Ok("Python"));
+        assert_eq!(find("file.bogus", Some("python"), "bogus"), Ok("Python"));
+        assert_eq!(find("file.bogus", None, "js"), Ok("Javascript"));
+        assert_eq!(
+            find("file.bogus", None, "bogus").unwrap_err(),
             "Attribute-specified language 'bogus' could not be found",
         );
-        assert_eq!(find("file.js.mgf", None), Ok("Javascript"));
-        assert_eq!(find("file.myjs.mgf", None), Ok("Javascript"));
-        assert_eq!(find("unset.bogus.mgf", None), Ok("Python"));
-        assert_eq!(find("unspecified.bogus.mgf", None), Ok("Python"));
-        assert_eq!(
-            find("file.bogus", None).unwrap_err(),
-            "Attribute-specified language 'bogus' could not be found",
-        );
-        assert_eq!(
-            find("file.noattr", None).unwrap_err(),
-            "Could not find a supported language for 'file.noattr'",
-        );
-        assert_eq!(find("file.js", None), Ok("Javascript"));
-        assert_eq!(find("file.myjs", None), Ok("Javascript"));
-        assert_eq!(find("file.bogus.mgf", Some("python")), Ok("Python"));
-        assert_eq!(find("file.noattr.mgf", Some("python")), Ok("Python"));
-        assert_eq!(find("file.js.mgf", Some("python")), Ok("Python"));
-        assert_eq!(find("file.myjs.mgf", Some("python")), Ok("Python"));
-        assert_eq!(find("file.bogus", Some("python")), Ok("Python"));
-        assert_eq!(find("file.noattr", Some("python")), Ok("Python"));
-        assert_eq!(find("file.js", Some("python")), Ok("Python"));
-        assert_eq!(find("file.myjs", Some("python")), Ok("Python"));
     }
 
     #[test]

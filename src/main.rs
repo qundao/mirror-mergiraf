@@ -13,10 +13,10 @@ use mergiraf::{
     DISABLING_ENV_VAR, PathBufExt,
     attempts::AttemptsCache,
     bug_reporter::report_bug,
-    git, languages, line_merge_and_structured_resolution,
+    languages, line_merge_and_structured_resolution, merge,
     newline::{imitate_newline_style, infer_newline_style, normalize_to_lf},
-    resolve_merge_cascading,
     settings::{ConflictRegexes, DisplaySettings},
+    solve,
     utils::{read_file_to_string, write_string_to_file},
 };
 
@@ -292,6 +292,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let fname_base = path_name.unwrap_or(fname_base);
 
             let working_dir = env::current_dir().expect("Invalid current directory");
+
             let mut merge_result = line_merge_and_structured_resolution(
                 contents_base,
                 contents_left,
@@ -300,11 +301,13 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 settings,
                 !fast,
                 attempts_cache.as_ref(),
+                merge::CliOpts {
+                    allow_parse_errors,
+                    language: language.as_deref(),
+                },
+                Some(&working_dir),
                 debug_dir,
                 Duration::from_millis(timeout.unwrap_or(if fast { 5000 } else { 10000 })),
-                language.as_deref(),
-                Some(&working_dir),
-                allow_parse_errors,
             );
             merge_result.contents =
                 imitate_newline_style(&merge_result.contents, original_newline_style);
@@ -353,42 +356,28 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 );
             }
 
-            let conflict_marker_size = conflict_marker_size.or_else(|| {
-                let current_dir = env::current_dir().expect("Invalid current directory");
-                git::read_conflict_marker_size_attribute(&current_dir, &fname_conflicts)
-            });
-            let settings = DisplaySettings::new(
-                compact,
-                conflict_marker_size,
-                // NOTE: the names will be recognized in `resolve_merge_cascading` (if possible)
-                None,
-                None,
-                None,
-            );
-
             if let Some(debug_dir) = &debug_dir {
                 fs::create_dir_all(debug_dir)
                     .map_err(|err| format!("could not create the debug directory: {err}"))?;
             }
 
             let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
-            let original_newline_style = infer_newline_style(&original_conflict_contents);
-            let conflict_contents = normalize_to_lf(&original_conflict_contents);
-            let working_dir = env::current_dir().expect("Invalid current directory");
 
-            let postprocessed = resolve_merge_cascading(
-                &conflict_contents,
+            let working_dir = env::current_dir().expect("Invalid current directory");
+            let postprocessed = solve::solve(
                 &fname_conflicts,
-                settings,
-                debug_dir.as_deref(),
+                &original_conflict_contents,
+                solve::CliOpts {
+                    allow_parse_errors,
+                    compact,
+                    conflict_marker_size,
+                    language: language.as_deref(),
+                },
                 &working_dir,
-                language.as_deref(),
-                allow_parse_errors,
+                debug_dir.as_deref(),
             );
             match postprocessed {
-                Ok(mut merged) => {
-                    merged.contents =
-                        imitate_newline_style(&merged.contents, original_newline_style);
+                Ok(merged) => {
                     if stdout {
                         print!("{}", merged.contents);
                     } else {
@@ -505,6 +494,8 @@ fn conflict_location_looks_like_jj_repo(fname_conflicts: &Path) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
+    use mergiraf::git;
+
     use itertools::Itertools;
 
     #[test]

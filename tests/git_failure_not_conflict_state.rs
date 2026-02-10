@@ -1,6 +1,5 @@
 /// Test cases where a file has a conflict but is not in a conflicted state in Git's index for various reasons
-use mergiraf::resolve_merge_cascading;
-use mergiraf::settings::DisplaySettings;
+use mergiraf::solve::{CliOpts, solve};
 use std::fs;
 
 mod common;
@@ -24,13 +23,11 @@ fn not_in_repo() {
 
     let handle = caplog::get_handle();
     // The file is just present in the working tree so it's not on a conflicted state
-    let result = resolve_merge_cascading(
-        conflict_content,
+    let result = solve(
         &file_path,
-        DisplaySettings::default(),
-        None,
+        conflict_content,
+        CliOpts::default(),
         repo_dir,
-        None,
         None,
     );
     assert!(
@@ -60,13 +57,11 @@ fn not_in_index() {
 
     let handle = caplog::get_handle();
     // The file is just present in the working tree so it's not on a conflicted state
-    let result = resolve_merge_cascading(
-        conflict_content,
+    let result = solve(
         &file_path,
-        DisplaySettings::default(),
-        None,
+        conflict_content,
+        CliOpts::default(),
         repo_dir,
-        None,
         None,
     );
     assert!(
@@ -110,13 +105,11 @@ fn committed_conflict() {
 
     let handle = caplog::get_handle();
     // The file is just present in the working tree so it's not on a conflicted state
-    let result = resolve_merge_cascading(
-        conflict_content,
+    let result = solve(
         &file_path,
-        DisplaySettings::default(),
-        None,
+        conflict_content,
+        CliOpts::default(),
         repo_dir,
-        None,
         None,
     );
     assert!(

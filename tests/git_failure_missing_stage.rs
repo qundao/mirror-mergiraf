@@ -2,8 +2,8 @@ use std::fs;
 use std::process::Command;
 
 use itertools::Itertools as _;
-use mergiraf::settings::DisplaySettings;
-use mergiraf::{DISABLING_ENV_VAR, resolve_merge_cascading};
+use mergiraf::solve::CliOpts;
+use mergiraf::{DISABLING_ENV_VAR, solve};
 
 mod common;
 use common::run_git;
@@ -89,26 +89,22 @@ fn oid_fallback_extracts_revisions_and_solves() {
 
     // validate that if we're outside a git repository the resolution fails
     let not_repo = tempfile::tempdir().unwrap();
-    let merge_result = resolve_merge_cascading(
-        conflicted_content,
+    let merge_result = solve::solve(
         std::path::Path::new(file_name),
-        DisplaySettings::default(),
-        None,
+        conflicted_content,
+        CliOpts::default(),
         not_repo.path(),
-        None,
         None,
     )
     .unwrap();
     assert_eq!(merge_result.conflict_count, 1);
 
     // Check that if the revisions *can* be looked up by oid the merge succeeds
-    let merge_result = resolve_merge_cascading(
-        conflicted_content,
+    let merge_result = solve::solve(
         std::path::Path::new(file_name),
-        DisplaySettings::default(),
-        None,
+        conflicted_content,
+        CliOpts::default(),
         repo_dir,
-        None,
         None,
     )
     .unwrap();

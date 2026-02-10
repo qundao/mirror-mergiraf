@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process::Command;
 
 use mergiraf::newline::normalize_to_lf;
-use mergiraf::settings::DisplaySettings;
-use mergiraf::{DISABLING_ENV_VAR, resolve_merge_cascading};
+use mergiraf::solve::CliOpts;
+use mergiraf::{DISABLING_ENV_VAR, solve};
 use rstest::rstest;
 
 mod common;
@@ -91,13 +91,14 @@ fn solve_command(#[case] conflict_style: &str) {
     let conflicts_contents =
         fs::read_to_string(repo_dir.join(&file_name)).expect("could not read the conflicts");
     let conflicts_contents = normalize_to_lf(conflicts_contents);
-    let merge_result = resolve_merge_cascading(
-        &conflicts_contents,
+    let merge_result = solve::solve(
         &file_name,
-        DisplaySettings::default(),
-        None,
+        &conflicts_contents,
+        CliOpts {
+            language: language_override_for_test(test_dir),
+            ..Default::default()
+        },
         repo_dir,
-        language_override_for_test(test_dir),
         None,
     )
     .expect("solving the conflicts returned an error");

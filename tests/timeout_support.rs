@@ -7,6 +7,7 @@ use std::time::Duration;
 use diffy_imara::{PatchFormatter, create_patch};
 use mergiraf::line_based::line_based_merge;
 use mergiraf::line_merge_and_structured_resolution;
+use mergiraf::merge::CliOpts;
 use mergiraf::settings::DisplaySettings;
 
 #[test]
@@ -34,11 +35,13 @@ fn timeout_support() {
         settings,
         true,
         None,
+        CliOpts {
+            allow_parse_errors: Some(true),
+            ..Default::default()
+        },
+        None,
         None,
         Duration::from_millis(1), // very small timeout: structured merging should never be that fast
-        None,
-        None,
-        Some(true),
     );
 
     let expected = contents_expected.trim();

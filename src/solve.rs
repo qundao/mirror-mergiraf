@@ -7,29 +7,106 @@ use log::{debug, info, warn};
 
 use crate::{
     DisplaySettings, LangProfile, MergeResult, PARSED_MERGE_DIFF2_DETECTED, ParsedMerge,
-    git::{GitTempFile, GitTempFiles, extract_all_revisions_from_git, read_content_from_commits},
+    git::{
+        GitTempFile, GitTempFiles, attr::GitAttrsForSolve, extract_all_revisions_from_git,
+        read_content_from_commits,
+    },
+    newline::{imitate_newline_style, infer_newline_style, normalize_to_lf},
     resolve_merge, structured_merge,
 };
 
 const FROM_PARSED_ORIGINAL: &str = "from_parsed_original";
 
-/// Cascading merge resolution starting from a user-supplied file with merge conflicts
-pub fn resolve_merge_cascading<'a>(
-    merge_contents: &'a str,
-    fname_base: &Path,
-    mut settings: DisplaySettings<'a>,
-    debug_dir: Option<&Path>,
-    working_dir: &Path,
-    language: Option<&str>,
-    allow_parse_errors: Option<bool>,
-) -> Result<MergeResult, String> {
-    let mut solves = Vec::with_capacity(4);
+/// Some options can be both:
+/// - provided to `mergiraf solve` on the CLI
+/// - specified using Git attributes
+///
+/// This struct stores the former values
+#[derive(Default)]
+pub struct CliOpts<'a> {
+    pub compact: Option<bool>,
+    pub conflict_marker_size: Option<usize>,
+    pub language: Option<&'a str>,
+    pub allow_parse_errors: Option<bool>,
+}
 
-    let mut lang_profile =
-        Cow::Borrowed(LangProfile::find(fname_base, language, Some(working_dir))?);
+/// Cascading merge resolution starting from a user-supplied file with merge conflicts
+pub fn solve(
+    conflict_path: &Path,
+    original_conflict_contents: &str,
+    cli_opts: CliOpts,
+    working_dir: &Path,
+    debug_dir: Option<&Path>,
+) -> Result<MergeResult, String> {
+    let original_newline_style = infer_newline_style(original_conflict_contents);
+    let conflict_contents = normalize_to_lf(original_conflict_contents);
+
+    let (settings, lang_profile) = create_settings(conflict_path, cli_opts, working_dir)?;
+    let mut merged = do_solve(
+        &conflict_contents,
+        conflict_path,
+        settings,
+        &lang_profile,
+        working_dir,
+        debug_dir,
+    )?;
+    merged.contents = imitate_newline_style(&merged.contents, original_newline_style);
+    Ok(merged)
+}
+
+/// Combine the options provided on the CLI with those extracted from `.gitattributes`
+/// to create [DisplaySettings] and [LangProfile] to be used during the solve
+fn create_settings(
+    conflict_path: &Path,
+    cli_opts: CliOpts,
+    working_dir: &Path,
+) -> Result<(DisplaySettings<'static>, Cow<'static, LangProfile>), String> {
+    let (conflict_marker_size_git, allow_parse_errors_git, language_git) =
+        if let Some(git_attrs) = GitAttrsForSolve::new(working_dir, conflict_path) {
+            (
+                git_attrs.conflict_marker_size,
+                git_attrs.allow_parse_errors,
+                git_attrs.language,
+            )
+        } else {
+            (None, None, None)
+        };
+
+    #[rustfmt::skip]
+    let conflict_marker_size = cli_opts.conflict_marker_size.or(conflict_marker_size_git);
+    let allow_parse_errors = cli_opts.allow_parse_errors.or(allow_parse_errors_git);
+
+    let settings = DisplaySettings::new(
+        cli_opts.compact,
+        conflict_marker_size,
+        // NOTE: the names will be recognized in `do_solve` (if possible)
+        None,
+        None,
+        None,
+    );
+
+    let mut lang_profile = Cow::Borrowed(LangProfile::find(
+        conflict_path,
+        cli_opts.language,
+        language_git.as_deref(),
+    )?);
     if let Some(allow_parse_errors) = allow_parse_errors {
         lang_profile.to_mut().allow_parse_errors = allow_parse_errors;
     }
+
+    Ok((settings, lang_profile))
+}
+
+/// The actual solving algorithm
+fn do_solve<'a>(
+    merge_contents: &'a str,
+    fname_base: &Path,
+    mut settings: DisplaySettings<'a>,
+    lang_profile: &LangProfile,
+    working_dir: &Path,
+    debug_dir: Option<&Path>,
+) -> Result<MergeResult, String> {
+    let mut solves = Vec::with_capacity(4);
 
     let parsed = match ParsedMerge::parse(merge_contents, &settings) {
         Err(err) => {
@@ -49,7 +126,7 @@ pub fn resolve_merge_cascading<'a>(
         Ok(parsed_merge) => {
             settings.add_revision_names(&parsed_merge);
 
-            match resolve_merge(&parsed_merge, &settings, &lang_profile, debug_dir) {
+            match resolve_merge(&parsed_merge, &settings, lang_profile, debug_dir) {
                 Ok(solve) if solve.conflict_count == 0 => {
                     info!("Solved all conflicts.");
                     debug!("Structured merge from reconstructed revisions.");
@@ -75,7 +152,7 @@ pub fn resolve_merge_cascading<'a>(
         &settings,
         debug_dir,
         working_dir,
-        &lang_profile,
+        lang_profile,
     ) {
         Ok(structured_merge) if structured_merge.conflict_count == 0 => {
             info!("Solved all conflicts.");
@@ -100,7 +177,7 @@ pub fn resolve_merge_cascading<'a>(
         &settings,
         debug_dir,
         working_dir,
-        &lang_profile,
+        lang_profile,
         parsed.as_ref(),
     ) {
         Some(Ok(merge)) if merge.conflict_count == 0 => {

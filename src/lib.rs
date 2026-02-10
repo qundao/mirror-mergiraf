@@ -24,7 +24,7 @@ pub mod git;
 pub mod lang_profile;
 pub mod line_based;
 pub(crate) mod matching;
-mod merge;
+pub mod merge;
 pub(crate) mod merge_3dm;
 pub(crate) mod merge_result;
 pub(crate) mod merged_text;
@@ -37,7 +37,7 @@ pub(crate) mod parsed_merge;
 pub(crate) mod pcs;
 pub mod settings;
 pub(crate) mod signature;
-mod solve;
+pub mod solve;
 mod std_ext;
 pub(crate) mod structured;
 pub mod supported_langs;
@@ -72,7 +72,6 @@ pub use std_ext::{PathBufExt, StrExt};
 pub const DISABLING_ENV_VAR: &str = "mergiraf";
 
 pub use merge::line_merge_and_structured_resolution;
-pub use solve::resolve_merge_cascading;
 
 #[cfg(feature = "dev")]
 pub use minimize::minimize;

@@ -14,11 +14,23 @@ use log::{debug, warn};
 use crate::{
     DisplaySettings, LangProfile, MergeResult,
     attempts::AttemptsCache,
+    git::attr::GitAttrsForMerge,
     line_based::{
         LINE_BASED_METHOD, line_based_merge, line_based_merge_with_duplicate_signature_detection,
     },
     resolve_merge, structured_merge,
 };
+
+/// Some options can be both:
+/// - provided to `mergiraf merge` on the CLI
+/// - specified using Git attributes
+///
+/// This struct stores the former values
+#[derive(Default)]
+pub struct CliOpts<'a> {
+    pub allow_parse_errors: Option<bool>,
+    pub language: Option<&'a str>,
+}
 
 /// Merge the files textually and then attempt to merge any conflicts
 /// in a structured way (see [`structured_merge`]).
@@ -33,13 +45,25 @@ pub fn line_merge_and_structured_resolution(
     settings: DisplaySettings<'static>,
     full_merge: bool,
     attempts_cache: Option<&AttemptsCache>,
+    cli_opts: CliOpts,
+    repo_dir: Option<&Path>,
     debug_dir: Option<&'static Path>,
     timeout: Duration,
-    language: Option<&str>,
-    repo_dir: Option<&Path>,
-    allow_parse_errors: Option<bool>,
 ) -> MergeResult {
-    let Ok(lang_profile) = LangProfile::find(fname_base, language, repo_dir) else {
+    // Read the relevant Git attributes, and set the corresponding parameters, if they aren't
+    // already specified via CLI
+    let (language_git, allow_parse_errors_git) = if let Some(repo_dir) = repo_dir
+        && let Some(git_attrs) = GitAttrsForMerge::new(repo_dir, fname_base)
+    {
+        (git_attrs.language, git_attrs.allow_parse_errors)
+    } else {
+        (None, None)
+    };
+    let allow_parse_errors = cli_opts.allow_parse_errors.or(allow_parse_errors_git);
+
+    let Ok(lang_profile) =
+        LangProfile::find(fname_base, cli_opts.language, language_git.as_deref())
+    else {
         return line_based_merge(&contents_base, &contents_left, &contents_right, &settings);
     };
     let mut lang_profile = Cow::Borrowed(lang_profile);

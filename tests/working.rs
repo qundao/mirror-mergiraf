@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
 use mergiraf::line_merge_and_structured_resolution;
+use mergiraf::merge::CliOpts;
 use mergiraf::settings::DisplaySettings;
 use rstest::rstest;
 
@@ -33,11 +34,13 @@ fn compare_against_merge(
         settings,
         true,
         None,
+        CliOpts {
+            allow_parse_errors: Some(true),
+            language: language_override_for_test(test_dir),
+        },
+        None,
         None,
         Duration::from_millis(0),
-        language_override_for_test(test_dir),
-        None,
-        Some(true),
     );
 
     let expected = contents_expected;

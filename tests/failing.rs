@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
 use mergiraf::line_merge_and_structured_resolution;
+use mergiraf::merge::CliOpts;
 use mergiraf::settings::DisplaySettings;
 use rstest::rstest;
 
@@ -73,11 +74,13 @@ fn integration_failing(
         DisplaySettings::default(),
         true,
         None,
+        CliOpts {
+            allow_parse_errors: Some(true),
+            language: language_override_for_test(&test_dir),
+        },
+        None,
         None,
         Duration::from_millis(0),
-        language_override_for_test(&test_dir),
-        None,
-        Some(true),
     );
 
     let actual = &merge_result.contents;
@@ -141,11 +144,13 @@ please examine the new output and update ExpectedCurrently{suffix} if it looks o
         DisplaySettings::default_compact(),
         true,
         None,
+        CliOpts {
+            allow_parse_errors: Some(true),
+            ..Default::default()
+        },
+        None,
         None,
         Duration::from_millis(0),
-        None,
-        None,
-        Some(true),
     );
 
     let actual_compact = &merge_result.contents;
