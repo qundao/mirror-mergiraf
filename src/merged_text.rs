@@ -86,14 +86,16 @@ impl<'a> MergedText<'a> {
 
     /// Appends some text which might contain line-based conflicts.
     /// If the text contains newlines it also gets re-indented to the indentation level supplied.
-    pub(crate) fn push_line_based_merge(&mut self, parsed: &ParsedMerge, indentation: &str) {
+    pub(crate) fn push_line_based_merge(&mut self, parsed: &ParsedMerge<'a>, indentation: &str) {
         let mut newline_found = false;
         let sections = parsed.chunks.iter().map(|section| match section {
             crate::parsed_merge::MergedChunk::Resolved { contents, .. } => {
-                let result = MergeSection::Merged(
-                    Self::reindent_line_based_merge(contents, indentation, newline_found, true)
-                        .into(),
-                );
+                let result = MergeSection::Merged(Self::reindent_line_based_merge(
+                    contents,
+                    indentation,
+                    newline_found,
+                    true,
+                ));
                 newline_found = newline_found || contents.contains('\n');
                 result
             }
@@ -106,22 +108,19 @@ impl<'a> MergedText<'a> {
                         indentation,
                         false,
                         false,
-                    )
-                    .into(),
+                    ),
                     base: Self::reindent_line_based_merge(
                         base.unwrap_or_default(),
                         indentation,
                         false,
                         false,
-                    )
-                    .into(),
+                    ),
                     right: Self::reindent_line_based_merge(
                         right.unwrap_or_default(),
                         indentation,
                         false,
                         false,
-                    )
-                    .into(),
+                    ),
                 };
                 newline_found = newline_found
                     || left.is_some_and(|s| s.contains('\n'))
@@ -134,17 +133,17 @@ impl<'a> MergedText<'a> {
     }
 
     /// Reindents the contents of a line-based merge
-    fn reindent_line_based_merge(
-        content: &str,
+    fn reindent_line_based_merge<'content>(
+        content: &'content str,
         indentation: &str,
         reindent_first: bool,
         reindent_last: bool,
-    ) -> String {
+    ) -> Cow<'content, str> {
         if indentation.is_empty() {
-            return String::from(content);
+            return Cow::Borrowed(content);
         }
 
-        let reindented = content
+        let mut reindented = content
             .split('\n')
             .enumerate()
             .map(|(idx, line)| {
@@ -156,10 +155,9 @@ impl<'a> MergedText<'a> {
             })
             .join("\n");
         if reindent_last && reindented.ends_with('\n') {
-            reindented + indentation
-        } else {
-            reindented
+            reindented += indentation;
         }
+        Cow::Owned(reindented)
     }
 
     /// Reconstruct the source of a revision based on the merged output.
