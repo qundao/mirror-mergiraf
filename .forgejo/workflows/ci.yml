@@ -37,6 +37,6 @@ jobs:
       - name: Check without debug-assertions
         run: cargo check --config profile.debug.debug-assertions=false --workspace --all-features --all-targets --locked
       - name: Lint
-        run: cargo clippy --workspace --all-features --all-targets --locked -- -Dwarnings
+        run: cargo clippy --workspace --all-features --all-targets --locked -- -Dwarnings -W clippy::dbg_macro
       - name: Run tests
         run: cargo test --workspace --all-features --locked
