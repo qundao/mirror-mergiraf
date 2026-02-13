@@ -1,0 +1,4 @@
+# intentionally left empty, as we use the default config -- having
+# a config file in the workspace makes rustfmt ignore user's local config
+#
+# see https://rust-lang.github.io/rustfmt/?version=v1.8.0 (right at the start)
