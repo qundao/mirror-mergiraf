@@ -70,3 +70,10 @@ If you want to enforce other conditions on the test case, you can use a more com
 
 **Note:** The minimization algorithm works by parsing the files and aligning them in the same way that mergiraf does, so if the bug you are trying to narrow down is happening in those phases already, this helper might not be so useful.
 
+### Environment Setup
+
+If you use direnv and nix, you can copy `.envrc.example` to `.envrc` and allow it to run, giving you a shell with all of the development tooling already in place:
+
+```shell
+cp .envrc.example .envrc && direnv allow
+```
