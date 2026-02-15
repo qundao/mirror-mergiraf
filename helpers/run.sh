@@ -4,16 +4,16 @@
 script_path="$(realpath "${BASH_SOURCE[0]}")"
 script_dir="$(dirname "${script_path}")"
 
-ext=`ls $1 | grep Base | sed -e 's/Base//'`
+ext=$(ls $1 | grep Base | sed -e 's/Base//')
 
 mkdir -p debug
-extra_args="-v -d debug/ --allow-parse-errors"
+extra_args="-v -d debug/ --allow-parse-errors=true"
 if [ "$NO_DEBUG" == "true" ]; then
     extra_args=""
 fi
 
 if [ -e $1/language ]; then
-    language=`cat $1/language`
+    language=$(cat $1/language)
     extra_args="$extra_args --language $language"
 fi
 
