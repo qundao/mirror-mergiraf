@@ -383,6 +383,13 @@ impl<'a> MergedTree<'a> {
         revision: Revision,
         class_mapping: &ClassMapping<'a>,
     ) -> bool {
+        /// Represents a child from a [MergedTree::MixedTree] where any
+        /// conflicts have been replaced by their version in one revision.
+        enum MergedChild<'a> {
+            Merged(&'a MergedTree<'a>),
+            Original(&'a AstNode<'a>),
+        }
+
         match self {
             MergedTree::ExactTree {
                 node, revisions, ..
@@ -551,15 +558,6 @@ impl Display for MergedTree<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.debug_print(0))
     }
-}
-
-/// Represents a child from a MergedTree::MixedTree
-/// where any conflicts have been replaced by their version in
-/// one revision.
-/// Only used internally in `MergedTree::isomorphic_to_source`.
-enum MergedChild<'a, 'b> {
-    Merged(&'a MergedTree<'a>),
-    Original(&'b AstNode<'b>),
 }
 
 #[cfg(test)]
