@@ -117,8 +117,8 @@ Another option is to set the `linguist-language` attribute in a `gitattributes` 
 #### Enabling merging despite syntax errors
 
 When a file cannot be parsed in its target language, `mergiraf` falls back on line-based merging.
-To use syntax-aware merging despite the presence of syntax errors, use `--allow-parse-errors true`.
-The parsers of certain languages are known to raise spurious parsing errors in many cases (currently C, C++ and HTML). For those languages, this option is enabled by default and can be disabled with `--allow-parse-errors false`.
+To use syntax-aware merging despite the presence of syntax errors, use `--allow-parse-errors`.
+The parsers of certain languages are known to raise spurious parsing errors in many cases (currently C, C++ and HTML). For those languages, this option is enabled by default and can be disabled with `--allow-parse-errors=false`.
 
 #### Reporting a bad merge
 

@@ -54,7 +54,7 @@ struct MergeOrSolveArgs {
     #[arg(short = 'L', long)]
     language: Option<String>,
     /// Enable syntax-aware merging despite the presence of syntax errors
-    #[arg(long)]
+    #[arg(long, default_missing_value = "true", num_args = 0..=1, require_equals = true)]
     allow_parse_errors: Option<bool>,
 }
 
@@ -532,6 +532,47 @@ mod test {
             unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
         };
         assert_eq!(compact, Some(true));
+    }
+
+    #[test]
+    fn allow_parse_errors_flag() {
+        // works on `merge`:
+
+        // `true` when passed without value
+        // (and doesn't try to parse `foo.c` as value because of `require_equals`)
+        let CliCommand::Merge {
+            merge_or_solve: MergeOrSolveArgs {
+                allow_parse_errors, ..
+            },
+            ..
+        } = CliArgs::parse_from([
+            "mergiraf",
+            "merge",
+            "--allow-parse-errors",
+            "foo.c",
+            "bar.c",
+            "baz.c",
+        ])
+        .command
+        else {
+            unreachable!("`mergiraf merge` should invoke the `Merge` subcommand")
+        };
+        assert_eq!(allow_parse_errors, Some(true));
+
+        // works on `solve`:
+
+        // `true` when passed without value
+        // (and doesn't try to parse `foo.c` as value because of `require_equals`)
+        let CliCommand::Solve {
+            merge_or_solve: MergeOrSolveArgs {
+                allow_parse_errors, ..
+            },
+            ..
+        } = CliArgs::parse_from(["mergiraf", "solve", "--allow-parse-errors", "foo.c"]).command
+        else {
+            unreachable!("`mergiraf solve` should invoke the `Solve` subcommand")
+        };
+        assert_eq!(allow_parse_errors, Some(true));
     }
 
     #[test]
