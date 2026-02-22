@@ -11,7 +11,7 @@ use clap::{ArgAction, Args, Parser, Subcommand};
 use log::warn;
 use mergiraf::{
     ENABLING_ENV_VAR, EXIT_MERGE_HAS_CONFLICTS, EXIT_SOLVE_FAILED, EXIT_SOLVE_HAS_CONFLICTS,
-    EXIT_SUCCESS,
+    EXIT_SUCCESS, JJ_DETECTED_MESSAGE, MERGIRAF_ALLOW_IN_JJ,
     attempts::AttemptsCache,
     bug_reporter::report_bug,
     languages, line_merge_and_structured_resolution, merge,
@@ -122,6 +122,22 @@ enum CliCommand {
             conflicts_with = "stdout",
         )]
         keep_backup: bool,
+        /// Ignore the presense of a Jujutsu repository
+        ///
+        /// Usually, `mergiraf solve` bails out when run in a Jujutsu repository, because Jujutsu
+        /// instead requires the use of the `jj resolve` command, which massage its conflicts into
+        /// a format understood by merge drivers such as Mergiraf. If, however, you have a file with
+        /// a conflict in a regular Git format, then you can use this option to let `mergiraf solve`
+        /// operate on it as usual.
+        #[arg(
+            long,
+            default_missing_value = "true",
+            default_value_t = false,
+            num_args = 0..=1,
+            require_equals = true,
+            action = ArgAction::Set,
+        )]
+        allow_in_jj: bool,
     },
     /// Review the resolution of a merge by showing the differences with a line-based merge
     Review {
@@ -334,18 +350,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 },
             stdout,
             keep_backup,
+            allow_in_jj,
         } => {
-            if conflict_location_looks_like_jj_repo(&fname_conflicts) {
-                return Err(
-                    "\
-                    You seem to be using Jujutsu instead of Git.\n\
-                    Please use `jj resolve --tool mergiraf [file]`.\n\
-                    \n\
-                    Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand. \
-                    Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has \
-                    a builtin configuration to resolve conflicts manually using `mergiraf merge`."
-                    .into()
-                );
+            let allow_in_jj = allow_in_jj || env::var(MERGIRAF_ALLOW_IN_JJ).is_ok();
+            if !allow_in_jj && conflict_location_looks_like_jj_repo(&fname_conflicts) {
+                return Err(JJ_DETECTED_MESSAGE.into());
             }
 
             if let Some(debug_dir) = &debug_dir {

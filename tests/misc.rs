@@ -1,10 +1,15 @@
 use assert_cmd::prelude::*;
-use mergiraf::{EXIT_SOLVE_HAS_CONFLICTS, git, utils::write_string_to_file};
+use mergiraf::{
+    EXIT_SOLVE_HAS_CONFLICTS, JJ_DETECTED_MESSAGE, MERGIRAF_ALLOW_IN_JJ, git,
+    utils::write_string_to_file,
+};
 use std::fs;
 use std::path::{Path, PathBuf};
 
 mod common;
 use common::{DEFAULT_FILE_FOR_SOLVE, create_file_for_solve, create_files_for_merge, merge, solve};
+
+use crate::common::DEFAULT_FILE_FOR_SOLVE_SOLVED;
 
 #[test]
 fn keep_backup_keeps_backup() {
@@ -419,4 +424,47 @@ fn solve_respects_conflict_marker_size_attr() {
         )
         .code(0)
         .stdout(contents_after_solve);
+}
+
+#[test]
+fn allow_in_jj() {
+    let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+    let repo_path = repo_dir.path();
+
+    std::process::Command::new("jj")
+        .args(["git", "init"])
+        .arg(repo_path)
+        .output()
+        .expect("failed to initialize jj repo");
+
+    // for some reason, this file has Git-style conflicts, and so we want
+    // to run `mergiraf solve` on it
+    let testfile = repo_path.join("testfile.json");
+    write_string_to_file(&testfile, DEFAULT_FILE_FOR_SOLVE).unwrap();
+
+    // should fail when neither the flag nor the ennvar is provided
+    solve()
+        .arg(&testfile)
+        .arg("--stdout")
+        .assert()
+        .failure()
+        .stderr(format!("Mergiraf: {JJ_DETECTED_MESSAGE}\n"));
+
+    // should succeed when the flag is provided
+    solve()
+        .arg(&testfile)
+        .arg("--stdout")
+        .arg("--allow-in-jj")
+        .assert()
+        .success()
+        .stdout(DEFAULT_FILE_FOR_SOLVE_SOLVED);
+
+    // should succeed when the envvar is provided
+    solve()
+        .arg(&testfile)
+        .arg("--stdout")
+        .env(MERGIRAF_ALLOW_IN_JJ, "1")
+        .assert()
+        .success()
+        .stdout(DEFAULT_FILE_FOR_SOLVE_SOLVED);
 }
