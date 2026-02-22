@@ -9,8 +9,17 @@ use assert_cmd::{pkg_name, prelude::*};
 use itertools::Itertools;
 use mergiraf::lang_profile::LangProfile;
 
-pub const DEFAULT_FILE_FOR_SOLVE: &str =
-    "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n";
+pub const DEFAULT_FILE_FOR_SOLVE: &str = "\
+<<<<<<< LEFT
+[1, 2, 3, 4]
+||||||| BASE
+[1, 2, 3]
+=======
+[0, 1, 2, 3]
+>>>>>>> RIGHT
+";
+
+pub const DEFAULT_FILE_FOR_SOLVE_SOLVED: &str = "[0, 1, 2, 3, 4]\n";
 
 pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
     let command_str = format!("git {}", args.iter().format(" "));

@@ -77,6 +77,20 @@ pub const EXIT_MERGE_HAS_CONFLICTS: i32 = 1;
 pub const EXIT_SOLVE_FAILED: i32 = 1;
 pub const EXIT_SOLVE_HAS_CONFLICTS: i32 = 2;
 
+/// Setting this environment variable (to any value) is equivalent to passing
+/// `--allow-in-jj` to `mergiraf solve`.
+///
+/// See the documentation of that option for more details.
+pub const MERGIRAF_ALLOW_IN_JJ: &str = "MERGIRAF_ALLOW_IN_JJ";
+
+pub const JJ_DETECTED_MESSAGE: &str = "\
+    You seem to be using Jujutsu instead of Git.\n\
+    Please use `jj resolve --tool mergiraf [file]`.\n\
+    \n\
+    Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand. \
+    Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has \
+    a builtin configuration to resolve conflicts manually using `mergiraf merge`.";
+
 pub use merge::line_merge_and_structured_resolution;
 
 #[cfg(feature = "dev")]
