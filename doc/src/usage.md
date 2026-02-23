@@ -109,16 +109,37 @@ This will fall back on Git's regular merge heuristics, without requiring changes
 If `mergiraf` does not recognize your file's language by extension, you can use the `--language` option (short: `-L`) to specify the language of the files to merge.
 It accepts both file extensions (`--language js`) and language names (`--language javascript`), as specified in the list of [supported languages](./languages.md).
 
-Another option is to set the `linguist-language` attribute in a `gitattributes` file, making it possible to associate a specific language to all file paths matching a pattern:
-```
+Alternatively, the language can be specified using an `gitattributes` file, making it possible to associate a specific language to all file paths matching a pattern.
+
+Mergiraf looks at two attributes for this purpose, in order:
+1. `mergiraf.language`
+1. `linguist-language`, as known from GitHub's Linguist[^linguist]
+
+Note that some language names used by Linguist might not match up those used by Mergiraf, in which case using `mergiraf.language` would be required -- though we aren't currently aware of any such cases.
+
+For example, to mark all files with `.myjs` extension as Javascript, one of the following can be used:
+```gitattributes
 *.myjs  linguist-language=javascript
+*.myjs  mergiraf.language=javascript
 ```
+
+[^linguist]: <https://github.com/github-linguist/linguist/blob/cfbfb7a875f0d2cc74a8fe9d0ec82d5637ed11f1/docs/overrides.md#using-gitattributes>
 
 #### Enabling merging despite syntax errors
 
 When a file cannot be parsed in its target language, `mergiraf` falls back on line-based merging.
 To use syntax-aware merging despite the presence of syntax errors, use `--allow-parse-errors`.
 The parsers of certain languages are known to raise spurious parsing errors in many cases (currently C, C++ and HTML). For those languages, this option is enabled by default and can be disabled with `--allow-parse-errors=false`.
+
+This option, too, can be specified in `gitattributes`, using the `mergiraf.allow-parse-errors` attribute:
+
+```gitattributes
+# enable the option
+*.c  mergiraf.allow-parse-errors
+
+# disable the option
+*.c  -mergiraf.allow-parse-errors
+```
 
 #### Reporting a bad merge
 
