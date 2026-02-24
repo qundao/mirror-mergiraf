@@ -1459,8 +1459,7 @@ mod test {
                         .any(|sigdef| sigdef.node_type == *child_type)
                     {
                         actual.push(format!(
-                            "{lang_profile}: '{comm_parent}': `{child_type}`",
-                            // "{lang_profile}: Child `{child_type}` of commutative parent '{comm_parent}' doesn't have a signature defined",
+                            "{lang_profile}: child `{child_type}` of commutative parent '{comm_parent}' doesn't have a signature defined",
                             comm_parent = comm_parent.parent_type()
                         ));
                     }
@@ -1474,6 +1473,12 @@ mod test {
             "There are no more children without signatures left! This test can be deleted:)"
         );
 
-        insta::assert_debug_snapshot!(actual);
+        insta::with_settings!({
+            description => "If you are seeing changes in this file, \
+            it usually means that you've added a commutative parent, \
+            but didn't define signatures for (some of) its children"
+        }, {
+            insta::assert_debug_snapshot!(actual)
+        });
     }
 }

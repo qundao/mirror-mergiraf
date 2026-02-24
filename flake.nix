@@ -109,6 +109,7 @@
           ++ (with pkgs; [
             rust-analyzer
             graphviz
+            cargo-insta # for snapshot testing
             mdbook # for building `mergiraf.org`
           ]);
       };
