@@ -29,7 +29,7 @@ LangProfile {
     atomic_nodes: vec![],
     injections: None,
     flattened_nodes: &[],
-    comment_nodes: &[],
+    extra_comment_nodes: &[],
 },
 ```
 

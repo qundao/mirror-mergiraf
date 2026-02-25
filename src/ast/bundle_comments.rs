@@ -474,7 +474,7 @@ impl<'a> AstNode<'a> {
     ///
     /// This is mostly `true` for comments/attributes
     fn can_be_bundled(&self) -> bool {
-        self.is_extra || self.lang_profile.comment_nodes.contains(&self.kind)
+        self.is_extra || self.lang_profile.extra_comment_nodes.contains(&self.kind)
     }
 
     /// Whether we want to allow bundling things into `self`

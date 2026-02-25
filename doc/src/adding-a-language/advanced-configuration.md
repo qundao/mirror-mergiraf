@@ -88,5 +88,5 @@ Another tweak that Mergiraf does on top of the parser's output is attaching comm
 merged output.
 
 This heuristic is applied to all nodes that are [marked as "extra" by the tree-sitter grammar](https://tree-sitter.github.io/tree-sitter/creating-parsers/3-writing-the-grammar.html#using-extras) (meaning that the parser accepts to include them anywhere in the tree, even if they are not mentioned in a rule).
-In certain cases, it can be useful to extend this heuristic to also attach other nodes, which behave as comments but aren't marked as "extra" in the grammar. This can be done by adding their node type to the `comment_nodes` field of the language profile.
+In certain cases, it can be useful to extend this heuristic to also attach other nodes, which behave as comments but aren't marked as "extra" in the grammar. This can be done by adding their node type to the `extra_comment_nodes` field of the language profile.
 

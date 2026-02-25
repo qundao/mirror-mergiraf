@@ -34,7 +34,7 @@ pub struct LangProfile {
     /// List of node types that should be treated like comments,
     /// meaning that they can be bundled into neighbouring nodes to ease commutative merging.
     /// Nodes that are already `extra` in the tree-sitter grammar don't need to be added here.
-    pub comment_nodes: &'static [&'static str],
+    pub extra_comment_nodes: &'static [&'static str],
     /// Whether we should accept working on files with syntax errors.
     /// In that case, errors will be represented as their own nodes.
     /// When the tree-sitter parser routinely returns errors for valid files,
