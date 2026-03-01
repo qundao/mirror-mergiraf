@@ -15,13 +15,13 @@ pub struct LangProfile {
     /// alternate names for the language
     pub alternate_names: &'static [&'static str],
     /// the file extensions of files in this language
-    pub extensions: Vec<&'static str>,
+    pub extensions: &'static [&'static str],
     /// the full file names that this language should be used for
-    pub file_names: Vec<&'static str>,
+    pub file_names: &'static [&'static str],
     /// `tree_sitter` parser
     pub language: Language,
     /// list of node types which should be treated as leaves (atomic parts of the syntax tree)
-    pub atomic_nodes: Vec<&'static str>,
+    pub atomic_nodes: &'static [&'static str],
     /// list of node types whose child order does not matter
     pub commutative_parents: Vec<CommutativeParent>,
     /// how to extract the signatures of nodes, uniquely identifying children of a commutative parent
@@ -69,8 +69,8 @@ impl LangProfile {
         SUPPORTED_LANGUAGES.iter().find(|lang_profile| {
             lang_profile.name.eq_ignore_ascii_case(name)
                 || (lang_profile.alternate_names.iter())
-                    .chain(&lang_profile.extensions)
-                    .chain(&lang_profile.file_names)
+                    .chain(lang_profile.extensions)
+                    .chain(lang_profile.file_names)
                     .any(|aname| aname.eq_ignore_ascii_case(name))
         })
     }
@@ -172,7 +172,7 @@ impl LangProfile {
         };
         let field_is_valid = |name: &'static str| self.language.field_id_for_name(name).is_some();
 
-        for atomic_node in &self.atomic_nodes {
+        for atomic_node in self.atomic_nodes {
             if !name_is_valid(atomic_node) {
                 return Err(format!("invalid atomic node type: {atomic_node:?}"));
             }
@@ -560,7 +560,7 @@ mod tests {
         let java = LangProfile::find_by_name("Java").expect("missing Java language profile");
 
         let wrong_atomic_nodes = LangProfile {
-            atomic_nodes: vec!["foo_bar"],
+            atomic_nodes: &["foo_bar"],
             ..java.clone()
         };
         assert_eq!(

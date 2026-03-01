@@ -122,8 +122,8 @@ fn fxhasher() -> rustc_hash::FxHasher {
 pub fn languages(gitattributes: bool) -> String {
     let mut res = String::new();
     for lang_profile in &*SUPPORTED_LANGUAGES {
-        let extensions = &lang_profile.extensions;
-        let file_names = &lang_profile.file_names;
+        let extensions = lang_profile.extensions;
+        let file_names = lang_profile.file_names;
         if gitattributes {
             for extension in extensions {
                 let _ = writeln!(res, "*.{extension} merge=mergiraf");
