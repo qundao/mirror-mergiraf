@@ -1390,6 +1390,32 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extra_comment_nodes: &[],
             allow_parse_errors: false,
         },
+        LangProfile {
+            name: "Fortran",
+            alternate_names: &[],
+            extensions: vec!["f", "for", "f90"],
+            file_names: vec![],
+            language: tree_sitter_fortran::LANGUAGE.into(),
+            atomic_nodes: vec![],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("program", "\n")
+                    .restricted_to_groups(&[&["use_statement"]]),
+                CommutativeParent::without_delimiters("module", "\n")
+                    .restricted_to_groups(&[&["use_statement"]]),
+                CommutativeParent::without_delimiters("variable_declaration", ",")
+                    .restricted_to_groups(&[&["identifier"]]),
+                CommutativeParent::without_delimiters("included_items", ",")
+                    .restricted_to_groups(&[&["identifier"]]),
+            ],
+            signatures: vec![
+                signature("use_statement", vec![vec![]]),
+                signature("identifier", vec![vec![]]),
+            ],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &[],
+            allow_parse_errors: false,
+        },
     ]
 });
 
