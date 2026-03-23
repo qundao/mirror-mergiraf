@@ -1,0 +1,2 @@
+options(repos = c(CRAN = "https://posit.r-universe.dev"))
+options(warn = 1)

@@ -630,6 +630,7 @@ dependencies = [
  "tree-sitter-php",
  "tree-sitter-properties",
  "tree-sitter-python-orchard",
+ "tree-sitter-r",
  "tree-sitter-ruby",
  "tree-sitter-rust-orchard",
  "tree-sitter-scala",
@@ -1368,6 +1369,16 @@ name = "tree-sitter-python-orchard"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "570bf16d8ff284419cc303e343e592855992d5aa6de2bb8cbecf4bb40efae1a4"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-r"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "429133cbda9f8a46e03ef3aae6abb6c3d22875f8585cad472138101bfd517255"
 dependencies = [
  "cc",
  "tree-sitter-language",
