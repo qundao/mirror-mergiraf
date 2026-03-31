@@ -26,10 +26,11 @@ LangProfile {
     // optional settings, explained below
     commutative_parents: vec![],
     signatures: vec![],
-    atomic_nodes: vec![],
+    atomic_nodes: &[],
     injections: None,
     flattened_nodes: &[],
     extra_comment_nodes: &[],
+    allow_parse_errors: false,
 },
 ```
 
