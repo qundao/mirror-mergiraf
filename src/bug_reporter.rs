@@ -12,7 +12,7 @@ use zip::{ZipWriter, write::SimpleFileOptions};
 use crate::{attempts::AttemptsCache, git::extract_all_revisions_from_git};
 
 /// Creates an archive containing files necessary to reproduce a faulty merge
-pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
+pub fn report_bug(attempt_id_or_path: &str, working_dir: &Path) -> Result<(), String> {
     let attempts_cache = AttemptsCache::new(None, None)?;
     let archive_name = if let Ok(attempt) = attempts_cache.parse_attempt_id(attempt_id_or_path) {
         let path_base = attempt.path("Base");
@@ -34,9 +34,8 @@ pub fn report_bug(attempt_id_or_path: &str) -> Result<(), String> {
         if !path.is_file() {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
-        let current_working_dir = env::current_dir().expect("Invalid current directory");
         let crate::git::GitTempFiles { base, left, right } =
-            extract_all_revisions_from_git(&current_working_dir, path)?;
+            extract_all_revisions_from_git(working_dir, path)?;
 
         create_archive(
             path.file_name()
