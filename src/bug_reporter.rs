@@ -31,11 +31,16 @@ pub fn report_bug(attempt_id_or_path: &str, working_dir: &Path) -> Result<(), St
     } else {
         // it could be a file with conflicts
         let path = Path::new(attempt_id_or_path);
+        let path = if path.is_relative() {
+            working_dir.join(path)
+        } else {
+            path.to_owned()
+        };
         if !path.is_file() {
             return Err("Invalid path or merge attempt id provided".to_owned());
         }
         let crate::git::GitTempFiles { base, left, right } =
-            extract_all_revisions_from_git(working_dir, path)?;
+            extract_all_revisions_from_git(working_dir, &path)?;
 
         create_archive(
             path.file_name()
@@ -44,7 +49,7 @@ pub fn report_bug(attempt_id_or_path: &str, working_dir: &Path) -> Result<(), St
             base.as_ref().map(super::git::GitTempFile::path),
             left.as_ref().map(super::git::GitTempFile::path),
             right.as_ref().map(super::git::GitTempFile::path),
-            path,
+            &path,
         )
         .map_err(|err| format!("error while creating report archive: {err}"))?
     };

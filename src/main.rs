@@ -194,13 +194,14 @@ fn real_main(args: CliArgs, working_dir: &Path) -> Result<i32, String> {
         } => {
             let old_git_detected = base_name.as_deref().is_some_and(|n| n == "%S");
 
-            let base = base.leak();
-            let left = left.leak();
-            let right = right.leak();
+            let base = working_dir.join(&base).leak();
+            let left = working_dir.join(&left).leak();
+            let right = working_dir.join(&right).leak();
+            let output = output.map(|p| working_dir.join(&p));
 
             // NOTE: reborrow to turn `&mut Path` returned by `PathBuf::leak` into `&Path`
-            let path_name = path_name.map(|s| &*s.leak());
-            let debug_dir = debug_dir.map(|s| &*s.leak());
+            let path_name = path_name.map(|s| &*s.leak()); // no need to rebase, as we don't read or write there
+            let debug_dir = debug_dir.map(|s| &*working_dir.join(&s).leak());
 
             let settings: DisplaySettings<'static> = DisplaySettings::new(
                 compact,
@@ -343,6 +344,7 @@ fn real_main(args: CliArgs, working_dir: &Path) -> Result<i32, String> {
             stdout,
             keep_backup,
         } => {
+            let fname_conflicts = working_dir.join(&fname_conflicts);
             if conflict_location_looks_like_jj_repo(&fname_conflicts) {
                 return Err(
                     "\
