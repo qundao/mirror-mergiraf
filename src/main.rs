@@ -1168,38 +1168,22 @@ class OtherClass {
 ";
 
         let conflict_path = create_file_for_solve(repo_path, contents);
-        let conflict_path = conflict_path.to_str().unwrap();
 
-        // NOTE: the reason we can't use `real_main` here is that we need to set the current dir of
-        // the process to the repo dir, otherwise attribute detection won't work (due to
-        // `git::read_conflict_marker_size_attribute` being called from outside a Git repo)
-        // NOTE: we can't call `mergiraf solve` directly here, as that would invoke the program on
-        // PATH, while we want to test the compiled version
-        let mergiraf_path = {
-            // `current_dir` is of the test binary, which seems to always be the workspace root,
-            // which is exactly what we need
-            let mut current_dir = env::current_dir().expect("failed to get current dir");
-            current_dir.extend(["target", "debug", "mergiraf"]);
-            current_dir
-        };
         let solve = || {
-            Command::new(&mergiraf_path)
-                .args(["solve", "--language=json", conflict_path])
-                .current_dir(repo_path)
-                .output()
-                .expect("failed to execute `mergiraf solve`")
-                .status
-                .code()
+            real_main(
+                CliArgs::parse_from(["mergiraf", "solve", "--language=json", "test.txt"]),
+                repo_path,
+            )
         };
 
         let return_code = solve();
-        let contents2 = read_file_to_string(conflict_path).unwrap();
-        // FIXME: this should arguably have been 1, as the conflict wasn't solved.
-        // But to be fair to Mergiraf, it can't even see that this is a conflict,
+        let contents2 = read_file_to_string(&conflict_path).unwrap();
+        // FIXME: this should arguably have been `Ok(EXIT_MERGE_HAS_CONFLICTS)`, as the conflict
+        // wasn't solved. But to be fair to Mergiraf, it can't even see that this is a conflict,
         // precisely because of the non-standard conflict marker sizes
         assert_eq!(
             return_code,
-            Some(0),
+            Ok(0),
             "unexpectedly solved a conflict with a non-standard conflict marker size"
         );
         assert_eq!(contents2, contents);
@@ -1214,7 +1198,7 @@ class OtherClass {
         let contents3 = read_file_to_string(conflict_path).unwrap();
         assert_eq!(
             return_code,
-            Some(0),
+            Ok(0),
             "failed to solve a conflict with the provided conflict marker size"
         );
         assert_eq!(contents3, contents_after_solve);
