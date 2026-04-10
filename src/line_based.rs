@@ -10,6 +10,11 @@ pub const LINE_BASED_METHOD: &str = "line_based";
 ///
 /// TODO: ideally, [diffy_imara] would already expose such an interface,
 /// to avoid rendering the merge to a large string and parsing it back
+///
+/// ## Panics
+///
+/// This will most likely panic if one of the input sides already
+/// contains conflicts
 pub fn line_based_merge_parsed(
     contents_base: &str,
     contents_left: &str,
@@ -137,6 +142,44 @@ func foo(){}"#;
         assert!(
             merge.has_additional_issues,
             "left and base reconstructed revisions shouldn't parse"
+        );
+    }
+
+    #[test]
+    #[should_panic(
+        expected = r#"diffy-imara returned a merge that we cannot parse the conflicts of: "Mergiraf cannot solve conflicts displayed in the diff2 style""#
+    )]
+    fn line_based_merge_parsed_panics_on_conflict_in_input() {
+        let contents_base = "\
+/**
+ * Doc comment
+ */
+class MyClass {
+}";
+        let contents_left = "\
+/**
+<<<<<<< HEAD
+ * Doc comment
+=======
+ * Better docs
+>>>>>>> origin/main
+ */
+class MyClass {
+}";
+        let contents_right = "\
+/**
+ * Doc comment
+ */
+class MyClass {
+}
+
+class OtherClass {
+}";
+        let _contents = line_based_merge_parsed(
+            contents_base,
+            contents_left,
+            contents_right,
+            &DisplaySettings::default(),
         );
     }
 }
