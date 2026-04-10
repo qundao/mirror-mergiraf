@@ -1,5 +1,4 @@
 use crate::{MergeResult, ast::AstNode, pcs::Revision};
-use diffy_imara::{Algorithm, ConflictStyle, MergeOptions};
 use typed_arena::Arena;
 
 use crate::{lang_profile::LangProfile, parsed_merge::ParsedMerge, settings::DisplaySettings};
@@ -19,21 +18,16 @@ pub fn line_based_merge_parsed(
     contents_base: &str,
     contents_left: &str,
     contents_right: &str,
-    settings: &DisplaySettings,
 ) -> ParsedMerge<'static> {
-    let merged = MergeOptions::new()
-        .set_conflict_marker_length(settings.conflict_marker_size_or_default())
-        .set_conflict_style(if settings.diff3 {
-            ConflictStyle::Diff3
-        } else {
-            ConflictStyle::Merge
-        })
-        .set_algorithm(Algorithm::Histogram)
-        .merge(contents_base, contents_left, contents_right);
+    let merged = diffy_imara::merge(contents_base, contents_left, contents_right);
     let merged_contents = match merged {
         Ok(contents) | Err(contents) => contents.leak(),
     };
-    ParsedMerge::parse(merged_contents, settings)
+    // We created the merge using the default config of `diffy_imara::merge`, so we can parse it
+    // using default `DisplaySettings`. This would technically fail to notice pre-existing
+    // conflicts with a non-standard marker size, but it's not like we can handle those anyway (see
+    // `## Panics`).
+    ParsedMerge::parse(merged_contents, &DisplaySettings::default())
         .expect("diffy-imara returned a merge that we cannot parse the conflicts of")
 }
 
@@ -44,8 +38,7 @@ pub fn line_based_merge(
     contents_right: &str,
     settings: &DisplaySettings,
 ) -> MergeResult {
-    let parsed_merge =
-        line_based_merge_parsed(contents_base, contents_left, contents_right, settings);
+    let parsed_merge = line_based_merge_parsed(contents_base, contents_left, contents_right);
 
     parsed_merge.into_merge_result(settings)
 }
@@ -59,8 +52,7 @@ pub(crate) fn line_based_merge_with_duplicate_signature_detection(
     settings: &DisplaySettings,
     lang_profile: &LangProfile,
 ) -> (ParsedMerge<'static>, MergeResult) {
-    let parsed_merge =
-        line_based_merge_parsed(contents_base, contents_left, contents_right, settings);
+    let parsed_merge = line_based_merge_parsed(contents_base, contents_left, contents_right);
 
     let mut merge_result = parsed_merge.into_merge_result(settings);
 
@@ -175,11 +167,6 @@ class MyClass {
 
 class OtherClass {
 }";
-        let _contents = line_based_merge_parsed(
-            contents_base,
-            contents_left,
-            contents_right,
-            &DisplaySettings::default(),
-        );
+        let _contents = line_based_merge_parsed(contents_base, contents_left, contents_right);
     }
 }

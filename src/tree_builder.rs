@@ -17,7 +17,6 @@ use crate::{
     merged_tree::MergedTree,
     multimap::MultiMap,
     pcs::{PCSNode, Revision},
-    settings::DisplaySettings,
 };
 
 /// An internal structure to map a parent and a predecessor to a possible successor in each revision
@@ -53,7 +52,6 @@ pub struct TreeBuilder<'a, 'b> {
     merged_successors: SuccessorMap<'a>,
     base_successors: SuccessorMap<'a>,
     class_mapping: &'b ClassMapping<'a>,
-    settings: &'b DisplaySettings<'a>,
 }
 
 /// Variable state, keeping track of visited nodes to avoid looping
@@ -98,13 +96,11 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
         merged_changeset: &ChangeSet<'a>,
         base_changeset: &ChangeSet<'a>,
         class_mapping: &'b ClassMapping<'a>,
-        settings: &'b DisplaySettings<'a>,
     ) -> Self {
         TreeBuilder {
             merged_successors: SuccessorMap::new(merged_changeset),
             base_successors: SuccessorMap::new(base_changeset),
             class_mapping,
-            settings,
         }
     }
 
@@ -152,11 +148,8 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             parents_to_recompute.iter().format(", ")
         );
 
-        Ok(merged_tree.force_line_based_fallback_on_specific_nodes(
-            &parents_to_recompute,
-            self.class_mapping,
-            self.settings,
-        ))
+        Ok(merged_tree
+            .force_line_based_fallback_on_specific_nodes(&parents_to_recompute, self.class_mapping))
     }
 
     /// Recursive function to build the merged subtree rooted in a node,
@@ -573,7 +566,6 @@ impl<'a, 'b> TreeBuilder<'a, 'b> {
             Ok(MergedTree::line_based_local_fallback_for_revnode(
                 node,
                 self.class_mapping,
-                self.settings,
             ))
         }
     }
@@ -1058,15 +1050,12 @@ mod tests {
         let mut changeset = ChangeSet::new();
         changeset.add_tree(tree, Revision::Base, &class_mapping);
 
-        let settings = DisplaySettings::default();
-
         let result_tree = {
             let merged_changeset = &changeset;
             let base_changeset = &changeset;
             let class_mapping = &class_mapping;
             // build the necessary context for the tree-gathering algorithm
-            let tree_gatherer =
-                TreeBuilder::new(merged_changeset, base_changeset, class_mapping, &settings);
+            let tree_gatherer = TreeBuilder::new(merged_changeset, base_changeset, class_mapping);
             tree_gatherer.build_tree()
         };
 
@@ -1090,15 +1079,12 @@ mod tests {
         let mut changeset = ChangeSet::new();
         changeset.add_tree(tree, Revision::Base, &class_mapping);
 
-        let settings = DisplaySettings::default();
-
         let result_tree = {
             let merged_changeset = &changeset;
             let base_changeset = &changeset;
             let class_mapping = &class_mapping;
             // build the necessary context for the tree-gathering algorithm
-            let tree_gatherer =
-                TreeBuilder::new(merged_changeset, base_changeset, class_mapping, &settings);
+            let tree_gatherer = TreeBuilder::new(merged_changeset, base_changeset, class_mapping);
             tree_gatherer.build_tree()
         }
         .expect("a successful merge was expected");

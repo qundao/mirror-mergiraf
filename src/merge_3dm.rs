@@ -10,7 +10,6 @@ use crate::{
     matching::{ApproxExactMatching, Matching},
     merged_tree::MergedTree,
     pcs::Revision,
-    settings::DisplaySettings,
     tree_builder::TreeBuilder,
     tree_matcher::{DetailedMatching, TreeMatcher},
     visualizer::write_matching_to_dotty_file,
@@ -29,7 +28,6 @@ use crate::{
 /// A good overview of this algorithm can be found in
 /// [Spork: Structured Merge for Java with Formatting Preservation](https://arxiv.org/abs/2202.05329)
 /// by Simon Larsén, Jean-Rémy Falleri, Benoit Baudry and Martin Monperrus
-#[allow(clippy::too_many_arguments)]
 pub fn three_way_merge<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
@@ -37,7 +35,6 @@ pub fn three_way_merge<'a>(
     initial_matchings: Option<&(ApproxExactMatching<'a>, ApproxExactMatching<'a>)>,
     primary_matcher: &TreeMatcher,
     auxiliary_matcher: &TreeMatcher,
-    settings: &DisplaySettings<'a>,
     debug_dir: Option<&Path>,
 ) -> (MergedTree<'a>, ClassMapping<'a>) {
     // match all pairs of revisions
@@ -73,7 +70,6 @@ pub fn three_way_merge<'a>(
         &class_mapping,
         &base_changeset,
         &cleaned_changeset,
-        settings,
     );
 
     // post-process to highlight signature conflicts
@@ -311,7 +307,6 @@ fn fix_pcs_inconsistencies<'a>(
 
 /// Construct the merged tree out of the sets of PCS triples obtained
 /// from the previous step.
-#[allow(clippy::too_many_arguments)]
 fn build_tree<'a>(
     base: &'a AstNode<'a>,
     left: &'a AstNode<'a>,
@@ -319,12 +314,11 @@ fn build_tree<'a>(
     class_mapping: &ClassMapping<'a>,
     base_changeset: &ChangeSet<'a>,
     cleaned_changeset: &ChangeSet<'a>,
-    settings: &DisplaySettings<'a>,
 ) -> MergedTree<'a> {
     let start: Instant = Instant::now();
-    let tree_builder = TreeBuilder::new(cleaned_changeset, base_changeset, class_mapping, settings);
+    let tree_builder = TreeBuilder::new(cleaned_changeset, base_changeset, class_mapping);
     let merged_tree = tree_builder.build_tree().unwrap_or_else(|_| {
-        let line_based = line_based_merge_parsed(base.source, left.source, right.source, settings);
+        let line_based = line_based_merge_parsed(base.source, left.source, right.source);
         MergedTree::LineBasedMerge {
             node: class_mapping.map_to_leader(RevNode::new(Revision::Base, base)),
             parsed: line_based,
@@ -377,7 +371,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -405,7 +398,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -443,7 +435,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -481,7 +472,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -519,7 +509,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -557,7 +546,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -584,7 +572,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -611,7 +598,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -638,7 +624,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -684,7 +669,6 @@ mod tests {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
@@ -765,7 +749,6 @@ fn baz() {
             None,
             &primary_matcher,
             &auxiliary_matcher,
-            &settings,
             None,
         );
 
