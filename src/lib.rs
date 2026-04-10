@@ -69,7 +69,7 @@ pub use std_ext::{PathBufExt, StrExt};
 /// ```console
 /// mergiraf=0 mergiraf merge foo bar baz
 /// ```
-pub const DISABLING_ENV_VAR: &str = "mergiraf";
+pub const ENABLING_ENV_VAR: &str = "mergiraf";
 
 pub use merge::line_merge_and_structured_resolution;
 

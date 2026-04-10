@@ -4,7 +4,7 @@ use std::process::Command;
 
 use mergiraf::newline::normalize_to_lf;
 use mergiraf::solve::CliOpts;
-use mergiraf::{DISABLING_ENV_VAR, solve};
+use mergiraf::{ENABLING_ENV_VAR, solve};
 use rstest::rstest;
 
 mod common;
@@ -83,7 +83,7 @@ fn solve_command(#[case] conflict_style: &str) {
         "--no-gpg-sign",
     ]);
     // in case Git is configured to use Mergiraf
-    command.env(DISABLING_ENV_VAR, "0");
+    command.env(ENABLING_ENV_VAR, "0");
     let output = command.output().expect("Failed to execute git command");
     assert!(!output.status.success(), "expected a rebase conflict");
 
