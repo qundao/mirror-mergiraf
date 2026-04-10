@@ -1,14 +1,22 @@
-use mergiraf::{
-    EXIT_SOLVE_HAS_CONFLICTS, git,
-    utils::{read_file_to_string, write_string_to_file},
-};
-use std::{
-    env, fs,
-    path::{Path, PathBuf},
-    process::Command,
-};
+use assert_cmd::{pkg_name, prelude::*};
+use mergiraf::{EXIT_SOLVE_HAS_CONFLICTS, git, utils::write_string_to_file};
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::{env, fs};
 
-use itertools::Itertools;
+#[track_caller]
+fn merge() -> Command {
+    let mut cmd = Command::cargo_bin(pkg_name!()).unwrap();
+    cmd.arg("merge");
+    cmd
+}
+
+#[track_caller]
+fn solve() -> Command {
+    let mut cmd = Command::cargo_bin(pkg_name!()).unwrap();
+    cmd.arg("solve");
+    cmd
+}
 
 #[test]
 fn keep_backup_keeps_backup() {
@@ -24,24 +32,20 @@ fn keep_backup_keeps_backup() {
     let test_file_orig_file_path = repo_path.join(format!("{test_file_name}.orig"));
 
     // `solve` without keeping backup
-    real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        "--keep-backup=false",
-        test_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf solve`");
+    solve()
+        .arg("--keep-backup=false")
+        .arg(&test_file_abs_path)
+        .assert()
+        .success();
 
     assert!(!test_file_orig_file_path.exists());
 
     // `solve` once again but with backup this time
-    real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        "--keep-backup=true",
-        test_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf solve`");
+    solve()
+        .arg("--keep-backup=true")
+        .arg(&test_file_abs_path)
+        .assert()
+        .success();
 
     assert!(test_file_orig_file_path.exists());
 }
@@ -94,30 +98,19 @@ fn manual_language_selection_for_solve() {
 
     let test_file_abs_path = create_file_for_solve(repo_path, DEFAULT_FILE_FOR_SOLVE);
 
-    // first try without specifying a language
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        test_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf solve`");
-    assert_eq!(
-        return_code, 1,
-        "running `mergiraf solve` should fail because the language can't be detected"
-    );
+    // first try without specifying a language -- should fail
+    solve()
+        // language not specified
+        .arg(&test_file_abs_path)
+        .assert()
+        .failure();
 
-    // then try with a language specified on the CLI
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        "--language=json",
-        test_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf solve`");
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf solve` should execute successfully with a specified language"
-    );
+    // then try with a language specified on the CLI -- should succeed
+    solve()
+        .arg("--language=json")
+        .arg(&test_file_abs_path)
+        .assert()
+        .success();
 
     let merge_result =
         fs::read_to_string(test_file_abs_path).expect("couldn't read the merge result");
@@ -129,45 +122,27 @@ fn manual_language_selection_for_merge() {
     let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
     let repo_path = repo_dir.path();
 
-    let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
+    let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) =
         create_files_for_merge(repo_path, "[1, 2, 3]\n", "[1, 2, 3, 4]\n", "[0, 1, 2, 3]\n");
 
-    // first try without specifying a language
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-        "--output",
-        output_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
-    assert_eq!(
-        return_code, 1,
-        "running `mergiraf merge` should fail because the language can't be detected"
-    );
+    // first try without specifying a language -- should fail
+    merge()
+        .arg(&base_file_abs_path)
+        .arg(&left_file_abs_path)
+        .arg(&right_file_abs_path)
+        // language not specified
+        .assert()
+        .failure();
 
-    // then try with a language specified on the CLI
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        "--language=json",
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-        "--output",
-        output_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf merge` should execute successfully with a specified language"
-    );
-
-    let merge_result =
-        fs::read_to_string(output_file_abs_path).expect("couldn't read the merge result");
-    assert_eq!(merge_result, "[0, 1, 2, 3, 4]\n");
+    // then try with a language specified on the CLI -- should succeed
+    merge()
+        .arg("--language=json")
+        .arg(base_file_abs_path)
+        .arg(left_file_abs_path)
+        .arg(right_file_abs_path)
+        .assert()
+        .success()
+        .stdout("[0, 1, 2, 3, 4]\n");
 }
 
 #[test]
@@ -183,13 +158,13 @@ fn debug_dir_is_created_for_solve() {
     // deleted our one
     debug_dir.close().unwrap();
 
-    _ = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        test_file_abs_path.to_str().unwrap(),
-        "--debug",
-        debug_dir_path.to_str().unwrap(),
-    ]));
+    solve()
+        .arg("--language=json")
+        .arg(test_file_abs_path)
+        .arg("--debug")
+        .arg(&debug_dir_path)
+        .assert()
+        .success();
 
     assert!(fs::exists(debug_dir_path).unwrap());
 }
@@ -208,15 +183,15 @@ fn debug_dir_is_created_for_merge() {
     // deleted our one
     debug_dir.close().unwrap();
 
-    _ = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-        "--debug",
-        debug_dir_path.to_str().unwrap(),
-    ]));
+    merge()
+        .arg("--language=json")
+        .arg(base_file_abs_path)
+        .arg(left_file_abs_path)
+        .arg(right_file_abs_path)
+        .arg("--debug")
+        .arg(&debug_dir_path)
+        .assert()
+        .success();
 
     assert!(fs::exists(debug_dir_path).unwrap());
 }
@@ -231,17 +206,11 @@ fn line_ending_preservation_for_solve() {
         "<<<<<<< LEFT\r\n[1, 2, 3, 4]\r\n||||||| BASE\r\n[1, 2, 3]\r\n=======\r\n[0, 1, 2, 3]\r\n>>>>>>> RIGHT\r\n",
     );
 
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        "--language=json",
-        test_file_abs_path.clone().to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf solve`");
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf solve` should execute successfully"
-    );
+    solve()
+        .arg("--language=json")
+        .arg(&test_file_abs_path)
+        .assert()
+        .success();
 
     let merge_result =
         fs::read_to_string(&test_file_abs_path).expect("couldn't read the merge result");
@@ -257,33 +226,21 @@ fn line_ending_preservation_for_merge() {
     let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
     let repo_path = repo_dir.path();
 
-    let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
-        create_files_for_merge(
-            repo_path,
-            "[1, 2, 3]\r\n",
-            "[1, 2, 3, 4]\r\n",
-            "[0, 1, 2, 3]\r\n",
-        );
-
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        "--language=json",
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-        "--output",
-        output_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf merge` should execute successfully with a specified language"
+    let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) = create_files_for_merge(
+        repo_path,
+        "[1, 2, 3]\r\n",
+        "[1, 2, 3, 4]\r\n",
+        "[0, 1, 2, 3]\r\n",
     );
 
-    let merge_result =
-        fs::read_to_string(output_file_abs_path).expect("couldn't read the merge result");
-    assert_eq!(merge_result, "[0, 1, 2, 3, 4]\r\n");
+    merge()
+        .arg("--language=json")
+        .arg(base_file_abs_path)
+        .arg(left_file_abs_path)
+        .arg(right_file_abs_path)
+        .assert()
+        .success()
+        .stdout("[0, 1, 2, 3, 4]\r\n");
 }
 
 fn create_iso8859_input_files(repo_path: &Path) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
@@ -303,21 +260,15 @@ fn merging_non_utf8_files_line_based_git_mode() {
     let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) =
         create_iso8859_input_files(repo_path);
 
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        "--git",
-        "--language=json", // pretend those are JSON files so that we attempt to read them
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
+    merge()
+        .arg("--git")
+        .arg("--language=json") // pretend those are JSON files so that we attempt to read them
+        .arg(base_file_abs_path)
+        .arg(&left_file_abs_path)
+        .arg(right_file_abs_path)
+        .assert()
+        .success();
 
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf merge` should do line-based merges via git for files in ISO-8859-1"
-    );
     let merge_result = fs::read(left_file_abs_path).expect("couldn't read the merge result");
     assert_eq!(
         merge_result,
@@ -333,22 +284,17 @@ fn merging_non_utf8_files_line_based_with_output_file() {
     let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
         create_iso8859_input_files(repo_path);
 
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        "--language=json", // pretend those are JSON files so that we attempt to read them
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-        "--output",
-        output_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
+    // `mergiraf merge` should do line-based merges via git for files in ISO-8859-1
+    merge()
+        .arg("--language=json") // pretend those are JSON files so that we attempt to read them
+        .arg(base_file_abs_path)
+        .arg(left_file_abs_path)
+        .arg(right_file_abs_path)
+        .arg("--output")
+        .arg(&output_file_abs_path)
+        .assert()
+        .success();
 
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf merge` should do line-based merges via git for files in ISO-8859-1"
-    );
     let merge_result = fs::read(output_file_abs_path).expect("couldn't read the merge result");
     assert_eq!(
         merge_result,
@@ -365,20 +311,17 @@ fn merging_non_existing_files() {
     let left_file_abs_path = repo_path.join("does_not_exist_2.json");
     let right_file_abs_path = repo_path.join("does_not_exist_3.json");
 
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        "--git",
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
-
-    assert_eq!(
-        return_code, 255,
-        "`mergiraf merge` should return exit code 255 when passed non-existing files"
-    );
+    merge()
+        .arg("--git")
+        .arg(base_file_abs_path)
+        .arg(left_file_abs_path)
+        .arg(right_file_abs_path)
+        .assert()
+        .append_context(
+            "main",
+            "`mergiraf merge` should return exit code 255 when passed non-existing files",
+        )
+        .code(255);
 }
 
 #[test]
@@ -425,43 +368,18 @@ class OtherClass {
     let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
     let repo_path = repo_dir.path();
 
-    let (base_file_abs_path, left_file_abs_path, right_file_abs_path, output_file_abs_path) =
+    let (base_file_abs_path, left_file_abs_path, right_file_abs_path, _) =
         create_files_for_merge(repo_path, contents_base, contents_left, contents_right);
 
-    let mut handle = caplog::get_handle();
-    let return_code = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "merge",
-        "--language=java",
-        base_file_abs_path.to_str().unwrap(),
-        left_file_abs_path.to_str().unwrap(),
-        right_file_abs_path.to_str().unwrap(),
-        "--output",
-        output_file_abs_path.to_str().unwrap(),
-    ]))
-    .expect("failed to execute `mergiraf merge`");
-    handle.stop_recording();
-    assert_eq!(
-        return_code, 0,
-        "`mergiraf merge` should execute successfully with a specified language"
-    );
-
-    let merge_result =
-        fs::read_to_string(output_file_abs_path).expect("couldn't read the merge result");
-    assert_eq!(merge_result, contents_expected);
-
-    assert!(
-        handle.any_msg_contains("left side contains conflict markers, falling back to Git"),
-        "found the following messages:\n{}",
-        handle.iter().map(|(_, record)| &*record.msg).format("\n")
-    );
-}
-
-fn create_file(repo_path: &Path, file_name: &str, contents: impl AsRef<[u8]>) -> PathBuf {
-    let test_file_abs_path = repo_path.join(file_name);
-    fs::write(&test_file_abs_path, contents).expect("failed to write test file to git repository");
-
-    test_file_abs_path
+    merge()
+        .arg("--language=java")
+        .arg(base_file_abs_path)
+        .arg(left_file_abs_path)
+        .arg(right_file_abs_path)
+        .assert()
+        .success()
+        .stdout(contents_expected)
+        .stderr("WARN left side contains conflict markers, falling back to Git\n");
 }
 
 #[test]
@@ -488,22 +406,15 @@ fn verify_cli_solve_has_conflicts() {
    </body>
 </html>
          "#;
-    let test_file_abs_path = create_file(repo_path, "test.html", content);
-    let return_code_result = real_main(CliArgs::parse_from([
-        "mergiraf",
-        "solve",
-        test_file_abs_path.to_str().unwrap(),
-    ]));
+    let test_file_abs_path = create_file_for_solve(repo_path, content);
 
-    assert_eq!(
-        return_code_result,
-        Ok(EXIT_SOLVE_HAS_CONFLICTS),
-        "`mergiraf solve` should return exit code indicating unresolved conflicts"
-    );
-
-    let merged_content =
-        fs::read_to_string(&test_file_abs_path).expect("couldn't read the merged file");
-    assert_eq!(merged_content, content);
+    solve()
+        .arg(&test_file_abs_path)
+        .arg("--language=html")
+        .arg("--stdout")
+        .assert()
+        .code(EXIT_SOLVE_HAS_CONFLICTS)
+        .stdout(content);
 }
 
 #[test]
@@ -526,41 +437,22 @@ fn solve_respects_conflict_marker_size_attr() {
 ";
 
     let conflict_path = create_file_for_solve(repo_path, contents);
-    let conflict_path = conflict_path.to_str().unwrap();
 
-    // NOTE: the reason we can't use `real_main` here is that we need to set the current dir of
-    // the process to the repo dir, otherwise attribute detection won't work (due to
-    // `git::read_conflict_marker_size_attribute` being called from outside a Git repo)
-    // NOTE: we can't call `mergiraf solve` directly here, as that would invoke the program on
-    // PATH, while we want to test the compiled version
-    let mergiraf_path = {
-        // `current_dir` is of the test binary, which seems to always be the workspace root,
-        // which is exactly what we need
-        let mut current_dir = env::current_dir().expect("failed to get current dir");
-        current_dir.extend(["target", "debug", "mergiraf"]);
-        current_dir
-    };
-    let solve = || {
-        Command::new(&mergiraf_path)
-            .args(["solve", "--language=json", conflict_path])
-            .current_dir(repo_path)
-            .output()
-            .expect("failed to execute `mergiraf solve`")
-            .status
-            .code()
-    };
-
-    let return_code = solve();
-    let contents2 = read_file_to_string(conflict_path).unwrap();
-    // FIXME: this should arguably have been 1, as the conflict wasn't solved.
-    // But to be fair to Mergiraf, it can't even see that this is a conflict,
-    // precisely because of the non-standard conflict marker sizes
-    assert_eq!(
-        return_code,
-        Some(0),
-        "unexpectedly solved a conflict with a non-standard conflict marker size"
-    );
-    assert_eq!(contents2, contents);
+    solve()
+        .arg("--language=json")
+        .arg(&conflict_path)
+        .arg("--stdout")
+        .current_dir(repo_path)
+        .assert()
+        .append_context(
+            "main",
+            "should fail to solve a conflict (and therefore leave it unchanged) with a non-standard conflict marker size",
+        )
+        // FIXME: this should arguably have been 1, as the conflict wasn't solved.
+        // But to be fair to Mergiraf, it can't even see that this is a conflict,
+        // precisely because of the non-standard conflict marker sizes
+        .code(0)
+        .stdout(contents);
 
     write_string_to_file(
         repo_path.join(".gitattributes"),
@@ -568,12 +460,16 @@ fn solve_respects_conflict_marker_size_attr() {
     )
     .unwrap();
 
-    let return_code = solve();
-    let contents3 = read_file_to_string(conflict_path).unwrap();
-    assert_eq!(
-        return_code,
-        Some(0),
-        "failed to solve a conflict with the provided conflict marker size"
-    );
-    assert_eq!(contents3, contents_after_solve);
+    solve()
+        .arg("--language=json")
+        .arg(conflict_path)
+        .arg("--stdout")
+        .current_dir(repo_path)
+        .assert()
+        .append_context(
+            "main",
+            "should be able to solve a conflict with a provided conflict marker size",
+        )
+        .code(0)
+        .stdout(contents_after_solve);
 }
