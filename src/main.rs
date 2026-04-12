@@ -10,7 +10,7 @@ use std::{
 use clap::{ArgAction, Args, Parser, Subcommand};
 use log::warn;
 use mergiraf::{
-    DISABLING_ENV_VAR, PathBufExt,
+    ENABLING_ENV_VAR, PathBufExt,
     attempts::AttemptsCache,
     bug_reporter::report_bug,
     languages, line_merge_and_structured_resolution, merge,
@@ -221,7 +221,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             );
 
             {
-                let mergiraf_disabled = env::var(DISABLING_ENV_VAR).as_deref() == Ok("0");
+                let mergiraf_disabled = env::var(ENABLING_ENV_VAR).as_deref() == Ok("0");
 
                 if mergiraf_disabled {
                     return fallback_to_git_merge_file(base, left, right, git, &output, &settings)

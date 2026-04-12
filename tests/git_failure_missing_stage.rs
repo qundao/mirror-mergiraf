@@ -3,7 +3,7 @@ use std::process::Command;
 
 use itertools::Itertools as _;
 use mergiraf::solve::CliOpts;
-use mergiraf::{DISABLING_ENV_VAR, solve};
+use mergiraf::{ENABLING_ENV_VAR, solve};
 
 mod common;
 use common::run_git;
@@ -67,7 +67,7 @@ fn oid_fallback_extracts_revisions_and_solves() {
         right_oid,
     ]);
     command.current_dir(repo_dir);
-    command.env(DISABLING_ENV_VAR, "0");
+    command.env(ENABLING_ENV_VAR, "0");
     let merge_tree_output = command.output().unwrap();
     assert!(
         !merge_tree_output.status.success(),
