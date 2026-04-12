@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261"; # for rust 1.91.1, commit taken from https://hydra.nixos.org/build/314315184
     advisory-db = {
       url = "github:rustsec/advisory-db";
       flake = false;
