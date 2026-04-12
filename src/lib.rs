@@ -68,6 +68,15 @@ use supported_langs::SUPPORTED_LANGUAGES;
 /// ```
 pub const ENABLING_ENV_VAR: &str = "mergiraf";
 
+pub const EXIT_SUCCESS: i32 = 0;
+
+// Exit code for merge sub command
+pub const EXIT_MERGE_HAS_CONFLICTS: i32 = 1;
+
+//Exit code for solve sub command
+pub const EXIT_SOLVE_FAILED: i32 = 1;
+pub const EXIT_SOLVE_HAS_CONFLICTS: i32 = 2;
+
 pub use merge::line_merge_and_structured_resolution;
 
 #[cfg(feature = "dev")]
