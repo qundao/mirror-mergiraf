@@ -25,7 +25,6 @@ use tree_sitter::{
 use typed_arena::Arena;
 
 use crate::{
-    StrExt,
     lang_profile::{CommutativeParent, LangProfile, ParentType},
     signature::{Signature, SignatureDefinition},
 };
@@ -349,7 +348,6 @@ impl<'a> AstNode<'a> {
 
                 // it can be that byte 32 doesn't lie on char boundary,
                 // so increase the index until it does
-                #[expect(unstable_name_collisions)]
                 let idx = local_source.ceil_char_boundary(32);
 
                 return Err(ParsingError::InvalidSyntax {

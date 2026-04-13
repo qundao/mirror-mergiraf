@@ -38,7 +38,6 @@ pub(crate) mod pcs;
 pub mod settings;
 pub(crate) mod signature;
 pub mod solve;
-mod std_ext;
 pub(crate) mod structured;
 pub mod supported_langs;
 #[cfg(test)]
@@ -61,8 +60,6 @@ use pcs::Revision;
 use settings::DisplaySettings;
 use structured::structured_merge;
 use supported_langs::SUPPORTED_LANGUAGES;
-
-pub use std_ext::{PathBufExt, StrExt};
 
 /// Current way to disable Mergiraf
 /// ## Usage

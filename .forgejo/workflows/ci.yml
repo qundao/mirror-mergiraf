@@ -12,7 +12,9 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-with-rust-1.89 # uses Docker image https://hub.docker.com/r/pintoch/ubuntu-act-with-rust
+    # uses Docker image in .forgejo/workflows/Dockerfile,
+    # also available at https://hub.docker.com/r/pintoch/ubuntu-act-with-rust
+    runs-on: ubuntu-with-rust-1.91
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

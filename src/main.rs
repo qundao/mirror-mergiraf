@@ -10,7 +10,7 @@ use std::{
 use clap::{ArgAction, Args, Parser, Subcommand};
 use log::warn;
 use mergiraf::{
-    ENABLING_ENV_VAR, PathBufExt,
+    ENABLING_ENV_VAR,
     attempts::AttemptsCache,
     bug_reporter::report_bug,
     languages, line_merge_and_structured_resolution, merge,
