@@ -963,6 +963,25 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             allow_parse_errors: false,
         },
         LangProfile {
+            name: "Scheme",
+            alternate_names: &[],
+            extensions: &["scm"],
+            file_names: &[],
+            language: tree_sitter_scheme::LANGUAGE.into(),
+            atomic_nodes: &[],
+            commutative_parents: vec![CommutativeParent::from_query_without_delimiters(
+                r#"(program
+                         (list (symbol) @keyword
+                           (#any-of? @keyword "define" "define-public"))) @commutative"#,
+                "\n\n",
+            )],
+            signatures: vec![],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &[],
+            allow_parse_errors: false,
+        },
+        LangProfile {
             name: "Typescript",
             alternate_names: &[],
             extensions: &["ts", "mts", "cts"],
