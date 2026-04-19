@@ -1,6 +1,6 @@
 We welcome your contributions.
 
-You are welcome to ask for help or reach out about any topic in the [issue tracker](https://codeberg.org/mergiraf/mergiraf/issues).
+You are welcome to ask for help or reach out about any topic on [Zulip](https://mergiraf.zulipchat.com/) or in the [issue tracker](https://codeberg.org/mergiraf/mergiraf/issues).
 
 We try to invite recurring contributors to join the team following our [governance model](./GOVERNANCE.md). You can also apply on your own.
 

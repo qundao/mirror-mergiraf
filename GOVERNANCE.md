@@ -14,7 +14,7 @@ All project members are made public.
 
 * Contributors can use Mergiraf and make changes to it as specified by the license.
 * Developers can merge pull requests made by others and triage issues, in addition to the above. They are responsible for processing the pull request and issue backlog.
-* Publishers can publish new releases and merge their own pull requests, in addition to the above. They are also responsible for administering the project's Codeberg organization and repository following the principles outlined in this document.
+* Publishers can publish new releases and merge their own pull requests, in addition to the above. They are also responsible for administering the project's Codeberg organization and repository following the principles outlined in this document. They are "Owners" of [mergiraf.zulipchat.com](https://mergiraf.zulipchat.com/).
 
 ## Onboarding
 
