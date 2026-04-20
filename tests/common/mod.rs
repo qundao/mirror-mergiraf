@@ -5,8 +5,12 @@ use std::fs::{self, read_to_string};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use assert_cmd::{pkg_name, prelude::*};
 use itertools::Itertools;
 use mergiraf::lang_profile::LangProfile;
+
+pub const DEFAULT_FILE_FOR_SOLVE: &str =
+    "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n";
 
 pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
     let command_str = format!("git {}", args.iter().format(" "));
@@ -56,4 +60,56 @@ pub(crate) fn language_override_for_test(test_dir: &Path) -> Option<&'static str
     let lang_profile = LangProfile::find_by_name(language_name)
         .unwrap_or_else(|| panic!("Invalid identifier in 'language' file: '{language_name:?}'"));
     Some(lang_profile.name)
+}
+
+#[track_caller]
+pub fn merge() -> Command {
+    let mut cmd = Command::cargo_bin(pkg_name!()).unwrap();
+    cmd.arg("merge");
+    cmd
+}
+
+#[track_caller]
+pub fn solve() -> Command {
+    let mut cmd = Command::cargo_bin(pkg_name!()).unwrap();
+    cmd.arg("solve");
+    cmd
+}
+
+pub fn create_file_for_solve(repo_path: &Path, contents: impl AsRef<[u8]>) -> PathBuf {
+    let test_file_name = "test.txt";
+    let test_file_abs_path = repo_path.join(test_file_name);
+    fs::write(&test_file_abs_path, contents).expect("failed to write test file to git repository");
+
+    test_file_abs_path
+}
+
+pub fn create_files_for_merge(
+    repo_path: &Path,
+    base_contents: impl AsRef<[u8]>,
+    left_contents: impl AsRef<[u8]>,
+    right_contents: impl AsRef<[u8]>,
+) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
+    let base_file_name = "base.txt";
+    let left_file_name = "left.txt";
+    let right_file_name = "right.txt";
+    let output_file_name = "output.txt";
+
+    let base_file_abs_path = repo_path.join(base_file_name);
+    fs::write(&base_file_abs_path, base_contents)
+        .expect("failed to write test base file to git repository");
+    let left_file_abs_path = repo_path.join(left_file_name);
+    fs::write(&left_file_abs_path, left_contents)
+        .expect("failed to write test left file to git repository");
+    let right_file_abs_path = repo_path.join(right_file_name);
+    fs::write(&right_file_abs_path, right_contents)
+        .expect("failed to write test right file to git repository");
+    let output_file_abs_path = repo_path.join(output_file_name);
+
+    (
+        base_file_abs_path,
+        left_file_abs_path,
+        right_file_abs_path,
+        output_file_abs_path,
+    )
 }
