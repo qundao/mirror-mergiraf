@@ -1,0 +1,8 @@
+first
+<<<<<<< LEFT
+middle==1.0
+||||||| BASE
+=======
+middle==2.0
+>>>>>>> RIGHT
+last

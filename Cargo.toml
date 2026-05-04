@@ -86,6 +86,7 @@ thiserror = "2"
 derive_more = { version = "2.1.1", features = ["eq"] }
 tree-sitter-fortran = "0.5.1"
 tree-sitter-r = "1.2"
+tree-sitter-requirements = "0.6.0"
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]

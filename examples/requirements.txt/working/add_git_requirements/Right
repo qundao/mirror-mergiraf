@@ -1,0 +1,3 @@
+numpy
+pandas @ git+https://github.com/pandas-dev/pandas
+pytorch

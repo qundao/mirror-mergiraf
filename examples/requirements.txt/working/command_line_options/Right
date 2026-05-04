@@ -1,0 +1,2 @@
+-r requirements.txt
+--index-url https://example-registry.com

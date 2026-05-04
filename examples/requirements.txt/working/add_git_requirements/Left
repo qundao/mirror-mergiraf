@@ -1,0 +1,3 @@
+numpy
+pytorch
+tensorflow @ git+https://github.com/tensorflow/tensorflow

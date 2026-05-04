@@ -38,6 +38,7 @@ and the following declarative file formats:
 * Java properties files (*.properties)
 * HCL (*.hcl, *.tf, *.tfvars)
 * `go.mod` and `go.sum` files
+* `requirements.txt` files, and a small number of variants (requirements-dev.txt, etc)
 
 This list can also be obtained with the `mergiraf languages` command.
 
