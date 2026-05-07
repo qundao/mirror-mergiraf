@@ -57,7 +57,6 @@
       # artifacts from above.
       mergiraf = craneLib.buildPackage {
         inherit cargoArtifacts src nativeBuildInputs nativeCheckInputs;
-        cargoTestExtraArgs = "-- --skip solve_respects_conflict_marker_size_attr";
       };
     in {
       # `nix flake check`

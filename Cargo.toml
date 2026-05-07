@@ -98,6 +98,7 @@ rstest = {version = "0.26", default-features = false}
 tempfile = "3"
 insta = { version = "1.43", default-features = false, features = ["colors"] }
 pretty_assertions = "1.4.1"
+assert_cmd = { version = "2.2.0", features = ["color"] }
 
 [features]
 dev = ["dep:tempfile"]
