@@ -32,7 +32,7 @@ jobs:
             target/
           key: "${{runner.os}} Rust ${{ steps.get-rust-version.outputs.rust-version }} lock ${{ hashFiles('**/Cargo.lock') }}"
       - name: Format
-        run: cargo fmt --all -- --check
+        run: cargo fmt --all -- --check || (echo "\nPlease run 'cargo fmt --all' and push the results.\n"; /bin/false)
       - name: Check
         run: cargo check --workspace --all-features --all-targets --locked
         # For https://codeberg.org/mergiraf/mergiraf/pulls/666
