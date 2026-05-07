@@ -240,6 +240,12 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 read_file_to_string(fname_right),
             )
             else {
+                // The case we're actually catching here is an input file being non-UTF-8.
+                //
+                // The way this is currently implemented, this will also catch IO errors
+                // like a file not being present etc. -- but that's okay, since in that case
+                // the output of `git merge-file` is comparable to what we would've emitted
+                // (debug representation of `io::Error`)
                 return fallback_to_git_merge_file(base, left, right, git, &output, &settings)
                     .map_err(|e| format!("error when calling git-merge-file: {e}"));
             };
