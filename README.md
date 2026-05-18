@@ -7,6 +7,6 @@ A syntax-aware git merge driver for a growing collection of programming language
 
 We welcome contributions and new team members, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-If you want to support our work, thank you! See [Liberapay](https://liberapay.org/Mergiraf).
+If you want to support our work, thank you! See [Liberapay](https://liberapay.com/Mergiraf).
 
 License: GPLv3
