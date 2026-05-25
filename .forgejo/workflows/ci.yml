@@ -21,6 +21,13 @@ jobs:
       - id: get-rust-version
         name: Get Rust version (for caching)
         run: echo "rust-version='$(rustc -V)'" >> $FORGEJO_OUTPUT
+        # FIXME(wetneb): remove the following step once jj is installed in the runner
+        # but don't remove the one afterwards, as it's useful for caching (?)
+      - name: Install Jujutsu
+        run: cargo binstall jj-cli --version 0.41.0 -y --strategies crate-meta-data
+      - id: get-jj-version
+        name: Get Jujutsu version (for caching)
+        run: echo "version='$(jj -V)'" >> $FORGEJO_OUTPUT
       - name: Cache build dependencies
         uses: actions/cache@v4
         with:
@@ -30,7 +37,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: "${{runner.os}} Rust ${{ steps.get-rust-version.outputs.rust-version }} lock ${{ hashFiles('**/Cargo.lock') }}"
+          key: "${{runner.os}} Rust ${{ steps.get-rust-version.outputs.rust-version }} ${{ steps.get-jj-version.outputs.version }} lock ${{ hashFiles('**/Cargo.lock') }}"
       - name: Format
         run: cargo fmt --all -- --check || (echo "\nPlease run 'cargo fmt --all' and push the results.\n"; /bin/false)
       - name: Check
