@@ -13,5 +13,8 @@ RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/ca
 # Install 'git-cliff'
 RUN cargo binstall git-cliff --version 2.10.0 -y
 
+# Install `jj`
+RUN cargo binstall jj-cli --version 0.41.0 -y --strategies crate-meta-data 
+
 # Install 'shellcheck'
 RUN apt-get install shellcheck
