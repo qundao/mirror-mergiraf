@@ -1,0 +1,21 @@
+FROM catthehacker/ubuntu:act-24.04
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        xz-utils \
+        ca-certificates \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /etc/nix
+RUN <<EOF cat > /etc/nix/nix.conf
+build-users-group =
+experimental-features = nix-command flakes
+max-jobs = auto
+always-allow-substitutes = true
+EOF
+
+RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
+
+ENV PATH="/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:${PATH}"
+ENV NIX_PATH="nixpkgs=/root/.nix-defexpr/channels/nixpkgs"
