@@ -1,6 +1,7 @@
 # Supported languages
 
 Mergiraf currently supports the following programming languages:
+* Bash (*.sh, *.bash, PKGBUILD)
 * C/C++ (*.c, *.h, *.cc, *.hh, *.cpp, *.hpp, *.cxx, *.hxx, *.c++, *.h++, *.mpp, *.cppm, *.ixx, *.tcc)
 * C# (*.cs)
 * CMake (*.cmake, CMakeLists.txt)

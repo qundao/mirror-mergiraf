@@ -1449,6 +1449,21 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extra_comment_nodes: &[],
             allow_parse_errors: false,
         },
+        LangProfile {
+            name: "bash",
+            alternate_names: &[],
+            extensions: &["sh", "bash"],
+            file_names: &["PKGBUILD"],
+            language: tree_sitter_bash::LANGUAGE.into(),
+            atomic_nodes: &[],
+            // variable declarations in front of commands might be commutative, but i am not sure enough to make that call
+            commutative_parents: vec![],
+            signatures: vec![],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &[],
+            allow_parse_errors: false,
+        },
     ]
 });
 
