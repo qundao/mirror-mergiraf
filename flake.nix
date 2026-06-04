@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/ee09932cedcef15aaf476f9343d1dea2cb77e261"; # for rust 1.91.1, commit taken from https://hydra.nixos.org/build/314315184
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     advisory-db = {
       url = "github:rustsec/advisory-db";
       flake = false;
@@ -27,7 +27,9 @@
         overlays = [(import rust-overlay)];
       };
 
-      craneLib = crane.mkLib nixpkgs.legacyPackages.${system};
+      # lock rust toolchain version
+      rustToolchain = pkgs.rust-bin.stable."1.91.1".default;
+      craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
       # When filtering sources, we want to allow assets other than .rs files
       unfilteredRoot = ./.; # The original, unfiltered source
