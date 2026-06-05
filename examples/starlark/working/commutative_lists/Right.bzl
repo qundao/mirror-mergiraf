@@ -12,6 +12,10 @@ RUST_SOURCES = glob([
 
 rust_library(
     name = "lib",
+    visibility = [
+        "//some/package:a",
+        "//some/package:c",
+    ],
     srcs = [
         "src/lib.rs",
         "src/config.rs",

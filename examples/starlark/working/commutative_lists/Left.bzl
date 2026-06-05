@@ -9,6 +9,10 @@ RUST_SOURCES = glob(["src/*.rs"])
 
 rust_library(
     name = "lib",
+    visibility = [
+        "//some/package:a",
+        "//some/package:b",
+    ],
     srcs = [
         "src/lib.rs",
         "src/utils.rs",
