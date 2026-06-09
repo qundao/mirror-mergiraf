@@ -3,7 +3,7 @@
 A syntax-aware git merge driver for a growing collection of programming languages and file formats.
 
 * [Documentation](https://mergiraf.org/)
-* [Zulip chat](https://mergiraf.zulipchat.com/)
+* [Zulip chat](https://mergiraf.zulipchat.com/) (public accessibility sponsored by [Zulip](https://zulip.com))
 
 We welcome contributions and new team members, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
