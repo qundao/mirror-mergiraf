@@ -59,6 +59,7 @@
       # artifacts from above.
       mergiraf = craneLib.buildPackage {
         inherit cargoArtifacts src nativeBuildInputs nativeCheckInputs;
+        meta.mainProgram = "mergiraf";
       };
     in {
       # `nix flake check`
