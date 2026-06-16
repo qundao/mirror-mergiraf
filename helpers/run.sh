@@ -16,4 +16,4 @@ if [ -e $1/language ]; then
     extra_args="$extra_args --language $language"
 fi
 
-${script_dir}/../target/debug/mergiraf merge $1/Base$ext $1/Left$ext $1/Right$ext -s BASE -x LEFT -y RIGHT $extra_args
+cargo run -p mergiraf -- merge $1/Base$ext $1/Left$ext $1/Right$ext -s BASE -x LEFT -y RIGHT $extra_args
