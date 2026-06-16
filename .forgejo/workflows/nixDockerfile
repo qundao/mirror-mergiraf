@@ -20,3 +20,4 @@ RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon
 
 ENV PATH="/root/.nix-profile/bin:/nix/var/nix/profiles/default/bin:${PATH}"
 ENV NIX_PATH="nixpkgs=/root/.nix-defexpr/channels/nixpkgs"
+ENV HOME="/root"
