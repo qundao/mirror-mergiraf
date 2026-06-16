@@ -10,6 +10,7 @@ RUN apt-get update && \
 RUN mkdir -p /etc/nix
 RUN <<EOF cat > /etc/nix/nix.conf
 build-users-group =
+sandbox = false
 experimental-features = nix-command flakes
 max-jobs = auto
 always-allow-substitutes = true
