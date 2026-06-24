@@ -10,12 +10,30 @@ pub const LINE_BASED_METHOD: &str = "line_based";
 ///
 /// TODO: ideally, [diffy_imara] would already expose such an interface,
 /// to avoid rendering the merge to a large string and parsing it back
+///
+/// ## Panics
+///
+/// This will most likely panic if one of the input sides already
+/// contains conflicts
 pub fn line_based_merge_parsed(
     contents_base: &str,
     contents_left: &str,
     contents_right: &str,
     settings: &DisplaySettings,
 ) -> ParsedMerge<'static> {
+    line_based_merge_parsed_checked(contents_base, contents_left, contents_right, settings)
+        .expect("diffy-imara returned a merge that we cannot parse the conflicts of")
+}
+
+/// A version of [`line_based_merge_parsed`] that returns `None` instead of panicking.
+///
+/// Only really used for testing.
+fn line_based_merge_parsed_checked(
+    contents_base: &str,
+    contents_left: &str,
+    contents_right: &str,
+    settings: &DisplaySettings,
+) -> Option<ParsedMerge<'static>> {
     let merged = MergeOptions::new()
         .set_conflict_marker_length(settings.conflict_marker_size_or_default())
         .set_conflict_style(if settings.diff3 {
@@ -28,8 +46,7 @@ pub fn line_based_merge_parsed(
     let merged_contents = match merged {
         Ok(contents) | Err(contents) => contents.leak(),
     };
-    ParsedMerge::parse(merged_contents, settings)
-        .expect("diffy-imara returned a merge that we cannot parse the conflicts of")
+    ParsedMerge::parse(merged_contents, settings).ok()
 }
 
 /// Perform a textual merge with the diff3 algorithm.
@@ -137,6 +154,103 @@ func foo(){}"#;
         assert!(
             merge.has_additional_issues,
             "left and base reconstructed revisions shouldn't parse"
+        );
+    }
+
+    #[test]
+    fn line_based_merge_parsed_with_conflict_in_input() {
+        let contents_base = "\
+/**
+ * Doc comment
+ */
+class MyClass {
+}";
+        let contents_left_7 = "\
+/**
+<<<<<<< HEAD
+ * Doc comment
+=======
+ * Better docs
+>>>>>>> origin/main
+ */
+class MyClass {
+}";
+        let contents_left_9 = "\
+/**
+<<<<<<<<< HEAD
+ * Doc comment
+=========
+ * Better docs
+>>>>>>>>> origin/main
+ */
+class MyClass {
+}";
+
+        let contents_right = "\
+/**
+ * Doc comment
+ */
+class MyClass {
+}
+
+class OtherClass {
+}";
+
+        let merge = |contents_left, settings| {
+            line_based_merge_parsed_checked(contents_base, contents_left, contents_right, settings)
+                .map(|parsed| parsed.render(settings))
+        };
+
+        let settings_7 = &DisplaySettings::default();
+        let settings_9 = &DisplaySettings::from_conflict_marker_size(9);
+
+        // These two won't work because the pre-existing conflict will screw up parsing.
+        assert_eq!(
+            merge(contents_left_7, settings_7),
+            None,
+            "conflict of standard size + settings with standard size"
+        );
+        assert_eq!(
+            merge(contents_left_9, settings_9),
+            None,
+            "conflict of size 9 + settings with size 9"
+        );
+
+        // These two will work because the parser won't notice the pre-existing conflict, as they
+        // are of a different size as what it's looking for.
+        insta::assert_snapshot!(
+            merge(contents_left_7, settings_9).unwrap(),
+            "conflicts of standard size + settings with size ",
+            @r"
+/**
+<<<<<<< HEAD
+ * Doc comment
+=======
+ * Better docs
+>>>>>>> origin/main
+ */
+class MyClass {
+}
+class OtherClass {
+}
+        ",
+        );
+        insta::assert_snapshot!(
+            merge(contents_left_9, settings_7).unwrap(),
+            "should fail to parse with pre-existing conflicts of standard size + default settings",
+            @r"
+/**
+<<<<<<<<< HEAD
+ * Doc comment
+=========
+ * Better docs
+>>>>>>>>> origin/main
+ */
+class MyClass {
+}
+class OtherClass {
+}
+        ",
         );
     }
 }

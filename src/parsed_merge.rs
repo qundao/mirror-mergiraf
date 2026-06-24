@@ -710,7 +710,7 @@ right line
 ";
             let parsed_with_4 = ParsedMerge::parse(
                 conflict_with_4,
-                &DisplaySettings::new(None, Some(4), None, None, None),
+                &DisplaySettings::from_conflict_marker_size(4),
             )
             .expect("could not parse a conflict with `conflict_marker_size=4`");
             assert_eq!(parsed_with_4, parsed_expected);
@@ -727,7 +727,7 @@ right line
 ";
             let parsed_with_9 = ParsedMerge::parse(
                 conflict_with_9,
-                &DisplaySettings::new(None, Some(9), None, None, None),
+                &DisplaySettings::from_conflict_marker_size(9),
             )
             .expect("could not parse a conflict with `conflict_marker_size=9`");
             assert_eq!(parsed_with_9, parsed_expected);
@@ -976,8 +976,7 @@ turn right please!
                 },
             ]);
 
-            let rendered_with_4 =
-                merge.render(&DisplaySettings::new(None, Some(4), None, None, None));
+            let rendered_with_4 = merge.render(&DisplaySettings::from_conflict_marker_size(4));
             let expected_with_4 = "\
 resolved line
 <<<< LEFT
@@ -990,8 +989,7 @@ right line
 ";
             assert_eq!(rendered_with_4, expected_with_4);
 
-            let rendered_with_9 =
-                merge.render(&DisplaySettings::new(None, Some(9), None, None, None));
+            let rendered_with_9 = merge.render(&DisplaySettings::from_conflict_marker_size(9));
             let expected_with_9 = "\
 resolved line
 <<<<<<<<< LEFT

@@ -109,6 +109,11 @@ impl<'a> DisplaySettings<'a> {
         }
     }
 
+    #[cfg(test)]
+    pub fn from_conflict_marker_size(size: usize) -> Self {
+        Self::new(None, Some(size), None, None, None)
+    }
+
     /// The value of `compact` if set, the default value otherwise
     pub fn compact_or_default(&self) -> bool {
         self.compact.unwrap_or(false)
