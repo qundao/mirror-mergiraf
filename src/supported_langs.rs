@@ -1330,8 +1330,8 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "Starlark",
             alternate_names: &["bazel", "bzl"],
-            extensions: &["bzl", "bazel"],
-            file_names: &["BUILD", "WORKSPACE"],
+            extensions: &["bzl", "bxl", "bazel", "star", "sky"],
+            file_names: &["BUILD", "WORKSPACE", "BUCK", "PACKAGE"],
             language: tree_sitter_starlark::LANGUAGE.into(),
             atomic_nodes: &[],
             commutative_parents: vec![
