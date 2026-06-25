@@ -1,0 +1,19 @@
+---
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - mgf_dev/Cargo.toml
+
+jobs:
+  outdated:
+    runs-on: ubuntu-with-rust-1.91
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-outdated
+        run: cargo binstall cargo-outdated --version 0.19.0
+      - name: Check outdated dependencies
+        run: helpers/check-outdated.py --fail-noncompat --fail-deprecated
