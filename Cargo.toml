@@ -84,7 +84,7 @@ nonempty-collections = "1.1"
 tempfile = {version = "3", optional = true}
 thiserror = "2"
 derive_more = { version = "2.1.1", features = ["eq"] }
-tree-sitter-fortran = "0.5.1"
+tree-sitter-fortran = "0.6"
 tree-sitter-r = "1.2"
 tree-sitter-requirements = "0.6.0"
 tree-sitter-scheme = "0.24.7"
