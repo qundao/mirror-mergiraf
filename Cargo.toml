@@ -70,7 +70,7 @@ rand.workspace = true
 tree-edit-distance = "0.4"
 etcetera = "0.11"
 zip = { version = "8.0", features = ["deflate"], default-features = false }
-tree-sitter-scala = "0.24"
+tree-sitter-scala = "0.26"
 either = "1.15"
 rustc-hash = "2.1"
 diffy-imara = "0.3"
