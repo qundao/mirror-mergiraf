@@ -29,7 +29,7 @@ cc=">=1.1"
 [dependencies]
 tree-sitter = "0.25"
 tree-sitter-ocaml = "0.25"
-tree-sitter-rust-orchard = "0.14"
+tree-sitter-rust-orchard = "0.16"
 tree-sitter-json = "0.24"
 tree-sitter-yaml = "0.7"
 tree-sitter-toml-ng = "0.7"
