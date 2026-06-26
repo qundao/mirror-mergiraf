@@ -27,7 +27,7 @@ description = "A syntax-aware merge driver for Git"
 cc=">=1.1"
 
 [dependencies]
-tree-sitter = "0.25"
+tree-sitter = "0.26"
 tree-sitter-ocaml = "0.25"
 tree-sitter-rust-orchard = "0.16"
 tree-sitter-json = "0.24"
