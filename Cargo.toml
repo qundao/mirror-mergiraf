@@ -76,7 +76,7 @@ either = "1.15"
 rustc-hash = "2.1"
 diffy-imara = "0.3"
 nu-ansi-term = "0.50"
-oneshot = {version = "0.1", default-features = false, features = ["std"]}
+oneshot = {version = "0.2", default-features = false, features = ["std"]}
 tree-sitter-devicetree = "0.14"
 tree-sitter-systemverilog = "0.2.1"
 tree-sitter-make = "1.1"
