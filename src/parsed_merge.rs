@@ -95,7 +95,7 @@ impl<'a> ParsedMerge<'a> {
             // 2) if diff3_no_newline matches, take that
             // 3) if diff2 matches, then we know that this isn't a misrecognized diff3, and bail out
             let resolved_end = if let Some(occurrence) =
-                (diff3_captures.as_ref()).or(diff3_no_newline_captures.as_ref())
+                (diff3_captures.as_ref()).or_else(|| diff3_no_newline_captures.as_ref())
             {
                 occurrence
                     .get(0)
@@ -108,17 +108,17 @@ impl<'a> ParsedMerge<'a> {
             };
 
             if resolved_end > 0 {
-                // SAFETY: `remaining_source` is derived from `source`, so `offset_from` makes sense
-                let offset = unsafe { remaining_source.as_ptr().offset_from(source.as_ptr()) }
-                    .try_into()
-                    .expect("`remaining_source` points to the _remainder_ of `source`, so `offset` is positive");
+                // SAFETY: `remaining_source` is a suffix of `source`
+                let offset =
+                    unsafe { (remaining_source.as_ptr()).offset_from_unsigned(source.as_ptr()) };
                 chunks.push(MergedChunk::Resolved {
                     offset,
                     contents: &remaining_source[..resolved_end],
                 });
             }
 
-            if let Some(captures) = (diff3_captures.as_ref()).or(diff3_no_newline_captures.as_ref())
+            if let Some(captures) =
+                (diff3_captures.as_ref()).or_else(|| diff3_no_newline_captures.as_ref())
             {
                 chunks.push(MergedChunk::Conflict {
                     left_name: captures.get(1).map(|m| m.as_str()),
