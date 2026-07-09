@@ -420,3 +420,68 @@ fn solve_respects_conflict_marker_size_attr() {
         .code(0)
         .stdout(contents_after_solve);
 }
+
+#[test]
+fn jj() {
+    let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+    let repo_path = repo_dir.path();
+
+    std::process::Command::new("jj")
+        .args(["git", "init"])
+        .arg(repo_path)
+        .output()
+        .expect("failed to initialize jj repo");
+
+    // A file with an actual jj-style conflict
+    let testfile = repo_path.join("testfile.json");
+    let contents = r#"<<<<<<< conflict 1 of 1
+%%%%%%% diff from: vpxusssl 38d49363 "merge base"
+\\\\\\\        to: rtsqusxu 2768b0b9 "commit A"
+ apple
+-grape
++grapefruit
+ orange
++++++++ ysrnknol 7a20f389 "commit B"
+APPLE
+GRAPE
+ORANGE
+>>>>>>> conflict 1 of 1 ends
+"#;
+    write_string_to_file(&testfile, contents).unwrap();
+
+    // Should print a warning.
+    solve()
+        .arg(&testfile)
+        .arg("--stdout")
+        .assert()
+        // The warning doesn't make Mergiraf fail
+        // (The parse error _also_ doesn't make it fail -- Mergiraf can't parse the file and
+        // thus decides it doesn't have any conflicts. This is arguably silly.)
+        .success()
+        .stderr("\
+WARN You seem to be using Jujutsu instead of Git. Please use `jj resolve --tool mergiraf [file]`.
+WARN Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand.
+WARN Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has a builtin configuration to resolve conflicts manually using `mergiraf merge`.
+WARN Error while resolving conflicts: parse error at 0:0..0:16, starting with: `<<<<<<< conflict`
+WARN Couldn't retrieve the original revisions from Git. This limits Mergiraf's ability to solve certain types of conflicts.
+INFO 0 conflict(s) remaining.
+");
+
+    // This file has Git-style conflicts, and so we want to run `mergiraf solve` on it.
+    let testfile2 = repo_path.join("testfile2.json");
+    write_string_to_file(&testfile2, DEFAULT_FILE_FOR_SOLVE).unwrap();
+
+    // Mergiraf will still print the warning, even though it's spurious in this case. Oh well.
+    solve()
+        .arg(&testfile2)
+        .arg("--stdout")
+        .assert()
+        // The warning doesn't make Mergiraf fail
+        .success()
+        .stderr("\
+WARN You seem to be using Jujutsu instead of Git. Please use `jj resolve --tool mergiraf [file]`.
+WARN Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand.
+WARN Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has a builtin configuration to resolve conflicts manually using `mergiraf merge`.
+INFO Solved all conflicts.
+");
+}

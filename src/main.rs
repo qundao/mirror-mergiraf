@@ -342,15 +342,24 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             keep_backup,
         } => {
             if conflict_location_looks_like_jj_repo(&fname_conflicts) {
-                return Err(
-                    "\
-                    You seem to be using Jujutsu instead of Git.\n\
-                    Please use `jj resolve --tool mergiraf [file]`.\n\
-                    \n\
-                    Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand. \
-                    Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has \
+                // Our current logger doesn't handle multiline messages well, so we split them manually.
+                // Ideally, the output of this would be something like:
+                // ```
+                // error: you seem to be using Jujutsu instead of Git
+                //  help: please use `jj resolve --tool mergiraf [file]`
+                //  note: Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand
+                //  note: Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has
+                //        a builtin configuration to resolve conflicts manually using `mergiraf merge`
+                // ```
+                warn!(
+                    "You seem to be using Jujutsu instead of Git. Please use `jj resolve --tool mergiraf [file]`."
+                );
+                warn!(
+                    "Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand."
+                );
+                warn!(
+                    "Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has \
                     a builtin configuration to resolve conflicts manually using `mergiraf merge`."
-                    .into()
                 );
             }
 
