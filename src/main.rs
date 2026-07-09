@@ -3,7 +3,6 @@ use std::{
     env, fs, io,
     path::{Path, PathBuf},
     process::{Command, exit},
-    sync::Arc,
     time::Duration,
 };
 
@@ -280,10 +279,6 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             let contents_base = normalize_to_lf(original_contents_base);
             let contents_left = normalize_to_lf(original_contents_left);
             let contents_right = normalize_to_lf(original_contents_right);
-
-            let contents_base = Arc::new(contents_base);
-            let contents_left = Arc::new(contents_left);
-            let contents_right = Arc::new(contents_right);
 
             let attempts_cache = AttemptsCache::new(None, None).ok();
 

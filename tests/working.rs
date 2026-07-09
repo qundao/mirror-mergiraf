@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::time::Duration;
 
 use diffy_imara::{PatchFormatter, create_patch};
@@ -18,9 +17,9 @@ use crate::common::language_override_for_test;
 fn compare_against_merge(
     test_dir: &Path,
     fname_base: &'static Path,
-    contents_base: Arc<Cow<'static, str>>,
-    contents_left: Arc<Cow<'static, str>>,
-    contents_right: Arc<Cow<'static, str>>,
+    contents_base: Cow<'static, str>,
+    contents_left: Cow<'static, str>,
+    contents_right: Cow<'static, str>,
     contents_expected: &str,
     compact: bool,
 ) {
@@ -58,13 +57,13 @@ fn run_test_from_dir(test_dir: &Path) {
     let suffix = detect_test_suffix(test_dir);
     let fname_base = test_dir.join(format!("Base{suffix}")).leak();
     let contents_base = fs::read_to_string(&fname_base).expect("Unable to read left file");
-    let contents_base = Arc::new(Cow::Owned(contents_base));
+    let contents_base = Cow::Owned(contents_base);
     let fname_left = test_dir.join(format!("Left{suffix}"));
     let contents_left = fs::read_to_string(fname_left).expect("Unable to read left file");
-    let contents_left = Arc::new(Cow::Owned(contents_left));
+    let contents_left = Cow::Owned(contents_left);
     let fname_right = test_dir.join(format!("Right{suffix}"));
     let contents_right = fs::read_to_string(fname_right).expect("Unable to read right file");
-    let contents_right = Arc::new(Cow::Owned(contents_right));
+    let contents_right = Cow::Owned(contents_right);
 
     {
         let fname_expected = test_dir.join(format!("Expected{suffix}"));
@@ -74,9 +73,9 @@ fn run_test_from_dir(test_dir: &Path) {
         compare_against_merge(
             test_dir,
             fname_base,
-            Arc::clone(&contents_base),
-            Arc::clone(&contents_left),
-            Arc::clone(&contents_right),
+            Cow::clone(&contents_base),
+            Cow::clone(&contents_left),
+            Cow::clone(&contents_right),
             &contents_expected,
             false,
         );

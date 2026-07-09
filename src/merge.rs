@@ -38,9 +38,9 @@ pub struct CliOpts<'a> {
 /// merge (independently of the textual merge) is attempted
 #[allow(clippy::too_many_arguments)]
 pub fn line_merge_and_structured_resolution(
-    contents_base: Arc<Cow<'static, str>>,
-    contents_left: Arc<Cow<'static, str>>,
-    contents_right: Arc<Cow<'static, str>>,
+    contents_base: Cow<'static, str>,
+    contents_left: Cow<'static, str>,
+    contents_right: Cow<'static, str>,
     fname_base: &'static Path,
     settings: DisplaySettings<'static>,
     full_merge: bool,
@@ -71,6 +71,10 @@ pub fn line_merge_and_structured_resolution(
         lang_profile.to_mut().allow_parse_errors = allow_parse_errors;
     }
     let lang_profile = Arc::new(lang_profile);
+
+    let contents_base = Arc::new(contents_base);
+    let contents_left = Arc::new(contents_left);
+    let contents_right = Arc::new(contents_right);
 
     let merges = cascading_merge(
         Arc::clone(&contents_base),
