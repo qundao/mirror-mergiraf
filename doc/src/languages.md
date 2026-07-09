@@ -8,6 +8,7 @@ Mergiraf currently supports the following programming languages:
 * Dart (*.dart)
 * Elixir (*.ex, *.exs)
 * Fortran (*.f, *.for, *.f90)
+* Gleam (*.gleam)
 * GNU Make (*.mk, Makefile, GNUmakefile)
 * Go (*.go)
 * Haskell (*.hs)

@@ -1483,6 +1483,56 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extra_comment_nodes: &[],
             allow_parse_errors: false,
         },
+        LangProfile {
+            name: "Gleam",
+            alternate_names: &[],
+            extensions: &["gleam"],
+            file_names: &[],
+            language: tree_sitter_gleam::LANGUAGE.into(),
+            atomic_nodes: &["module"],
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("source_file", "\n\n").restricted_to(vec![
+                    ChildrenGroup::with_separator(&["import"], "\n"),
+                    ChildrenGroup::new(&[
+                        "constant",
+                        "external_type",
+                        "function",
+                        "type_definition",
+                        "type_alias",
+                    ]),
+                ]),
+                CommutativeParent::new("unqualified_imports", "{", ", ", "}")
+                    .restricted_to_groups(&[&["unqualified_import"]]),
+                CommutativeParent::without_delimiters("data_constructors", "\n")
+                    .restricted_to_groups(&[&["data_constructor"]]),
+                CommutativeParent::without_delimiters("record_update_arguments", ", ")
+                    .restricted_to_groups(&[&["record_update_argument"]]),
+            ],
+            signatures: vec![
+                signature("import", vec![vec![Field("module")]]),
+                signature("constant", vec![vec![Field("name")]]),
+                signature(
+                    "external_type",
+                    vec![vec![ChildKind("type_name"), Field("name")]],
+                ),
+                signature("function", vec![vec![Field("name")]]),
+                signature(
+                    "type_definition",
+                    vec![vec![ChildKind("type_name"), Field("name")]],
+                ),
+                signature(
+                    "type_alias",
+                    vec![vec![ChildKind("type_name"), Field("name")]],
+                ),
+                signature("unqualified_import", vec![vec![Field("name")]]),
+                signature("data_constructor", vec![vec![Field("name")]]),
+                signature("record_update_argument", vec![vec![Field("label")]]),
+            ],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &["attribute"],
+            allow_parse_errors: false,
+        },
     ]
 });
 
