@@ -213,7 +213,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
         LangProfile {
             name: "Kotlin",
             alternate_names: &[],
-            extensions: &["kt"],
+            extensions: &["kt", "kts"],
             file_names: &[],
             language: tree_sitter_kotlin_ng::LANGUAGE.into(),
             atomic_nodes: &[],

@@ -13,7 +13,7 @@ Mergiraf currently supports the following programming languages:
 * Haskell (*.hs)
 * Java (*.java)
 * Javascript (*.js, *.jsx, *.mjs, *.cjs)
-* Kotlin (*.kt)
+* Kotlin (*.kt, *.kts)
 * Lua (*.lua)
 * Nix (*.nix)
 * OCaml (*.ml, *.mli)
