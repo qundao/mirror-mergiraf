@@ -1,12 +1,8 @@
 ---
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - Cargo.toml
-      - Cargo.lock
-      - mgf_dev/Cargo.toml
+  schedule:
+    - cron: '0 6 3 * 1'
+  workflow_dispatch:
 
 jobs:
   outdated:
