@@ -77,3 +77,10 @@ If you use direnv and nix, you can copy `.envrc.example` to `.envrc` and allow i
 ```shell
 cp .envrc.example .envrc && direnv allow
 ```
+
+### Publishing a new version
+
+Determine the next version number based on the changes that have occurred since the last release.
+On the main branch and at the root of the repository, run `./helpers/release.sh 1.2.3`.
+This will push the release to Codeberg and the CI will take care of the rest.
+
