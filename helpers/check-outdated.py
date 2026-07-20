@@ -43,7 +43,7 @@ def main():
         latest_ver = dep.get('latest')
         is_deprecated = dep.get('deprecated', False)
 
-        if compat_ver and compat_ver != project:
+        if compat_ver and compat_ver != project and compat_ver != '---':
             compat.append((name, project, compat_ver))
 
         if (latest_ver and latest_ver != project
