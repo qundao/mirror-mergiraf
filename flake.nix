@@ -50,7 +50,7 @@
       ];
 
       # Dependencies needed for tests.
-      nativeCheckInputs = with pkgs; [git];
+      nativeCheckInputs = with pkgs; [ git jujutsu ];
 
       # Build just the cargo dependencies for reuse when running in CI.
       cargoArtifacts = craneLib.buildDepsOnly {inherit src nativeBuildInputs;};
