@@ -1533,6 +1533,28 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extra_comment_nodes: &["attribute"],
             allow_parse_errors: false,
         },
+        LangProfile {
+            name: "Erlang",
+            alternate_names: &[],
+            extensions: &["erl", "hrl", "escript"],
+            file_names: &[],
+            language: tree_sitter_erlang::LANGUAGE.into(),
+            atomic_nodes: &[],
+            commutative_parents: vec![
+                CommutativeParent::new("record_decl", "{", ", ", "}"),
+                CommutativeParent::new("record_expr", "{", ", ", "}"),
+                CommutativeParent::new("map_expr", "{", ", ", "}"),
+                CommutativeParent::new("export_attribute", "[", ", ", "]"),
+            ],
+            signatures: vec![
+                signature("record_field", vec![vec![Field("name")]]),
+                signature("map_field", vec![vec![Field("key")]]),
+            ],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &[],
+            allow_parse_errors: false,
+        },
     ]
 });
 
