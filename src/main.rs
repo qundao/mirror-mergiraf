@@ -336,7 +336,16 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             stdout,
             keep_backup,
         } => {
-            if conflict_location_looks_like_jj_repo(&fname_conflicts) {
+            if let Some(debug_dir) = &debug_dir {
+                fs::create_dir_all(debug_dir)
+                    .map_err(|err| format!("could not create the debug directory: {err}"))?;
+            }
+
+            // Unlike `mergiraf merge`, there is no `git merge-file` we can fall back on in case of
+            // non-UTF-8 input, so just bail out.
+            let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
+
+            if file_seems_to_have_a_jj_conflict(&fname_conflicts, &original_conflict_contents) {
                 // Our current logger doesn't handle multiline messages well, so we split them manually.
                 // Ideally, the output of this would be something like:
                 // ```
@@ -357,13 +366,6 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     a builtin configuration to resolve conflicts manually using `mergiraf merge`."
                 );
             }
-
-            if let Some(debug_dir) = &debug_dir {
-                fs::create_dir_all(debug_dir)
-                    .map_err(|err| format!("could not create the debug directory: {err}"))?;
-            }
-
-            let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
 
             let working_dir = env::current_dir().expect("Invalid current directory");
             let postprocessed = solve::solve(
@@ -463,7 +465,12 @@ fn fallback_to_git_merge_file(
 
 /// Check if user is using Jujutsu instead of Git, which can lead to issues when running
 /// `mergiraf solve`
-fn conflict_location_looks_like_jj_repo(fname_conflicts: &Path) -> bool {
+fn file_seems_to_have_a_jj_conflict(fname_conflicts: &Path, contents: &str) -> bool {
+    /// A marker that is used in the default jj-style conflicts, but not in git-style ones.
+    const JJ_CONFLICT_MARKER: &str = "%%%%%%% ";
+
+    // First, check if we are in a jj repo -- if not, then the conflict is very unlikely to come
+    // from jj.
     if let Ok(conflict_path) = fname_conflicts.canonicalize()
         && let Some(conflict_dir) = conflict_path.parent()
         && let Ok(output) = Command::new("jj")
@@ -486,6 +493,10 @@ fn conflict_location_looks_like_jj_repo(fname_conflicts: &Path) -> bool {
         && !repo_path.is_empty()
         && let jj_root = Path::new(repo_path).join(".jj")
         && let Ok(true) = fs::exists(jj_root)
+        // Next, see if the file _actually_ has a jj-style conflict. This is to cater to a case where
+        // the user merges using git and tries to resolve the resulting git-style conflicts using
+        // `mergiraf solve` -- see https://codeberg.org/mergiraf/mergiraf/issues/797.
+        && contents.lines().any(|l| l.starts_with(JJ_CONFLICT_MARKER))
     {
         true
     } else {

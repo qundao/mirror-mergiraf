@@ -471,17 +471,15 @@ INFO 0 conflict(s) remaining.
     let testfile2 = repo_path.join("testfile2.json");
     write_string_to_file(&testfile2, DEFAULT_FILE_FOR_SOLVE).unwrap();
 
-    // Mergiraf will still print the warning, even though it's spurious in this case. Oh well.
+    // Should recognize that no jj-style conflicts are present, and solve everything normally
     solve()
         .arg(&testfile2)
         .arg("--stdout")
         .assert()
-        // The warning doesn't make Mergiraf fail
         .success()
-        .stderr("\
-WARN You seem to be using Jujutsu instead of Git. Please use `jj resolve --tool mergiraf [file]`.
-WARN Jujutsu has its own style of conflict markers, which Mergiraf doesn't understand.
-WARN Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has a builtin configuration to resolve conflicts manually using `mergiraf merge`.
+        .stderr(
+            "\
 INFO Solved all conflicts.
-");
+",
+        );
 }
