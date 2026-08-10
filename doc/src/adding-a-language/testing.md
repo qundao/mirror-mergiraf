@@ -6,7 +6,7 @@ Adding support for a language in Mergiraf doesn't require any code, just declara
 
 You can add test cases to the end-to-end suite by following the directory structure of other such test cases. Create a directory of the form:
 ```
-examples/csharp/working/add_imports
+tests/data/csharp/working/add_imports
 ```
 
 The naming of the `csharp` directory does not matter, nor does `add_imports` which describes the test case we are about to write. In this directory go the following files:
@@ -42,7 +42,7 @@ language // contains "pyproject.toml"
 ### Running the tests
 To run an individual test, you can use a helper:
 ```console
-$ helpers/inspect.sh examples/csharp/working/add_imports
+$ helpers/inspect.sh tests/data/csharp/working/add_imports
 ```
 
 This will show any differences between the expected output of the merge and the actual one. It also saves the result of some intermediate stages
@@ -50,12 +50,12 @@ of the merging process in the `debug` directory, such as the matchings between t
 Those can be viewed as SVG files by running `helpers/generate_svg.sh`.
 
 
-To run a test with a debugger, you can use the test defined in `tests/integration_tests.rs`:
+To run a test with a debugger, you can use the test defined in `tests/working.rs`:
 ```rust
 // use this test to debug a specific test case by changing the path in it.
 #[test]
 fn debug_test() {
-    run_test_from_dir(Path::new("examples/go/working/remove_and_add_imports"))
+    run_test_from_dir(Path::new("tests/data/go/working/remove_and_add_imports"))
 }
 ```
 You can then use an IDE (such as Codium with Rust-analyzer) to set up breakpoints to inspect the execution of the test.

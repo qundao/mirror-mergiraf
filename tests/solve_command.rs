@@ -17,7 +17,7 @@ use crate::common::language_override_for_test;
 #[case("merge")]
 #[case("diff3")]
 fn solve_command(#[case] conflict_style: &str) {
-    let test_dir = Path::new("examples/java/working/demo");
+    let test_dir = Path::new("tests/data/java/working/demo");
     let suffix = detect_test_suffix(test_dir);
 
     // create temp directory

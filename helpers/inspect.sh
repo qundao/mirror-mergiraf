@@ -2,7 +2,7 @@
 
 if [ "$#" -ne 1 ]; then
     echo "usage: ./helpers/inspect.sh <path>"
-    echo "where <path> is a path to a mergiraf test, such as examples/java/working/demo"
+    echo "where <path> is a path to a mergiraf test, such as tests/data/java/working/demo"
     exit 1
 fi
 

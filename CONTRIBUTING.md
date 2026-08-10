@@ -19,12 +19,12 @@ Mergiraf is written in Rust, see [Getting started with Rust](https://rust-lang.o
 
 ### Testing your changes
 
-The `examples/` directory collects end-to-end test cases. Each test case is defined by a directory containing the inputs and expected output as separate files.
+The `tests/data/` directory collects end-to-end test cases. Each test case is defined by a directory containing the inputs and expected output as separate files.
 Running `cargo test` executes this test suite, as well as other Rust tests.
 
-To run mergiraf on a single test case, such as the one stored in `examples/java/working/add_same_import`, you can run:
+To run mergiraf on a single test case, such as the one stored in `tests/data/java/working/add_same_import`, you can run:
 ```
-helpers/inspect.sh examples/java/working/add_same_import
+helpers/inspect.sh tests/data/java/working/add_same_import
 ```
 This will show detailed information about the execution of the test case, including mergiraf's logs.
 
@@ -32,7 +32,7 @@ To run mergiraf on a set of test cases, you can run:
 ```
 helpers/suite.sh my_test_suite
 ```
-where `my_test_suite` is the path to a directory containing test cases (such as `examples/java/working`).
+where `my_test_suite` is the path to a directory containing test cases (such as `tests/data/java/working`).
 
 #### Inspecting the parse tree
 
@@ -56,7 +56,7 @@ When mergiraf behaves incorrectly on a particular merge scenario, it can be usef
 The `cargo minimize` command (shorthand for `cargo run --bin mgf_dev minimize`) can be used to compute such a minimal example from a real-world one.
 
 It requires:
-* a directory containing the `Base.*`, `Left.*` and `Right.*` revisions of the merge scenario with matching extensions (like any of the end-to-end test cases in the `examples/` directory)
+* a directory containing the `Base.*`, `Left.*` and `Right.*` revisions of the merge scenario with matching extensions (like any of the end-to-end test cases in the `tests/data/` directory)
 * a script or command to execute on the merge scenario, whose exit status will be preserved during minimization. The script will be passed one argument: the path to a directory containing the merge scenario being minimized.
 * the expected exit status of this script (by default, 0)
 

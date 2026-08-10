@@ -104,7 +104,7 @@ fn run_test_from_dir(test_dir: &Path) {
 #[rstest]
 fn integration(
     #[dirs]
-    #[files("examples/*/working/*")]
+    #[files("tests/data/*/working/*")]
     path: PathBuf,
 ) {
     run_test_from_dir(&path);
@@ -113,5 +113,5 @@ fn integration(
 // use this test to debug a specific test case by changing the path in it.
 #[test]
 fn debug_test() {
-    run_test_from_dir(Path::new("examples/go/working/remove_and_add_imports"));
+    run_test_from_dir(Path::new("tests/data/go/working/remove_and_add_imports"));
 }

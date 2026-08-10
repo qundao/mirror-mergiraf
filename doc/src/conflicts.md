@@ -47,7 +47,7 @@ Another example:
 <div class="rev">Left</div>
 
 ```java
-{{#include ../../examples/java/working/class_fields/Left.java}}
+{{#include ../../tests/data/java/working/class_fields/Left.java}}
 ```
 
 </div>
@@ -55,7 +55,7 @@ Another example:
 <div class="rev">Base</div>
 
 ```java
-{{#include ../../examples/java/working/class_fields/Base.java}}
+{{#include ../../tests/data/java/working/class_fields/Base.java}}
 ```
 
 </div>
@@ -63,7 +63,7 @@ Another example:
 <div class="rev">Right</div>
 
 ```java
-{{#include ../../examples/java/working/class_fields/Right.java}}
+{{#include ../../tests/data/java/working/class_fields/Right.java}}
 ```
 
 </div>
@@ -71,7 +71,7 @@ Another example:
 
 The left and right sides add different attributes to the same Java class. The order of declaration of those attributes does not matter, so the conflict can be resolved to:
 ```java
-{{#include ../../examples/java/working/class_fields/Expected.java}}
+{{#include ../../tests/data/java/working/class_fields/Expected.java}}
 ```
 
 In contrast to this, conflicting additions of instructions in a block, or conflicting additions of arguments to a function declaration are not automatically resolved as above, given that the order in which they are inserted matters.
@@ -80,7 +80,7 @@ In contrast to this, conflicting additions of instructions in a block, or confli
 <div class="rev">Left</div>
 
 ```java
-{{#include ../../examples/java/working/statements/Left.java}}
+{{#include ../../tests/data/java/working/statements/Left.java}}
 ```
 
 </div>
@@ -88,7 +88,7 @@ In contrast to this, conflicting additions of instructions in a block, or confli
 <div class="rev">Base</div>
 
 ```java
-{{#include ../../examples/java/working/statements/Base.java}}
+{{#include ../../tests/data/java/working/statements/Base.java}}
 ```
 
 </div>
@@ -96,7 +96,7 @@ In contrast to this, conflicting additions of instructions in a block, or confli
 <div class="rev">Right</div>
 
 ```java
-{{#include ../../examples/java/working/statements/Right.java}}
+{{#include ../../tests/data/java/working/statements/Right.java}}
 ```
 
 </div>
@@ -153,7 +153,7 @@ In the following example, the left side reformats a function declaration and the
 <div class="rev">Left</div>
 
 ```rust
-{{#include ../../examples/rust/working/reformat/Left.rs}}
+{{#include ../../tests/data/rust/working/reformat/Left.rs}}
 ```
 
 </div>
@@ -161,7 +161,7 @@ In the following example, the left side reformats a function declaration and the
 <div class="rev">Base</div>
 
 ```rust
-{{#include ../../examples/rust/working/reformat/Base.rs}}
+{{#include ../../tests/data/rust/working/reformat/Base.rs}}
 ```
 
 </div>
@@ -169,7 +169,7 @@ In the following example, the left side reformats a function declaration and the
 <div class="rev">Right</div>
 
 ```rust
-{{#include ../../examples/rust/working/reformat/Right.rs}}
+{{#include ../../tests/data/rust/working/reformat/Right.rs}}
 ```
 
 </div>
@@ -177,7 +177,7 @@ In the following example, the left side reformats a function declaration and the
 
 In this case, Mergiraf produces the following merge:
 ```rust
-{{#include ../../examples/rust/working/reformat/Expected.rs}}
+{{#include ../../tests/data/rust/working/reformat/Expected.rs}}
 ```
 
 <div class="warning">
@@ -194,7 +194,7 @@ In this case, the changes on the latter branch are replayed at the new location.
 <div class="rev">Left</div>
 
 ```rust
-{{#include ../../examples/rust/working/move_to_method/Left.rs}}
+{{#include ../../tests/data/rust/working/move_to_method/Left.rs}}
 ```
 
 </div>
@@ -202,7 +202,7 @@ In this case, the changes on the latter branch are replayed at the new location.
 <div class="rev">Base</div>
 
 ```rust
-{{#include ../../examples/rust/working/move_to_method/Base.rs}}
+{{#include ../../tests/data/rust/working/move_to_method/Base.rs}}
 ```
 
 </div>
@@ -210,7 +210,7 @@ In this case, the changes on the latter branch are replayed at the new location.
 <div class="rev">Right</div>
 
 ```rust
-{{#include ../../examples/rust/working/move_to_method/Right.rs}}
+{{#include ../../tests/data/rust/working/move_to_method/Right.rs}}
 ```
 
 </div>
@@ -222,7 +222,7 @@ In such a case, Mergiraf is able to replay the changes of the right branch onto 
 which gives the following result:
 
 ```rust
-{{#include ../../examples/rust/working/move_to_method/Expected.rs}}
+{{#include ../../tests/data/rust/working/move_to_method/Expected.rs}}
 ```
 
 <div class="warning">
@@ -241,7 +241,7 @@ There is however one notable exception. Consider the following situation:
 <div class="rev">Left</div>
 
 ```json
-{{#include ../../examples/json/working/for_docs/Left.json}}
+{{#include ../../tests/data/json/working/for_docs/Left.json}}
 ```
 
 </div>
@@ -249,7 +249,7 @@ There is however one notable exception. Consider the following situation:
 <div class="rev">Base</div>
 
 ```json
-{{#include ../../examples/json/working/for_docs/Base.json}}
+{{#include ../../tests/data/json/working/for_docs/Base.json}}
 ```
 
 </div>
@@ -257,7 +257,7 @@ There is however one notable exception. Consider the following situation:
 <div class="rev">Right</div>
 
 ```json
-{{#include ../../examples/json/working/for_docs/Right.json}}
+{{#include ../../tests/data/json/working/for_docs/Right.json}}
 ```
 
 </div>
@@ -279,7 +279,7 @@ Git's line-based merging algorithm happily merges those revisions into:
 This is a problem, as the `"new_letter"` key appears twice. In such a situation, Mergiraf outputs a conflict:
 
 ```json
-{{#include ../../examples/json/working/for_docs/Expected.json}}
+{{#include ../../tests/data/json/working/for_docs/Expected.json}}
 ```
 
 This works by defining so-called "signatures" for certain children of commutative parents. A signature defines how to build a key for a syntactic element, child of a commutative parent.

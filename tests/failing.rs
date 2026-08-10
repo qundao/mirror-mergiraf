@@ -44,7 +44,7 @@ enum FailingTestResult {
 #[rstest]
 fn integration_failing(
     #[dirs]
-    #[files("examples/*/failing/*")]
+    #[files("tests/data/*/failing/*")]
     test_dir: PathBuf,
 ) {
     let suffix = detect_test_suffix(&test_dir);

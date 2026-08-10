@@ -38,7 +38,7 @@
         fileset = pkgs.lib.fileset.unions [
           # Default files from crane (Rust and cargo files)
           (craneLib.fileset.commonCargoSources unfilteredRoot)
-          ./examples
+          ./tests/data
           ./helpers
           ./src/snapshots
         ];

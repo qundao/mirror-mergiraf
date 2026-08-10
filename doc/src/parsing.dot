@@ -1,4 +1,4 @@
-# generated (with small tweaks) from examples/rust/working/struct_declaration
+# generated (with small tweaks) from tests/data/rust/working/struct_declaration
 graph matching {
     margin=0
     bgcolor=white

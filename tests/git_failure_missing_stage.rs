@@ -10,19 +10,19 @@ use common::run_git;
 
 static BASE: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/examples/rust/working/move_to_method/Base.rs"
+    "/tests/data/rust/working/move_to_method/Base.rs"
 ));
 static LEFT: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/examples/rust/working/move_to_method/Left.rs"
+    "/tests/data/rust/working/move_to_method/Left.rs"
 ));
 static RIGHT: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/examples/rust/working/move_to_method/Right.rs"
+    "/tests/data/rust/working/move_to_method/Right.rs"
 ));
 static EXPECTED: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/examples/rust/working/move_to_method/Expected.rs"
+    "/tests/data/rust/working/move_to_method/Expected.rs"
 ));
 
 #[test]

@@ -461,7 +461,7 @@ impl<'a> MergedTree<'a> {
                         }
                     });
                 // also filter empty nodes from the newly parsed tree, for consistency with above.
-                // See `examples/go.mod/working/duplicate_ignore_directives` for an integration test.
+                // See `tests/data/go.mod/working/duplicate_ignore_directives` for an integration test.
                 let filtered_other_children = other_node
                     .children
                     .iter()

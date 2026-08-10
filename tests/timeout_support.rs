@@ -6,9 +6,9 @@ use common::merge;
 #[test]
 fn timeout_support() {
     let output = merge()
-        .arg("examples/java/working/move_and_modify_conflict/Base.java")
-        .arg("examples/java/working/move_and_modify_conflict/Left.java")
-        .arg("examples/java/working/move_and_modify_conflict/Right.java")
+        .arg("tests/data/java/working/move_and_modify_conflict/Base.java")
+        .arg("tests/data/java/working/move_and_modify_conflict/Left.java")
+        .arg("tests/data/java/working/move_and_modify_conflict/Right.java")
         .arg("--base-name=BASE")
         .arg("--left-name=LEFT")
         .arg("--right-name=RIGHT")
@@ -18,7 +18,7 @@ fn timeout_support() {
 
     let actual = str::from_utf8(&output.stdout).unwrap();
     let expected =
-        include_str!("../examples/java/working/move_and_modify_conflict/ExpectedLineBased.java");
+        include_str!("data/java/working/move_and_modify_conflict/ExpectedLineBased.java");
 
     if expected != actual {
         let patch = create_patch(expected, actual);
