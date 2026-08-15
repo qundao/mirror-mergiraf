@@ -223,8 +223,9 @@ fn select_best_merge(mut merges: Vec<MergeResult>) -> LineBasedAndBestAre {
     merges.sort_by_key(|merge| merge.conflict_mass);
     debug!("~~~ Merge statistics ~~~");
     for merge in &merges {
+        let s = if merge.conflict_count == 1 { "" } else { "s" };
         debug!(
-            "{}: {} conflict(s), {} mass, has_additional_issues: {}",
+            "{}: {} conflict{s}, {} mass, has_additional_issues: {}",
             merge.method, merge.conflict_count, merge.conflict_mass, merge.has_additional_issues
         );
     }

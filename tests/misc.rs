@@ -464,7 +464,7 @@ WARN Jujutsu has its own style of conflict markers, which Mergiraf doesn't under
 WARN Jujutsu users shouldn't call `mergiraf solve` directly, because Jujutsu has a builtin configuration to resolve conflicts manually using `mergiraf merge`.
 WARN Error while resolving conflicts: parse error at 0:0..0:16, starting with: `<<<<<<< conflict`
 WARN Couldn't retrieve the original revisions from Git. This limits Mergiraf's ability to solve certain types of conflicts.
-INFO 0 conflict(s) remaining.
+INFO 0 conflicts remaining.
 ");
 
     // This file has Git-style conflicts, and so we want to run `mergiraf solve` on it.

@@ -121,7 +121,7 @@
 [19.255502999999997, "o", "nmower.rs"]
 [19.634151000000003, "o", "\u001b[?1l\u001b>\u001b[?2004l\r\r\n"]
 [19.634718, "o", "\u001b]2;mergiraf solve src/lawnmower.rs\u0007\u001b]1;mergiraf\u0007"]
-[19.640586, "o", "Solved 2 conflict(s)\r\n"]
+[19.640586, "o", "Solved 2 conflicts\r\n"]
 [19.641070999999997, "o", "\u001b[1m\u001b[7m%\u001b[27m\u001b[1m\u001b[0m                                                                                              \r \r"]
 [19.641301, "o", "\u001b]2;user@machine:/tmp/repo\u0007\u001b]1;/tmp/repo\u0007"]
 [19.643298, "o", "\u001b]7;file://machine/tmp/repo\u001b\\"]

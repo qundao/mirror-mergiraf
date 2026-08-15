@@ -190,8 +190,14 @@ fn do_solve<'a>(
         None => (),
     }
 
-    select_best_solve(solves)
-        .inspect(|best_solve| info!("{} conflict(s) remaining.", best_solve.conflict_count))
+    select_best_solve(solves).inspect(|best_solve| {
+        let s = if best_solve.conflict_count == 1 {
+            ""
+        } else {
+            "s"
+        };
+        info!("{} conflict{s} remaining.", best_solve.conflict_count);
+    })
 }
 
 enum FallbackMergeError {
@@ -266,7 +272,7 @@ fn structured_merge_from_oid(
     Some(merge)
 }
 
-/// Takes a vector of merge results produced by [`resolve_merge_cascading`] and picks the best one
+/// Takes a vector of merge results produced by [`do_solve`] and picks the best one
 fn select_best_solve(mut solves: Vec<MergeResult>) -> Result<MergeResult, String> {
     if solves.is_empty() {
         return Err("Could not generate any solution".to_string());
@@ -275,8 +281,9 @@ fn select_best_solve(mut solves: Vec<MergeResult>) -> Result<MergeResult, String
     solves.sort_by_key(|solve| solve.conflict_mass);
     debug!("~~~ Solve statistics ~~~");
     for solve in &solves {
+        let s = if solve.conflict_count == 1 { "" } else { "s" };
         debug!(
-            "{}: {} conflict(s), {} mass, has_additional_issues: {}",
+            "{}: {} conflict{s}, {} mass, has_additional_issues: {}",
             solve.method, solve.conflict_count, solve.conflict_mass, solve.has_additional_issues
         );
     }

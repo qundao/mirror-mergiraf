@@ -224,7 +224,7 @@ tasks:
 You can then run Mergiraf to attempt to solve the conflicts automatically:
 ```console
 $ mergiraf solve config.yml
-Solved 1 conflict(s)
+Solved 1 conflict
 ```
 
 You can then inspect the result again:
