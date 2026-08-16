@@ -665,6 +665,7 @@ dependencies = [
  "tree-sitter-kotlin-ng",
  "tree-sitter-lua",
  "tree-sitter-make",
+ "tree-sitter-matlab",
  "tree-sitter-md",
  "tree-sitter-nix",
  "tree-sitter-ocaml",
@@ -1444,6 +1445,16 @@ name = "tree-sitter-make"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c5998dc7cbcbdab19fae8aefef982bf2d6544513d8d2e69cc44aec4c63810104"
+dependencies = [
+ "cc",
+ "tree-sitter-language",
+]
+
+[[package]]
+name = "tree-sitter-matlab"
+version = "1.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8e8d8831a78547f54860dd8467166b1ab0c466d03d43c4bb447af55c024281f7"
 dependencies = [
  "cc",
  "tree-sitter-language",

@@ -1555,6 +1555,33 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extra_comment_nodes: &[],
             allow_parse_errors: false,
         },
+        LangProfile {
+            name: "MATLAB",
+            alternate_names: &[],
+            extensions: &["m"],
+            file_names: &[],
+            language: tree_sitter_matlab::LANGUAGE.into(),
+            commutative_parents: vec![
+                CommutativeParent::without_delimiters("properties", "\n")
+                    .restricted_to_groups(&[&["property"]]),
+                CommutativeParent::without_delimiters("enumeration", ", "),
+                CommutativeParent::without_delimiters("methods", "\n")
+                    .restricted_to_groups(&[&["function_definition", "function_signature"]]),
+                CommutativeParent::without_delimiters("source_file", "\n")
+                    .restricted_to_groups(&[&["function_definition"]]),
+            ],
+            signatures: vec![
+                signature("property", vec![vec![Field("name")]]),
+                signature("enum", vec![vec![]]),
+                signature("function_signature", vec![vec![Field("name")]]),
+                signature("function_definition", vec![vec![Field("name")]]),
+            ],
+            atomic_nodes: &[],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &[],
+            allow_parse_errors: false,
+        },
     ]
 });
 
