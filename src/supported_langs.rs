@@ -262,14 +262,9 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("delegation_specifier", vec![vec![]]),
                 // modifiers
                 signature("annotation", vec![vec![]]), // annotations can be repeatable, so we can't use the name as key
-                signature("public", vec![vec![]]),
-                signature("protected", vec![vec![]]),
-                signature("private", vec![vec![]]),
-                signature("internal", vec![vec![]]),
-                signature("final", vec![vec![]]),
-                signature("open", vec![vec![]]),
-                signature("abstract", vec![vec![]]),
-                signature("override", vec![vec![]]),
+                signature("visibility_modifier", vec![]), // a single visibility modifier is allowed on any given item
+                signature("inheritance_modifier", vec![]), // a single visibility modifier is allowed on any given item
+                signature("member_modifier", vec![vec![]]), // potentially multiple member modifiers on the same element, but all distinct
             ],
             injections: None,
             flattened_nodes: &[],
