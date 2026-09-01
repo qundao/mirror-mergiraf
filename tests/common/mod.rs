@@ -3,7 +3,7 @@
 use core::str;
 use std::fs::{self, read_to_string};
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 
 use assert_cmd::{pkg_name, prelude::*};
 use itertools::Itertools;
@@ -12,15 +12,9 @@ use mergiraf::lang_profile::LangProfile;
 pub const DEFAULT_FILE_FOR_SOLVE: &str =
     "<<<<<<< LEFT\n[1, 2, 3, 4]\n||||||| BASE\n[1, 2, 3]\n=======\n[0, 1, 2, 3]\n>>>>>>> RIGHT\n";
 
-pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
+pub(crate) fn run_git(args: &[&str], repo_dir: &Path) -> Output {
     let command_str = format!("git {}", args.iter().format(" "));
-    let mut command = Command::new("git");
-    command.current_dir(repo_dir);
-    command.args(args);
-    // Run using a minimal environment to isolate the test better.
-    command
-        .env_clear()
-        .envs(std::env::vars().filter(|(var, _)| var == "PATH"));
+    let mut command = git_command(args, repo_dir);
     let output = command.output().expect("Failed to execute git command");
     if !output.status.success() {
         panic!(
@@ -28,6 +22,39 @@ pub(crate) fn run_git(args: &[&str], repo_dir: &Path) {
             str::from_utf8(&output.stdout).unwrap()
         );
     }
+    output
+}
+
+pub(crate) fn git_command(args: &[&str], repo_dir: &Path) -> Command {
+    let mut command = Command::new("git");
+    command.current_dir(repo_dir);
+    command.args(args);
+    // Run using a minimal environment to isolate the test better.
+    command
+        .env_clear()
+        .envs(std::env::vars().filter(|(var, _)| var == "PATH"));
+    command
+}
+
+/// Given a path to a repo, set up mergiraf as merge driver
+pub(crate) fn setup_mergiraf(repo_path: &Path) {
+    let mergiraf_command = Command::cargo_bin(pkg_name!()).unwrap();
+    let mergiraf_binary = mergiraf_command.get_program().to_string_lossy();
+
+    run_git(&["config", "user.email", "test@example.com"], repo_path);
+    run_git(&["config", "user.name", "Test User"], repo_path);
+    run_git(&["config", "merge.mergiraf.name", "mergiraf"], repo_path);
+    run_git(
+        &[
+            "config",
+            "merge.mergiraf.driver",
+            &format!("{mergiraf_binary} merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L"),
+        ],
+        repo_path,
+    );
+
+    fs::write(repo_path.join(".git/info/attributes"), "* merge=mergiraf\n")
+        .expect("failed to write .gitattributes");
 }
 
 pub(crate) fn write_file_from_rev(

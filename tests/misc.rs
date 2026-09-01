@@ -1,10 +1,15 @@
 use assert_cmd::prelude::*;
 use mergiraf::{EXIT_SOLVE_HAS_CONFLICTS, git, utils::write_string_to_file};
+use predicates::prelude::PredicateBooleanExt as _;
+use predicates::str::contains;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 mod common;
-use common::{DEFAULT_FILE_FOR_SOLVE, create_file_for_solve, create_files_for_merge, merge, solve};
+use common::{
+    DEFAULT_FILE_FOR_SOLVE, create_file_for_solve, create_files_for_merge, git_command, merge,
+    run_git, setup_mergiraf, solve,
+};
 
 #[test]
 fn keep_backup_keeps_backup() {
@@ -360,7 +365,7 @@ fn verify_cli_solve_has_conflicts() {
         .arg("--language=html")
         .arg("--stdout")
         .assert()
-        .code(EXIT_SOLVE_HAS_CONFLICTS)
+        .code(EXIT_SOLVE_HAS_CONFLICTS as i32)
         .stdout(content);
 }
 
@@ -419,6 +424,55 @@ fn solve_respects_conflict_marker_size_attr() {
         )
         .code(0)
         .stdout(contents_after_solve);
+}
+
+#[test]
+fn merging_files_with_binary_files_doesnt_abort_whole_merge() {
+    test_git_merge_file_fallback_on_files(false);
+}
+
+#[test]
+fn merging_files_with_disabled_mergiraf_doesnt_abort_whole_merge() {
+    test_git_merge_file_fallback_on_files(true);
+}
+
+fn test_git_merge_file_fallback_on_files(disabled_mergiraf: bool) {
+    let repo_dir = tempfile::tempdir().expect("failed to create the temp dir");
+    let repo_path = repo_dir.path();
+
+    git::init(repo_path);
+    setup_mergiraf(repo_path);
+
+    let contents_base = b"\0\xff\0";
+    let contents_left = b"\0\0\x4a2\xff";
+    let contents_right = b"\x003\0\0";
+
+    fs::write(repo_path.join("tracked_file"), contents_base).unwrap();
+    run_git(&["add", "tracked_file"], repo_path);
+    run_git(&["commit", "-m", "initial"], repo_path);
+    run_git(&["checkout", "-b", "first_branch"], repo_path);
+    fs::write(repo_path.join("tracked_file"), contents_left).unwrap();
+    run_git(&["commit", "-am", "second"], repo_path);
+    run_git(&["checkout", "HEAD~"], repo_path);
+    run_git(&["checkout", "-b", "second_branch"], repo_path);
+    fs::write(repo_path.join("tracked_file"), contents_right).unwrap();
+    run_git(&["commit", "-am", "third"], repo_path);
+    let mut command = git_command(&["merge", "first_branch"], repo_path);
+    if disabled_mergiraf {
+        command.env("mergiraf", "0");
+    }
+    command
+        .assert()
+        .append_context("main", "should fail on binary file conflict")
+        .failure()
+        // we don't assert the full output as it may not be stable between Git versions
+        .stderr(contains("WARN input files are not UTF-8, falling back to Git").not());
+
+    let output = run_git(&["status", "--porcelain"], repo_path);
+    let stdout = String::from_utf8(output.stdout).unwrap();
+
+    // the tracked file is marked as conflicted in git (meaning that the whole merge wasn't aborted)
+    assert!(stdout.contains("UU tracked_file\n"), "stdout={stdout}",);
 }
 
 #[test]

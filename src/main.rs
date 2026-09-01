@@ -1,13 +1,13 @@
 use std::{
     borrow::Cow,
-    env, fs, io,
+    env, fs,
     path::{Path, PathBuf},
-    process::{Command, exit},
+    process::{Command, ExitCode},
     time::Duration,
 };
 
 use clap::{ArgAction, Args, Parser, Subcommand};
-use log::warn;
+use log::{error, warn};
 use mergiraf::{
     ENABLING_ENV_VAR, EXIT_MERGE_HAS_CONFLICTS, EXIT_SOLVE_FAILED, EXIT_SOLVE_HAS_CONFLICTS,
     EXIT_SUCCESS,
@@ -17,7 +17,7 @@ use mergiraf::{
     newline::{imitate_newline_style, infer_newline_style, normalize_to_lf},
     settings::{ConflictRegexes, DisplaySettings},
     solve,
-    utils::{read_file_to_string, write_string_to_file},
+    utils::{buffer_is_binary, read_file, read_file_to_string, write_string_to_file},
 };
 
 /// Syntax-aware merge driver for Git.
@@ -140,7 +140,17 @@ enum CliCommand {
     },
 }
 
-fn main() {
+#[derive(thiserror::Error, Debug)]
+pub enum CliError {
+    #[error("`git merge-file` returned exit code {exit_code}")]
+    GitMergeFile { exit_code: i32 },
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("{0}")]
+    Other(String),
+}
+
+fn main() -> ExitCode {
     let args = CliArgs::parse();
 
     stderrlog::new()
@@ -150,15 +160,19 @@ fn main() {
         .unwrap();
 
     match real_main(args) {
-        Ok(exit_code) => exit(exit_code),
+        Ok(exit_code) => exit_code,
+        // If we got an internal error from `git merge-file`, we translate that
+        // to a conflicted merge, so that we don't abort the overall merge.
+        // See https://codeberg.org/mergiraf/mergiraf/issues/812.
+        Err(CliError::GitMergeFile { .. }) => ExitCode::from(EXIT_MERGE_HAS_CONFLICTS),
         Err(error) => {
             eprintln!("Mergiraf: {error}");
-            exit(-1)
+            ExitCode::from(255)
         }
     }
 }
 
-fn real_main(args: CliArgs) -> Result<i32, String> {
+fn real_main(args: CliArgs) -> Result<ExitCode, CliError> {
     let return_code = match args.command {
         CliCommand::Merge {
             base,
@@ -215,38 +229,51 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                 let mergiraf_disabled = env::var(ENABLING_ENV_VAR).as_deref() == Ok("0");
 
                 if mergiraf_disabled {
-                    return fallback_to_git_merge_file(base, left, right, git, &output, &settings)
-                        .map_err(|e| format!("error when calling git-merge-file: {e}"));
+                    return fallback_to_git_merge_file(base, left, right, git, &output, &settings);
                 }
             }
 
             if let Some(debug_dir) = debug_dir {
-                fs::create_dir_all(debug_dir)
-                    .map_err(|err| format!("could not create the debug directory: {err}"))?;
+                fs::create_dir_all(debug_dir).map_err(|err| {
+                    CliError::Other(format!("could not create the debug directory: {err}"))
+                })?;
             }
 
             let fname_base = &*base;
             let fname_left = &*left;
             let fname_right = &*right;
 
+            let original_contents_base = read_file(fname_base).map_err(CliError::Other)?;
+            let original_contents_left = read_file(fname_left).map_err(CliError::Other)?;
+            let original_contents_right = read_file(fname_right).map_err(CliError::Other)?;
+
+            if [
+                &*original_contents_base,
+                &*original_contents_left,
+                &*original_contents_base,
+            ]
+            .into_iter()
+            .any(buffer_is_binary)
+            {
+                // Don't `return Err` here, as that would make `main` exit with 255, which would
+                // abort the overall merge. See https://codeberg.org/mergiraf/mergiraf/pulls/81
+                error!("cannot merge binary files");
+                return Ok(ExitCode::from(EXIT_MERGE_HAS_CONFLICTS));
+            }
+
             let (
                 Ok(original_contents_base),
                 Ok(original_contents_left),
                 Ok(original_contents_right),
             ) = (
-                read_file_to_string(fname_base),
-                read_file_to_string(fname_left),
-                read_file_to_string(fname_right),
+                String::from_utf8(original_contents_base),
+                String::from_utf8(original_contents_left),
+                String::from_utf8(original_contents_right),
             )
             else {
-                // The case we're actually catching here is an input file being non-UTF-8.
-                //
-                // The way this is currently implemented, this will also catch IO errors
-                // like a file not being present etc. -- but that's okay, since in that case
-                // the output of `git merge-file` is comparable to what we would've emitted
-                // (debug representation of `io::Error`)
-                return fallback_to_git_merge_file(base, left, right, git, &output, &settings)
-                    .map_err(|e| format!("error when calling git-merge-file: {e}"));
+                // if you change this warning message, update `misc::test_git_merge_file_fallback_on_files`
+                warn!("input files are not UTF-8, falling back to Git");
+                return fallback_to_git_merge_file(base, left, right, git, &output, &settings);
             };
 
             {
@@ -268,8 +295,7 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                         warn!("{side} side contains conflict markers, falling back to Git");
                         return fallback_to_git_merge_file(
                             base, left, right, git, &output, &settings,
-                        )
-                        .map_err(|e| format!("error when calling git-merge-file: {e}"));
+                        );
                     }
                 }
             }
@@ -305,9 +331,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             merge_result.contents =
                 imitate_newline_style(&merge_result.contents, original_newline_style);
             if let Some(fname_out) = output {
-                write_string_to_file(&fname_out, &merge_result.contents)?;
+                write_string_to_file(&fname_out, &merge_result.contents)
+                    .map_err(CliError::Other)?;
             } else if git {
-                write_string_to_file(fname_left, &merge_result.contents)?;
+                write_string_to_file(fname_left, &merge_result.contents)
+                    .map_err(CliError::Other)?;
             } else {
                 print!("{}", merge_result.contents);
             }
@@ -337,13 +365,15 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             keep_backup,
         } => {
             if let Some(debug_dir) = &debug_dir {
-                fs::create_dir_all(debug_dir)
-                    .map_err(|err| format!("could not create the debug directory: {err}"))?;
+                fs::create_dir_all(debug_dir).map_err(|err| {
+                    CliError::Other(format!("could not create the debug directory: {err}"))
+                })?;
             }
 
             // Unlike `mergiraf merge`, there is no `git merge-file` we can fall back on in case of
             // non-UTF-8 input, so just bail out.
-            let original_conflict_contents = read_file_to_string(&fname_conflicts)?;
+            let original_conflict_contents =
+                read_file_to_string(&fname_conflicts).map_err(CliError::Other)?;
 
             if file_seems_to_have_a_jj_conflict(&fname_conflicts, &original_conflict_contents) {
                 // Our current logger doesn't handle multiline messages well, so we split them manually.
@@ -385,12 +415,14 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
                     if stdout {
                         print!("{}", merged.contents);
                     } else {
-                        write_string_to_file(&fname_conflicts, &merged.contents)?;
+                        write_string_to_file(&fname_conflicts, &merged.contents)
+                            .map_err(CliError::Other)?;
                         if keep_backup {
                             write_string_to_file(
                                 fname_conflicts.with_added_extension("orig"),
                                 &original_conflict_contents,
-                            )?;
+                            )
+                            .map_err(CliError::Other)?;
                         }
                     };
                     if merged.conflict_count > 0 {
@@ -406,8 +438,10 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             }
         }
         CliCommand::Review { merge_id } => {
-            let attempts_cache = AttemptsCache::new(None, None)?;
-            attempts_cache.review_merge(&merge_id)?;
+            let attempts_cache = AttemptsCache::new(None, None).map_err(CliError::Other)?;
+            attempts_cache
+                .review_merge(&merge_id)
+                .map_err(CliError::Other)?;
             EXIT_SUCCESS
         }
         CliCommand::Languages { gitattributes } => {
@@ -416,11 +450,11 @@ fn real_main(args: CliArgs) -> Result<i32, String> {
             EXIT_SUCCESS
         }
         CliCommand::Report { merge_id_or_file } => {
-            report_bug(&merge_id_or_file)?;
+            report_bug(&merge_id_or_file).map_err(CliError::Other)?;
             EXIT_SUCCESS
         }
     };
-    Ok(return_code)
+    Ok(ExitCode::from(return_code))
 }
 
 fn fallback_to_git_merge_file(
@@ -430,7 +464,7 @@ fn fallback_to_git_merge_file(
     git: bool,
     output: &Option<PathBuf>,
     settings: &DisplaySettings,
-) -> io::Result<i32> {
+) -> Result<ExitCode, CliError> {
     let mut command = Command::new("git");
     command.arg("merge-file").arg("--diff-algorithm=histogram");
     if !git {
@@ -460,7 +494,19 @@ fn fallback_to_git_merge_file(
     } else {
         command.spawn()?.wait()?
     };
-    Ok(code.code().unwrap_or(0))
+    let code = code.code().unwrap_or(0);
+    if code >= 128 {
+        Err(CliError::GitMergeFile { exit_code: code })
+    } else {
+        // we cannot return the exact same exit code as Git returned to us,
+        // because Rust exposes that to us as an i32 and we need to return an
+        // ExitCode (u8), so we map all other errors to 1 (signalling a conflict state)
+        Ok(ExitCode::from(if code == 0 {
+            EXIT_SUCCESS
+        } else {
+            EXIT_MERGE_HAS_CONFLICTS
+        }))
+    }
 }
 
 /// Check if user is using Jujutsu instead of Git, which can lead to issues when running

@@ -103,6 +103,7 @@ tempfile = "3"
 insta = { version = "1.43", default-features = false, features = ["colors"] }
 pretty_assertions = "1.4.1"
 assert_cmd = { version = "2.2.0", features = ["color"] }
+predicates = "3.1.4"
 
 [features]
 dev = ["dep:tempfile"]
