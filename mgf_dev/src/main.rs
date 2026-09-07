@@ -25,6 +25,9 @@ struct CliArgs {
     /// Override automatic language detection.
     #[arg(short = 'L', long, global = true)]
     language: Option<String>,
+    /// Be verbose
+    #[arg(short = 'v', long, global = true)]
+    verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -76,9 +79,16 @@ enum Command {
 }
 
 fn main() {
-    stderrlog::new().module(module_path!()).init().unwrap();
+    let args = CliArgs::parse();
+    stderrlog::new()
+        // most (currently, all) logging statements are made in the `mergiraf` crate,
+        // so initialize the logger there as well
+        .modules([module_path!(), "mergiraf"])
+        .verbosity(if args.verbose { 3 } else { 2 })
+        .init()
+        .unwrap();
 
-    match real_main(&CliArgs::parse()) {
+    match real_main(&args) {
         Ok(exit_code) => exit(exit_code),
         Err(error) => {
             eprintln!("mgf_dev: {error}");
