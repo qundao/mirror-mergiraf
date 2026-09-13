@@ -80,6 +80,7 @@ pub fn line_merge_and_structured_resolution(
         Arc::clone(&contents_base),
         Arc::clone(&contents_left),
         Arc::clone(&contents_right),
+        fname_base,
         lang_profile,
         settings,
         full_merge,
@@ -125,6 +126,7 @@ pub fn cascading_merge(
     contents_base: Arc<Cow<'static, str>>,
     contents_left: Arc<Cow<'static, str>>,
     contents_right: Arc<Cow<'static, str>>,
+    fname_base: &Path,
     lang_profile: Arc<Cow<'static, LangProfile>>,
     settings: DisplaySettings<'static>,
     full_merge: bool,
@@ -197,7 +199,10 @@ pub fn cascading_merge(
         match rx.recv_timeout(timeout) {
             Ok(merges) => merges,
             Err(oneshot::RecvTimeoutError::Timeout) => {
-                warn!("structured merge took too long, falling back to Git");
+                warn!(
+                    "structured merge of '{}' took too long, falling back to Git",
+                    fname_base.display()
+                );
                 vec![]
             }
             Err(oneshot::RecvTimeoutError::Disconnected) => unreachable!(),

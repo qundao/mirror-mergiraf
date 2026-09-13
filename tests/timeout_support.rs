@@ -1,3 +1,4 @@
+use assert_cmd::prelude::*;
 use diffy_imara::{PatchFormatter, create_patch};
 
 mod common;
@@ -27,4 +28,19 @@ fn timeout_support() {
         eprintln!("test failed: outputs differ");
         panic!();
     }
+}
+
+/// The timeout warning should name the file which fell back to Git
+#[test]
+fn timeout_warning_names_the_file() {
+    merge()
+        .arg("tests/data/java/working/move_and_modify_conflict/Base.java")
+        .arg("tests/data/java/working/move_and_modify_conflict/Left.java")
+        .arg("tests/data/java/working/move_and_modify_conflict/Right.java")
+        .arg("--path-name=src/main/java/Example.java")
+        .arg("--timeout=1")
+        .assert()
+        .stderr(
+            "WARN structured merge of 'src/main/java/Example.java' took too long, falling back to Git\n",
+        );
 }
