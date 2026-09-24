@@ -1577,6 +1577,50 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             extra_comment_nodes: &[],
             allow_parse_errors: false,
         },
+        LangProfile {
+            name: "qml",
+            alternate_names: &[],
+            extensions: &["qml"],
+            file_names: &[],
+            language: tree_sitter_qmljs::LANGUAGE.into(),
+            commutative_parents: vec![
+                // QML import statements are unordered
+                CommutativeParent::without_delimiters("program", "\n")
+                    .restricted_to_groups(&[&["ui_import"]]),
+                CommutativeParent::new("ui_object_initializer", " {\n", "\n\n", "\n}\n")
+                    .restricted_to(vec![
+                        // Most things in qml bodies are globally accessible within the module.
+                        ChildrenGroup::with_separator(&["ui_binding"], "\n"),
+                        ChildrenGroup::with_separator(&["ui_property"], "\n\n"),
+                        ChildrenGroup::with_separator(
+                            &["function_declaration", "generator_function_declaration"],
+                            "\n\n",
+                        ),
+                        ChildrenGroup::with_separator(&["ui_signal"], "\n\n"),
+                        ChildrenGroup::with_separator(&["enum_declaration"], "\n\n"),
+                    ]),
+            ],
+            signatures: vec![
+                // UI Imports should be unique (don't import the same thing twice)
+                signature("ui_import", vec![vec![]]),
+                // Bindings, properties, and function names, signals, and enums are also unique within they're scope
+                signature("ui_binding", vec![vec![Field("name")]]),
+                signature("ui_property", vec![vec![Field("name")]]),
+                signature("function_declaration", vec![vec![Field("name")]]),
+                signature("generator_function_declaration", vec![vec![Field("name")]]),
+                signature("ui_signal", vec![vec![Field("name")]]),
+                signature(
+                    "variable_declaration",
+                    vec![vec![ChildKind("variable_declarator"), Field("name")]],
+                ),
+                signature("enum_declaration", vec![vec![Field("name")]]),
+            ],
+            atomic_nodes: &[],
+            injections: None,
+            flattened_nodes: &[],
+            extra_comment_nodes: &[],
+            allow_parse_errors: false,
+        },
     ]
 });
 

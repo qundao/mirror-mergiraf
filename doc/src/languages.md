@@ -22,6 +22,7 @@ Mergiraf currently supports the following programming languages:
 * OCaml (*.ml, *.mli)
 * PHP (*.php, *.phmtl)
 * Python (*.py)
+* QML (*.qml)
 * R (*.R, *.r, .Rprofile)
 * Ruby (*.rb)
 * Rust (*.rs)
