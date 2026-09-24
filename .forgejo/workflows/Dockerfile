@@ -18,3 +18,7 @@ RUN cargo binstall jj-cli --version 0.41.0 -y --strategies crate-meta-data
 
 # Install 'shellcheck'
 RUN apt-get install shellcheck
+
+# Install a newer nodejs
+# TODO: this should be dropped once we migrate to act-26 (it's not out yet as of 2026-09-24)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash - && sudo apt-get install -y nodejs
