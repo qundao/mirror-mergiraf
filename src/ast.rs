@@ -102,6 +102,22 @@ pub struct AstNode<'a> {
     pub lang_profile: &'a LangProfile,
 }
 
+/// A cache of compiled Tree-sitter queries. This avoids needing to re-compile the same query for
+/// every recursive injection (e.g. every Rust macro invocation).
+#[derive(Default)]
+struct QueryCache(FxHashMap<(&'static str, &'static str), Query>);
+
+impl QueryCache {
+    fn get(&mut self, lang_profile: &LangProfile, query_str: &'static str, kind: &str) -> &Query {
+        self.0
+            .entry((lang_profile.name, query_str))
+            .or_insert_with(|| {
+                Query::new(&lang_profile.language, query_str)
+                    .unwrap_or_else(|err| panic!("Invalid {kind} query: {err}"))
+            })
+    }
+}
+
 impl<'a> AstNode<'a> {
     /// Parse a string to a tree using the language supplied
     pub fn parse(
@@ -111,7 +127,15 @@ impl<'a> AstNode<'a> {
         ref_arena: &'a Arena<&'a Self>,
     ) -> Result<&'a Self, ParsingError> {
         let mut next_node_id = 1;
-        let root = Self::parse_root(source, None, lang_profile, arena, &mut next_node_id)?;
+        let mut query_cache = QueryCache::default();
+        let root = Self::parse_root(
+            source,
+            None,
+            lang_profile,
+            arena,
+            &mut next_node_id,
+            &mut query_cache,
+        )?;
         root.internal_precompute_root_dfs(ref_arena);
         Ok(root)
     }
@@ -125,6 +149,7 @@ impl<'a> AstNode<'a> {
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
+        query_cache: &mut QueryCache,
     ) -> Result<&'a Self, ParsingError> {
         let mut parser = Parser::new();
         parser
@@ -139,9 +164,10 @@ impl<'a> AstNode<'a> {
         let tree = parser
             .parse(source, None)
             .expect("Parsing source code failed");
-        let node_id_to_injection_lang = Self::locate_injections(&tree, source, lang_profile);
+        let node_id_to_injection_lang =
+            Self::locate_injections(&tree, source, lang_profile, query_cache);
         let node_id_to_commutative_parent =
-            Self::locate_commutative_parents_by_query(&tree, source, lang_profile);
+            Self::locate_commutative_parents_by_query(&tree, source, lang_profile, query_cache);
         let range_for_root = if let Some(range) = range {
             range.start_byte..range.end_byte
         } else {
@@ -153,6 +179,7 @@ impl<'a> AstNode<'a> {
             lang_profile,
             arena,
             next_node_id,
+            query_cache,
             &node_id_to_injection_lang,
             &node_id_to_commutative_parent,
             Some(range_for_root),
@@ -165,19 +192,19 @@ impl<'a> AstNode<'a> {
         tree: &Tree,
         source: &'a str,
         lang_profile: &'b LangProfile,
+        query_cache: &mut QueryCache,
     ) -> FxHashMap<usize, &'b CommutativeParent> {
         let mut node_id_to_commutative_parent = FxHashMap::default();
         // For each commutative parent that is defined by a tree-sitter query
         for commutative_parent in &lang_profile.commutative_parents {
             if let ParentType::ByQuery(query_str) = commutative_parent.parent_type() {
                 // Execute this query over the tree
-                let query = Query::new(&lang_profile.language, query_str)
-                    .expect("Invalid commutative parent query");
+                let query = query_cache.get(lang_profile, query_str, "commutative parent");
                 let commutative_capture_index = query
                     .capture_index_for_name("commutative")
                     .expect("Commutative parent query without a '@commutative' capture");
                 let mut cursor = QueryCursor::new();
-                let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+                let matches = cursor.matches(query, tree.root_node(), source.as_bytes());
                 // For each match, mark the captured node(s) as commutative
                 matches.for_each(|m| {
                     node_id_to_commutative_parent.extend(
@@ -195,12 +222,13 @@ impl<'a> AstNode<'a> {
         tree: &Tree,
         source: &'a str,
         lang_profile: &'a LangProfile,
+        query_cache: &mut QueryCache,
     ) -> FxHashMap<usize, &'static LangProfile> {
         let Some(query_str) = lang_profile.injections else {
             return FxHashMap::default();
         };
         let mut node_id_to_injection_lang = FxHashMap::default();
-        let query = Query::new(&lang_profile.language, query_str).expect("Invalid injection query");
+        let query = query_cache.get(lang_profile, query_str, "injection");
         let content_capture_index = query
             .capture_index_for_name("injection.content")
             .expect("Injection query without an injection.content capture");
@@ -208,7 +236,7 @@ impl<'a> AstNode<'a> {
         // or statically defined as a property (fixed by the injection query), in which case the capture below won't be defined.
         let language_capture_index = query.capture_index_for_name("injection.language");
         let mut cursor = QueryCursor::new();
-        let matches = cursor.matches(&query, tree.root_node(), source.as_bytes());
+        let matches = cursor.matches(query, tree.root_node(), source.as_bytes());
         matches.for_each(|m| {
             let pattern_properties = query.property_settings(m.pattern_index);
             // first, check if the language is statically defined in this clause of the query as a property
@@ -247,6 +275,7 @@ impl<'a> AstNode<'a> {
         lang_profile: &'a LangProfile,
         arena: &'a Arena<Self>,
         next_node_id: &mut usize,
+        query_cache: &mut QueryCache,
         node_id_to_injection_lang: &FxHashMap<usize, &'static LangProfile>,
         node_id_to_commutative_parent: &FxHashMap<usize, &'a CommutativeParent>,
         range_for_root: Option<Range<usize>>,
@@ -271,6 +300,7 @@ impl<'a> AstNode<'a> {
                 injection_lang,
                 arena,
                 next_node_id,
+                query_cache,
             ) {
                 children.push(injected_root);
                 last_child_end = injected_root.byte_range.end;
@@ -284,6 +314,7 @@ impl<'a> AstNode<'a> {
                     lang_profile,
                     arena,
                     next_node_id,
+                    query_cache,
                     node_id_to_injection_lang,
                     node_id_to_commutative_parent,
                     None,

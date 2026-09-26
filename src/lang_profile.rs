@@ -353,7 +353,7 @@ impl CommutativeParent {
     }
 
     /// the type of the root node
-    pub(crate) fn parent_type(&self) -> &ParentType<'_> {
+    pub(crate) fn parent_type(&self) -> &ParentType<'static> {
         &self.parent_type
     }
 
