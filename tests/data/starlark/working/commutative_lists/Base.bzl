@@ -21,3 +21,10 @@ rust_library(
         "@crates//:log",
     ],
 )
+
+package_group(
+    name = "friends",
+    packages = [
+        "//some/package/...",
+    ],
+)

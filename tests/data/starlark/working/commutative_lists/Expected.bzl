@@ -34,3 +34,12 @@ rust_library(
         "@crates//:serde",
     ],
 )
+
+package_group(
+    name = "friends",
+    packages = [
+        "//some/package/...",
+        "//other/package/...",
+        "//third/package/...",
+    ],
+)

@@ -1358,10 +1358,10 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 // We restrict this to only keyword_argument nodes.
                 CommutativeParent::new("argument_list", "(", ", ", ")")
                     .restricted_to_groups(&[&["keyword_argument"]]),
-                // Lists in deps, srcs, visibility, and data keyword arguments are commutative
+                // Lists in deps, srcs, visibility, data, and packages keyword arguments are commutative
                 CommutativeParent::from_query(
                     r#"(keyword_argument
-                         name: (identifier) @arg_name (#any-of? @arg_name "deps" "srcs" "visibility" "data")
+                         name: (identifier) @arg_name (#any-of? @arg_name "deps" "srcs" "visibility" "data" "packages")
                          value: (list) @commutative)"#,
                     "[",
                     ",",

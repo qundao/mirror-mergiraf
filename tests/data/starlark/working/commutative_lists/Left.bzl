@@ -26,3 +26,11 @@ rust_library(
         "@crates//:regex",
     ],
 )
+
+package_group(
+    name = "friends",
+    packages = [
+        "//some/package/...",
+        "//other/package/...",
+    ],
+)
