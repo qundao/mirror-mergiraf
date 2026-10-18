@@ -10,7 +10,7 @@ This is also useful to work around [certain issues with parsers which don't expo
 
 Certain languages can contain text fragments in other languages. For instance, HTML can contain inline Javascript or CSS code.
 The `injections` field on the `LangProfile` object can be used to provide a [tree-sitter query locating such fragments](https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection).
-Such a query is normally exposed by the Rust crate for the parser as the `INJECTIONS_QUERY` constant if it has been defined by the parser authors, so it just needs wiring up as `injections: Some(tree_sitter_html::INJECTIONS_QUERY)`.
+Such a query is normally exposed by the Rust crate for the parser as the `INJECTIONS_QUERY` constant if it has been defined by the parser authors, so it just needs wiring up as `injections: Some(CompiledQuery::new(tree_sitter_html::INJECTIONS_QUERY))`.
 
 ## Flattened nodes
 

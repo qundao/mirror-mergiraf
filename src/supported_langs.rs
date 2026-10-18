@@ -2,6 +2,7 @@ use std::sync::LazyLock;
 
 use crate::{
     lang_profile::{ChildrenGroup, CommutativeParent, LangProfile},
+    query::CompiledQuery,
     signature::{
         PathStep::{ChildKind, Field},
         signature,
@@ -399,7 +400,9 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     vec![vec![Field("left")], vec![Field("bounds")]],
                 ),
             ],
-            injections: Some(tree_sitter_rust_orchard::INJECTIONS_QUERY),
+            injections: Some(CompiledQuery::new(
+                tree_sitter_rust_orchard::INJECTIONS_QUERY,
+            )),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: false,
@@ -587,7 +590,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                     vec![vec![ChildKind("property_identifier")]],
                 ),
             ],
-            injections: Some(tree_sitter_javascript::INJECTIONS_QUERY),
+            injections: Some(CompiledQuery::new(tree_sitter_javascript::INJECTIONS_QUERY)),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: false,
@@ -729,7 +732,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 "attribute",
                 vec![vec![ChildKind("attribute_name")]],
             )],
-            injections: Some(tree_sitter_html::INJECTIONS_QUERY),
+            injections: Some(CompiledQuery::new(tree_sitter_html::INJECTIONS_QUERY)),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: true,
@@ -1103,7 +1106,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 signature("enum_case", vec![vec![Field("name")]]),
                 signature("attribute_list", vec![vec![]]),
             ],
-            injections: Some(tree_sitter_php::INJECTIONS_QUERY),
+            injections: Some(CompiledQuery::new(tree_sitter_php::INJECTIONS_QUERY)),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: false,
@@ -1134,7 +1137,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: &[],
             commutative_parents: vec![],
             signatures: vec![],
-            injections: Some(tree_sitter_lua::INJECTIONS_QUERY),
+            injections: Some(CompiledQuery::new(tree_sitter_lua::INJECTIONS_QUERY)),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: false,
@@ -1162,7 +1165,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
             atomic_nodes: &[],
             commutative_parents: vec![],
             signatures: vec![],
-            injections: Some(tree_sitter_elixir::INJECTIONS_QUERY),
+            injections: Some(CompiledQuery::new(tree_sitter_elixir::INJECTIONS_QUERY)),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: false,
@@ -1223,7 +1226,7 @@ pub static SUPPORTED_LANGUAGES: LazyLock<Vec<LangProfile>> = LazyLock::new(|| {
                 ]),
             ],
             signatures: vec![],
-            injections: Some(tree_sitter_md::INJECTION_QUERY_BLOCK),
+            injections: Some(CompiledQuery::new(tree_sitter_md::INJECTION_QUERY_BLOCK)),
             flattened_nodes: &[],
             extra_comment_nodes: &[],
             allow_parse_errors: false,
@@ -1652,9 +1655,9 @@ mod test {
     #[test]
     fn injections_are_non_empty() {
         for lang_profile in &*SUPPORTED_LANGUAGES {
-            if let Some(injection) = lang_profile.injections {
+            if let Some(injection) = &lang_profile.injections {
                 assert!(
-                    !injection.trim().is_empty(),
+                    !injection.source.trim().is_empty(),
                     "Injection query for language {lang_profile} set as an empty string, use None instead"
                 );
             }

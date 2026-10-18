@@ -35,6 +35,7 @@ pub(crate) mod multimap;
 pub mod newline;
 pub(crate) mod parsed_merge;
 pub(crate) mod pcs;
+pub mod query;
 pub mod settings;
 pub(crate) mod signature;
 pub mod solve;

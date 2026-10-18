@@ -3,7 +3,10 @@ use std::{collections::HashSet, ffi::OsStr, fmt::Display, hash::Hash, path::Path
 use itertools::Itertools;
 use tree_sitter::Language;
 
-use crate::{ast::AstNode, signature::SignatureDefinition, supported_langs::SUPPORTED_LANGUAGES};
+use crate::{
+    ast::AstNode, query::CompiledQuery, signature::SignatureDefinition,
+    supported_langs::SUPPORTED_LANGUAGES,
+};
 
 /// Language-dependent settings to influence how merging is done.
 /// All those settings are declarative (except for the tree-sitter parser, which is
@@ -28,7 +31,7 @@ pub struct LangProfile {
     pub signatures: Vec<SignatureDefinition>,
     /// The injections query to locate nodes that need parsing in other languages.
     /// See https://tree-sitter.github.io/tree-sitter/3-syntax-highlighting.html#language-injection
-    pub injections: Option<&'static str>,
+    pub injections: Option<CompiledQuery<'static>>,
     /// List of node types that should be flattened
     pub flattened_nodes: &'static [&'static str],
     /// List of node types that should be treated like comments,
@@ -197,7 +200,7 @@ impl LangProfile {
 }
 
 /// Ways to specify the type of the parent node in a [`CommutativeParent`]
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(crate) enum ParentType<'a> {
     /// Specified using the grammar node defined in the grammar
     ///
@@ -219,7 +222,13 @@ pub(crate) enum ParentType<'a> {
     /// the query above encodes exactly this latter case
     ///
     /// [1]: https://docs.python.org/3/tutorial/modules.html#importing-from-a-package
-    ByQuery(&'a str),
+    ByQuery(CompiledQuery<'a>),
+}
+
+impl<'a> ParentType<'a> {
+    pub fn by_query(query: &'a str) -> Self {
+        Self::ByQuery(CompiledQuery::new(query))
+    }
 }
 
 impl Display for ParentType<'_> {
@@ -228,7 +237,11 @@ impl Display for ParentType<'_> {
             Self::ByKind(name) => f.write_str(name),
             // flatten the query to one line, since our logger doesn't handle multiline messages
             // too well
-            Self::ByQuery(query) => write!(f, "specified by query: {}", query.lines().format(" ")),
+            Self::ByQuery(query) => write!(
+                f,
+                "specified by query: {}",
+                query.source.lines().format(" ")
+            ),
         }
     }
 }
@@ -315,7 +328,7 @@ impl CommutativeParent {
             "A '@commutative' capture is needed to identify which of the captured nodes is commutative, in query '{query:?}'",
         );
         Self {
-            parent_type: ParentType::ByQuery(query),
+            parent_type: ParentType::by_query(query),
             separator,
             left_delim: Some(left_delim),
             right_delim: Some(right_delim),
@@ -336,7 +349,7 @@ impl CommutativeParent {
             "A '@commutative' capture is needed to identify which of the captured nodes is commutative, in query '{query:?}'",
         );
         Self {
-            parent_type: ParentType::ByQuery(query),
+            parent_type: ParentType::by_query(query),
             separator,
             left_delim: None,
             right_delim: None,
@@ -353,7 +366,7 @@ impl CommutativeParent {
     }
 
     /// the type of the root node
-    pub(crate) fn parent_type(&self) -> &ParentType<'static> {
+    pub(crate) fn parent_type(&self) -> &ParentType<'_> {
         &self.parent_type
     }
 
