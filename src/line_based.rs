@@ -122,23 +122,6 @@ func foo(){}"#;
 // a comment to split hunks
 func foo(){}"#;
 
-        let contents_expected = r#"<<<<<<< LEFT
-import "github.com/redis/go-redis/v9"
-||||||| BASE
-import "github.com/go-redis/redis/v8"
-=======
-import (
-	"fmt"
-	"net"
-	"net/url"
->>>>>>> RIGHT
-
-	"github.com/redis/go-redis/v9"
-)
-
-// a comment to split hunks
-func foo(){}"#;
-
         let lang_profile = LangProfile::go();
 
         let (_, merge) = line_based_merge_with_duplicate_signature_detection(
@@ -149,7 +132,7 @@ func foo(){}"#;
             lang_profile,
         );
 
-        assert_eq!(&merge.contents, contents_expected);
+        insta::assert_snapshot!("expected_merge_result.rs", &merge.contents);
 
         assert!(
             merge.has_additional_issues,

@@ -1,0 +1,20 @@
+---
+source: src/line_based.rs
+expression: "&merge.contents"
+---
+<<<<<<< LEFT
+import "github.com/redis/go-redis/v9"
+||||||| BASE
+import "github.com/go-redis/redis/v8"
+=======
+import (
+	"fmt"
+	"net"
+	"net/url"
+>>>>>>> RIGHT
+
+	"github.com/redis/go-redis/v9"
+)
+
+// a comment to split hunks
+func foo(){}

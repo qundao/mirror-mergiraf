@@ -587,18 +587,6 @@ mod test {
             &DisplaySettings::default(),
             None,
         );
-        assert_eq!(
-            merged_tree.to_string(),
-            "\
-Mixed(document:0…6@Base
-  Mixed(array:0…6@Base
-    Exact([:0…1@Base/BLR/)
-    Exact(number:1…2@Right/..R/)
-    Exact(,:2…3@Base/BLR/)
-    Exact(number:4…5@Left/.L./)
-    Exact(]:5…6@Base/BLR/)
-  )
-)"
-        );
+        insta::assert_snapshot!("merged_tree.txt", merged_tree.to_string());
     }
 }

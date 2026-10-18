@@ -1829,79 +1829,34 @@ mod tests {
         let ctx = ctx();
         let tree = ctx.parse("a.json", "{\"foo\": 3, \"bar\": 4}");
 
-        let expected = "\
-\u{1b}[90m└\u{1b}[0mdocument
-\u{1b}[90m  └\u{1b}[0mobject\u{1b}[95m Commutative\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0m\u{1b}[31m{\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0mpair \u{1b}[96mSignature [[\"foo\"]]\u{1b}[0m
-\u{1b}[90m    │ ├key: \u{1b}[0mstring
-\u{1b}[90m    │ │ ├\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
-\u{1b}[90m    │ │ ├\u{1b}[0mstring_content \u{1b}[31mfoo\u{1b}[0m
-\u{1b}[90m    │ │ └\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
-\u{1b}[90m    │ ├\u{1b}[0m\u{1b}[31m:\u{1b}[0m
-\u{1b}[90m    │ └value: \u{1b}[0mnumber \u{1b}[31m3\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0m\u{1b}[31m,\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0mpair \u{1b}[96mSignature [[\"bar\"]]\u{1b}[0m
-\u{1b}[90m    │ ├key: \u{1b}[0mstring
-\u{1b}[90m    │ │ ├\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
-\u{1b}[90m    │ │ ├\u{1b}[0mstring_content \u{1b}[31mbar\u{1b}[0m
-\u{1b}[90m    │ │ └\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
-\u{1b}[90m    │ ├\u{1b}[0m\u{1b}[31m:\u{1b}[0m
-\u{1b}[90m    │ └value: \u{1b}[0mnumber \u{1b}[31m4\u{1b}[0m
-\u{1b}[90m    └\u{1b}[0m\u{1b}[31m}\u{1b}[0m
-";
+        fn escape(orig: String) -> String {
+            orig.escape_default().to_string().replace("\\n", "\n")
+        }
 
-        assert_eq!(tree.ascii_tree(None, true), expected);
-        assert_eq!(tree.ascii_tree(Some(5), true), expected);
+        insta::assert_snapshot!(
+            "ascii_tree_no_max_depth.txt",
+            escape(tree.ascii_tree(None, true))
+        );
+        // same file as above, as the resulting tree should be the same
+        insta::assert_snapshot!(
+            "ascii_tree_no_max_depth.txt",
+            escape(tree.ascii_tree(Some(5), true))
+        );
+        insta::assert_snapshot!(
+            "ascii_tree_max_depth_4.txt",
+            escape(tree.ascii_tree(Some(4), true))
+        );
+        insta::assert_snapshot!(
+            "ascii_tree_max_depth_1.txt",
+            escape(tree.ascii_tree(Some(1), true))
+        );
 
-        let expected = "\
-\u{1b}[90m└\u{1b}[0mdocument
-\u{1b}[90m  └\u{1b}[0mobject\u{1b}[95m Commutative\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0m\u{1b}[31m{\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0mpair \u{1b}[96mSignature [[\"foo\"]]\u{1b}[0m
-\u{1b}[90m    │ ├key: \u{1b}[0mstring
-\u{1b}[90m    │ ├\u{1b}[0m\u{1b}[31m:\u{1b}[0m
-\u{1b}[90m    │ └value: \u{1b}[0mnumber \u{1b}[31m3\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0m\u{1b}[31m,\u{1b}[0m
-\u{1b}[90m    ├\u{1b}[0mpair \u{1b}[96mSignature [[\"bar\"]]\u{1b}[0m
-\u{1b}[90m    │ ├key: \u{1b}[0mstring
-\u{1b}[90m    │ ├\u{1b}[0m\u{1b}[31m:\u{1b}[0m
-\u{1b}[90m    │ └value: \u{1b}[0mnumber \u{1b}[31m4\u{1b}[0m
-\u{1b}[90m    └\u{1b}[0m\u{1b}[31m}\u{1b}[0m
-";
+        insta::assert_snapshot!(tree.ascii_tree(Some(0), true), @"");
 
-        assert_eq!(tree.ascii_tree(Some(4), true), expected);
-
-        let expected = "\
-\u{1b}[90m└\u{1b}[0mdocument
-";
-
-        assert_eq!(tree.ascii_tree(Some(1), true), expected);
-
-        assert_eq!(tree.ascii_tree(Some(0), true), "");
-
-        let expected = "\
-└document
-  └object Commutative
-    ├{
-    ├pair Signature [[\"foo\"]]
-    │ ├key: string
-    │ │ ├\"
-    │ │ ├string_content foo
-    │ │ └\"
-    │ ├:
-    │ └value: number 3
-    ├,
-    ├pair Signature [[\"bar\"]]
-    │ ├key: string
-    │ │ ├\"
-    │ │ ├string_content bar
-    │ │ └\"
-    │ ├:
-    │ └value: number 4
-    └}
-";
-        assert_eq!(tree.ascii_tree(None, false), expected);
+        insta::assert_snapshot!(
+            "ascii_tree_no_colors.txt",
+            escape(tree.ascii_tree(None, false))
+        );
     }
 
     #[test]

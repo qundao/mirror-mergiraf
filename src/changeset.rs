@@ -202,41 +202,12 @@ mod tests {
         let mut changeset = ChangeSet::new();
         changeset.add_tree(tree, Revision::Base, &classmapping);
 
-        let as_strings = changeset
+        let as_string = changeset
             .iter()
             .sorted()
             .map(|pcs| format!("({}, {}, {})", pcs.parent, pcs.predecessor, pcs.successor))
-            .collect_vec();
-
-        let expected = vec![
-            "(⊥, ⊣, document:0…11@Base)",
-            "(⊥, document:0…11@Base, ⊢)",
-            "(document:0…11@Base, ⊣, array:0…11@Base)",
-            "(document:0…11@Base, array:0…11@Base, ⊢)",
-            "(array:0…11@Base, ⊣, [:0…1@Base)",
-            "(array:0…11@Base, [:0…1@Base, number:1…2@Base)",
-            "(array:0…11@Base, number:1…2@Base, ,:2…3@Base)",
-            "(array:0…11@Base, ,:2…3@Base, array:4…10@Base)",
-            "(array:0…11@Base, array:4…10@Base, ]:10…11@Base)",
-            "(array:0…11@Base, ]:10…11@Base, ⊢)",
-            "([:0…1@Base, ⊣, ⊢)",
-            "(number:1…2@Base, ⊣, ⊢)",
-            "(,:2…3@Base, ⊣, ⊢)",
-            "(array:4…10@Base, ⊣, [:4…5@Base)",
-            "(array:4…10@Base, [:4…5@Base, number:5…6@Base)",
-            "(array:4…10@Base, number:5…6@Base, ,:6…7@Base)",
-            "(array:4…10@Base, ,:6…7@Base, number:8…9@Base)",
-            "(array:4…10@Base, number:8…9@Base, ]:9…10@Base)",
-            "(array:4…10@Base, ]:9…10@Base, ⊢)",
-            "([:4…5@Base, ⊣, ⊢)",
-            "(number:5…6@Base, ⊣, ⊢)",
-            "(,:6…7@Base, ⊣, ⊢)",
-            "(number:8…9@Base, ⊣, ⊢)",
-            "(]:9…10@Base, ⊣, ⊢)",
-            "(]:10…11@Base, ⊣, ⊢)",
-        ];
-
-        assert_eq!(as_strings, expected);
+            .join("\n");
+        insta::assert_snapshot!("pcs_triples.txt", as_string);
     }
 
     #[test]
@@ -276,22 +247,6 @@ mod tests {
 
         let contents = fs::read_to_string(&path).expect("Failed to read the changeset.txt file");
 
-        let expected_contents = r"(⊥, ⊣, document:0…6@Base, Base)
-(⊥, document:0…6@Base, ⊢, Base)
-(document:0…6@Base, ⊣, array:0…6@Base, Base)
-(document:0…6@Base, array:0…6@Base, ⊢, Base)
-(array:0…6@Base, ⊣, [:0…1@Base, Base)
-(array:0…6@Base, [:0…1@Base, number:1…2@Base, Base)
-(array:0…6@Base, number:1…2@Base, ,:2…3@Base, Base)
-(array:0…6@Base, ,:2…3@Base, number:4…5@Base, Base)
-(array:0…6@Base, number:4…5@Base, ]:5…6@Base, Base)
-(array:0…6@Base, ]:5…6@Base, ⊢, Base)
-([:0…1@Base, ⊣, ⊢, Base)
-(number:1…2@Base, ⊣, ⊢, Base)
-(,:2…3@Base, ⊣, ⊢, Base)
-(number:4…5@Base, ⊣, ⊢, Base)
-(]:5…6@Base, ⊣, ⊢, Base)
-";
-        assert_eq!(contents, expected_contents);
+        insta::assert_snapshot!("changeset.txt", contents);
     }
 }

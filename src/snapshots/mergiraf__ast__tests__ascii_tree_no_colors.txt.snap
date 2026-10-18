@@ -1,0 +1,23 @@
+---
+source: src/ast.rs
+expression: "escape(tree.ascii_tree(None, false))"
+---
+\u{2514}document
+  \u{2514}object Commutative
+    \u{251c}{
+    \u{251c}pair Signature [[\"foo\"]]
+    \u{2502} \u{251c}key: string
+    \u{2502} \u{2502} \u{251c}\"
+    \u{2502} \u{2502} \u{251c}string_content foo
+    \u{2502} \u{2502} \u{2514}\"
+    \u{2502} \u{251c}:
+    \u{2502} \u{2514}value: number 3
+    \u{251c},
+    \u{251c}pair Signature [[\"bar\"]]
+    \u{2502} \u{251c}key: string
+    \u{2502} \u{2502} \u{251c}\"
+    \u{2502} \u{2502} \u{251c}string_content bar
+    \u{2502} \u{2502} \u{2514}\"
+    \u{2502} \u{251c}:
+    \u{2502} \u{2514}value: number 4
+    \u{2514}}

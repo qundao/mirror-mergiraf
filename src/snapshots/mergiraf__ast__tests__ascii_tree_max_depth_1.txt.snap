@@ -1,0 +1,5 @@
+---
+source: src/ast.rs
+expression: "escape(tree.ascii_tree(Some(1), true))"
+---
+\u{1b}[90m\u{2514}\u{1b}[0mdocument

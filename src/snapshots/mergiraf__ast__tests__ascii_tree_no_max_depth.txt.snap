@@ -1,0 +1,23 @@
+---
+source: src/ast.rs
+expression: "escape(tree.ascii_tree(Some(5), true))"
+---
+\u{1b}[90m\u{2514}\u{1b}[0mdocument
+\u{1b}[90m  \u{2514}\u{1b}[0mobject\u{1b}[95m Commutative\u{1b}[0m
+\u{1b}[90m    \u{251c}\u{1b}[0m\u{1b}[31m{\u{1b}[0m
+\u{1b}[90m    \u{251c}\u{1b}[0mpair \u{1b}[96mSignature [[\"foo\"]]\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{251c}key: \u{1b}[0mstring
+\u{1b}[90m    \u{2502} \u{2502} \u{251c}\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{2502} \u{251c}\u{1b}[0mstring_content \u{1b}[31mfoo\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{2502} \u{2514}\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{251c}\u{1b}[0m\u{1b}[31m:\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{2514}value: \u{1b}[0mnumber \u{1b}[31m3\u{1b}[0m
+\u{1b}[90m    \u{251c}\u{1b}[0m\u{1b}[31m,\u{1b}[0m
+\u{1b}[90m    \u{251c}\u{1b}[0mpair \u{1b}[96mSignature [[\"bar\"]]\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{251c}key: \u{1b}[0mstring
+\u{1b}[90m    \u{2502} \u{2502} \u{251c}\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{2502} \u{251c}\u{1b}[0mstring_content \u{1b}[31mbar\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{2502} \u{2514}\u{1b}[0m\u{1b}[31m\"\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{251c}\u{1b}[0m\u{1b}[31m:\u{1b}[0m
+\u{1b}[90m    \u{2502} \u{2514}value: \u{1b}[0mnumber \u{1b}[31m4\u{1b}[0m
+\u{1b}[90m    \u{2514}\u{1b}[0m\u{1b}[31m}\u{1b}[0m
