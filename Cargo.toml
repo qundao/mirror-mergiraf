@@ -91,7 +91,7 @@ derive_more = { version = "2.1.1", features = ["eq"] }
 tree-sitter-fortran = "0.6"
 tree-sitter-r = "1.2"
 tree-sitter-requirements = "0.6.0"
-tree-sitter-scheme = "0.24.7"
+tree-sitter-scheme = "0.25.0"
 
 # for transitive dependencies that incorrectly specify minimal required versions of their dependencies
 [target."cfg(any())".dependencies]
@@ -99,7 +99,7 @@ cc = { version = ">=1.2.12", default-features = false, optional = true } # requi
 
 [dev-dependencies]
 caplog = "0.3"
-rstest = { version = "0.27", default-features = false }
+rstest = { version = "0.28", default-features = false }
 tempfile = "3"
 insta = { version = "1.43", default-features = false, features = ["colors"] }
 pretty_assertions = "1.4.1"
